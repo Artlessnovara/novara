@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}{{ assessment.title or 'Assessment' }}{% if preview %} (Preview){% endif %}{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/calculator.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="ice-sky-content">
+    <div id="assessment-container">
+        <section id="assessment-page" class="glassy-card-container">
+            <div class="form-header text-center">
+                <h1 class="form-title">{{ assessment.title or 'Assessment' }}{% if preview %} <span class="chip-glassy">(Preview Mode)</span>{% endif %}</h1>
+            </div>
+
+            {% if assessment.time_limit_minutes and not preview %}
+            <div id="timer" class="timer-glassy">Time Remaining: <span id="time">{{ assessment.time_limit_minutes }}:00</span></div>
+            {% endif %}
+
+            <form id="assessment-form" action="{{ submit_url }}" method="post">
+                {% for question in assessment.questions %}
+                <div class="form-group question-glassy">
+                    <p class="question-text"><strong>Question {{ loop.index }}:</strong> {{ question.question_text }}</p>
+                    <div class="options">
+                        {% if question.question_type.startswith('multiple_choice') %}
+                            {% for choice in question.choices %}
+                            <div class="option-item form-check">
+                                <input type="{{ 'checkbox' if question.question_type == 'multiple_choice_multiple' else 'radio' }}"
+                                       name="q_{{ question.id }}"
+                                       id="q_{{ question.id }}_c_{{ choice.id }}"
+                                       value="{{ choice.id }}"
+                                       required class="form-check-input">
+                                <label for="q_{{ question.id }}_c_{{ choice.id }}" class="form-check-label">{{ choice.choice_text }}</label>
+                            </div>
+                            {% endfor %}
+                        {% elif question.question_type == 'true_false' %}
+                            <div class="option-item form-check">
+                                <input type="radio" name="q_{{ question.id }}" id="q_{{ question.id }}_true" value="True" required class="form-check-input">
+                                <label for="q_{{ question.id }}_true" class="form-check-label">True</label>
+                            </div>
+                            <div class="option-item form-check">
+                                <input type="radio" name="q_{{ question.id }}" id="q_{{ question.id }}_false" value="False" required class="form-check-input">
+                                <label for="q_{{ question.id }}_false" class="form-check-label">False</label>
+                            </div>
+                        {% elif question.question_type == 'short_answer' %}
+                            <textarea name="q_{{ question.id }}" rows="3" class="form-input" placeholder="Your answer..."></textarea>
+                        {% elif question.question_type == 'essay' %}
+                            <textarea name="q_{{ question.id }}" rows="8" class="form-input" placeholder="Your essay..."></textarea>
+                        {% elif question.question_type == 'file_upload' %}
+                            <input type="file" name="q_{{ question.id }}" class="form-input">
+                            {% if question.allowed_file_types or question.max_file_size_kb %}
+                            <small>
+                                {% if question.allowed_file_types %}Allowed types: {{ question.allowed_file_types }}. {% endif %}
+                                {% if question.max_file_size_kb %}Max size: {{ question.max_file_size_kb }}KB.{% endif %}
+                            </small>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="form-actions text-center">
+                    <button type="submit" class="btn-primary" {% if preview %}disabled{% endif %}>Submit Answers</button>
+                </div>
+            </form>
+        </section>
+
+        {% if assessment.calculator_allowed %}
+        <button id="calculator-toggle-btn" class="floating-btn">🔢</button>
+        {% include 'calculator.html' %}
+        {% endif %}
+    </div>
+</div>
+
+<div id="violation-overlay" style="display: none;">
+    <div class="violation-modal glass-card">
+        <h2 class="form-title">Exam Locked</h2>
+        <p>You have been locked out of the exam due to leaving the page. This incident has been logged.</p>
+        <p>You may appeal this decision after the exam period has concluded.</p>
+        <p>Violations logged: <span id="violation-count">1</span></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/calculator.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isPreview = {{ preview|tojson }};
+
+    // Timer functionality
+    if (!isPreview) {
+        const timeDisplay = document.getElementById('time');
+        if (timeDisplay) {
+            let timeLeft = {{ assessment.time_limit_minutes * 60 }};
+            const timerInterval = setInterval(function() {
+                if (document.hidden) return;
+                const minutes = Math.floor(timeLeft / 60);
+                let seconds = timeLeft % 60;
+                seconds = seconds < 10 ? '0' + seconds : seconds;
+                timeDisplay.textContent = `${minutes}:${seconds}`;
+
+                if (--timeLeft < 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('assessment-form').submit();
+                }
+            }, 1000);
+        }
+    }
+
+    // Anti-cheating functionality
+    {% if not preview and assessment.is_published and submission is defined %}
+    if (true) {
+        let violationCount = 0;
+        const maxViolations = 1;
+        const overlay = document.getElementById('violation-overlay');
+        const violationCounter = document.getElementById('violation-count');
+
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                violationCount++;
+                violationCounter.textContent = violationCount;
+
+                fetch('{{ url_for("main.log_exam_violation", submission_id=submission.id) }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ details: 'User switched tabs or minimized the window.' })
+                });
+
+                if (violationCount >= maxViolations) {
+                    overlay.style.display = 'flex';
+                    document.getElementById('assessment-form').style.pointerEvents = 'none';
+                    document.removeEventListener("visibilitychange", handleVisibilityChange);
+                }
+            }
+        }
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+    {% endif %}
+
+    // Submission confirmation
+    const form = document.getElementById('assessment-form');
+    form.addEventListener('submit', function(event) {
+        if (isPreview) {
+            event.preventDefault();
+            alert('This is a preview. Submission is disabled.');
+            return;
+        }
+
+        const inputs = form.querySelectorAll('input[type="radio"], input[type="checkbox"], textarea, input[type="file"]');
+        let unanswered = 0;
+        const totalQuestions = {{ assessment.questions.count() }};
+
+        let answeredQuestions = new Set();
+        inputs.forEach(input => {
+            const questionName = input.name;
+            if ((input.type === 'radio' && input.checked) ||
+                (input.type === 'checkbox' && input.checked) ||
+                (input.tagName === 'TEXTAREA' && input.value.trim() !== '') ||
+                (input.type === 'file' && input.files.length > 0)) {
+                answeredQuestions.add(questionName);
+            }
+        });
+
+        unanswered = totalQuestions - answeredQuestions.size;
+
+        if (unanswered > 0) {
+            const confirmation = confirm(`You have ${unanswered} unanswered question(s). Are you sure you want to submit?`);
+            if (!confirmation) {
+                event.preventDefault();
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
