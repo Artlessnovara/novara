@@ -1,0 +1,248 @@
+/* --- Auth Page: Ice Sky Global Styles --- */
+.auth-body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #e0f7fa, #b3e5fc, #81d4fa, #4fc3f7, #29b6f6);
+    color: #37474f; /* Darker gray-blue for general text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Optional: Subtle animated shapes */
+.auth-body::before, .auth-body::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    filter: blur(50px);
+    z-index: 0;
+    animation: float 20s infinite alternate ease-in-out;
+}
+
+.auth-body::before {
+    width: 200px;
+    height: 200px;
+    top: 10%;
+    left: 15%;
+}
+
+.auth-body::after {
+    width: 300px;
+    height: 300px;
+    bottom: 5%;
+    right: 10%;
+    animation-duration: 25s;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px) translateX(0px) rotate(0deg);
+    }
+    100% {
+        transform: translateY(-40px) translateX(30px) rotate(20deg);
+    }
+}
+
+
+/* --- Form Card (Container) --- */
+.auth-form-container {
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+    position: relative;
+    z-index: 1;
+    width: 90%;
+    max-width: 400px;
+    box-sizing: border-box;
+}
+
+/* --- Typography --- */
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-header .header-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.auth-header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(90deg, #0288d1, #26c6da);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.auth-header p {
+    color: #607d8b; /* Gray-blue subtext */
+    font-size: 1rem;
+}
+
+/* --- Input Fields --- */
+.auth-form .form-group {
+    margin-bottom: 1.25rem;
+}
+
+.auth-form label {
+    display: block;
+    color: #37474f; /* Darker gray-blue for labels */
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.auth-form .form-input, .auth-form .input-glassy {
+    width: 100%;
+    height: 50px;
+    padding: 0 1rem;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid #bbdefb; /* Soft border */
+    border-radius: 12px;
+    color: #263238; /* Dark text color */
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.auth-form .form-input::placeholder, .auth-form .input-glassy::placeholder {
+    color: #78909c;
+}
+
+.auth-form .form-input:focus, .auth-form .input-glassy:focus {
+    outline: none;
+    border-color: #29b6f6;
+    box-shadow: 0 0 10px rgba(41, 182, 246, 0.5);
+}
+
+/* --- Buttons --- */
+.btn-primary-glass {
+    width: 100%;
+    height: 50px;
+    border: none;
+    border-radius: 25px; /* Pill shape */
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: #fff;
+    background: linear-gradient(90deg, #29b6f6, #0288d1);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary-glass:hover {
+    background: linear-gradient(90deg, #4fc3f7, #0288d1);
+    box-shadow: 0 6px 20px rgba(2, 136, 209, 0.4);
+    transform: translateY(-2px);
+}
+
+
+/* --- Helper Links & Toggles --- */
+.auth-links {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.auth-links a {
+    color: #0288d1; /* Soft blue */
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.auth-links a:hover {
+    color: #01579b; /* Darker hover */
+    text-decoration: underline;
+}
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+    color: #37474f;
+}
+
+.form-options a {
+    color: #0288d1;
+    text-decoration: none;
+}
+.form-options a:hover {
+    color: #01579b;
+}
+
+/* --- Password Toggle Icon --- */
+.password-wrapper {
+    position: relative;
+}
+
+.password-toggle-icon {
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    color: #78909c;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.password-toggle-icon:hover {
+    color: #29b6f6;
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 480px) {
+    .auth-form-container {
+        width: 90%;
+        padding: 2rem;
+    }
+
+    .auth-header h1 {
+        font-size: 1.8rem;
+    }
+
+    .btn-primary-glass {
+        width: 100%;
+    }
+
+    .form-actions {
+        margin-bottom: 70px; /* Add margin to avoid overlap with FAB */
+    }
+
+    /* Floating action button for mobile */
+    .mobile-fab {
+        display: block;
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(45deg, #29b6f6, #0288d1);
+        border-radius: 50%;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        text-decoration: none;
+        z-index: 1000;
+    }
+}
+
+@media (min-width: 481px) {
+    .mobile-fab {
+        display: none;
+    }
+}
