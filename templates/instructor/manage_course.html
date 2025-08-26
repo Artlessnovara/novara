@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Manage: {{ course.title }}{% endblock %}
+
+{% block scripts %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/manage_course.css') }}">
+    <script src="https://cdn.ckeditor.com/4.21.0/standard/ckeditor.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const textareas = document.querySelectorAll('.ckeditor-textarea');
+            textareas.forEach(textarea => {
+                CKEDITOR.replace(textarea.id, {
+                    filebrowserUploadUrl: '{{ url_for("instructor.upload_image") }}',
+                    filebrowserUploadMethod: 'form'
+                });
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <a href="{{ url_for('instructor.dashboard') }}" class="back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+            </svg>
+            Back
+        </a>
+        <h1>Manage Course</h1>
+    </div>
+
+    <!-- Course Overview Section -->
+    <div class="form-container-glassy course-overview-card">
+        <div class="form-header">
+            <h2 class="form-title">{{ course.title }}</h2>
+        </div>
+        <p class="course-description">{{ course.description }}</p>
+
+        <div class="course-actions">
+            <a href="#edit-course-details" class="btn-secondary-glass">Edit Details</a>
+            <a href="{{ url_for('instructor.enrolled_students', course_id=course.id) }}" class="btn-secondary-glass">View Students</a>
+            {% if course.final_exam_enabled and not course.final_exam %}
+                <a href="{{ url_for('instructor.create_exam_step_1', course_id=course.id) }}" class="btn-action btn-action-positive">Create Final Exam</a>
+            {% elif course.final_exam %}
+                <a href="{{ url_for('instructor.manage_exam', exam_id=course.final_exam.id) }}" class="btn-action btn-action-neutral">Manage Exam</a>
+            {% endif %}
+        </div>
+
+        <div class="course-settings-flex">
+            <p>
+                Chat Room:
+                <strong>
+                    {% if course.chat_room and course.chat_room.is_locked %}Locked{% else %}Unlocked{% endif %}
+                </strong>
+            </p>
+            <form action="{{ url_for('instructor.toggle_course_chat_lock', course_id=course.id) }}" method="post">
+                <button type="submit" class="btn-action btn-action-neutral compact-btn">
+                    {% if course.chat_room and course.chat_room.is_locked %}Unlock{% else %}Lock{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Course Details Section -->
+    <div id="edit-course-details" class="form-container-glassy">
+        <div class="form-header">
+            <h2 class="form-title">Edit Course Details</h2>
+        </div>
+        <form action="{{ url_for('instructor.edit_course', course_id=course.id) }}" method="post">
+            <div class="form-group">
+                <label for="title">Course Title:</label>
+                <input type="text" id="title" name="title" value="{{ course.title }}" required class="input-glassy">
+            </div>
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <textarea id="description" name="description" rows="5" class="input-glassy">{{ course.description }}</textarea>
+            </div>
+            <div class="form-group">
+                <div class="radio-group-glassy">
+                    <input type="checkbox" name="final_exam_enabled" id="final_exam_enabled" {% if course.final_exam_enabled %}checked{% endif %}>
+                    <label for="final_exam_enabled">Enable Final Exam for Certificate</label>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary-glass">Save Changes</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modules Section -->
+    <div class="modules-section">
+        <div class="form-header" style="text-align: left; margin-bottom: 1.5rem;">
+            <h2 class="form-title" style="font-size: 1.8rem;">Modules & Content</h2>
+        </div>
+
+        {% for module in course.modules.order_by('order') %}
+        <div class="module-manage-item">
+            <h4>{{ module.order }}. {{ module.title }}</h4>
+            <ul class="lessons-list">
+                {% for lesson in module.lessons %}
+                <li>
+                    <span>{{ lesson.title }}</span>
+                    <a href="{{ url_for('instructor.edit_lesson', lesson_id=lesson.id) }}" class="btn-action btn-action-neutral compact-btn">Edit</a>
+                </li>
+                {% else %}
+                <li class="empty-list-item">No lessons in this module yet.</li>
+                {% endfor %}
+            </ul>
+
+            <div class="add-content-forms">
+                <!-- Add Lesson -->
+                <div class="add-lesson-form">
+                    <h5>Add New Lesson</h5>
+                    <form class="add-lesson-form-js" data-module-id="{{ module.id }}" action="{{ url_for('instructor.add_lesson', module_id=module.id) }}" method="post">
+                        <div class="form-group">
+                            <input type="text" name="title" placeholder="Lesson Title" required class="input-glassy">
+                        </div>
+                        <div class="form-group">
+                            <textarea name="notes" id="editor-{{ module.id }}" class="ckeditor-textarea" placeholder="Lesson Notes..."></textarea>
+                        </div>
+                        <button type="submit" class="btn-action btn-action-positive full-width">Add Lesson</button>
+                    </form>
+                </div>
+
+                <!-- Add Assignment/Quiz Buttons -->
+                <div class="add-assessment-buttons">
+                    {% if module.assignment %}
+                        <a href="{{ url_for('instructor.review_assignment_submissions', assignment_id=module.assignment.id) }}" class="btn-secondary-glass full-width">Review Assignment</a>
+                    {% else %}
+                        <a href="#add-assignment-{{module.id}}" class="btn-secondary-glass full-width">Add Assignment</a>
+                    {% endif %}
+
+                    {% if module.quiz %}
+                        <a href="{{ url_for('instructor.manage_quiz', quiz_id=module.quiz.id) }}" class="btn-secondary-glass full-width">Manage Quiz</a>
+                    {% else %}
+                        <form action="{{ url_for('instructor.create_quiz', module_id=module.id) }}" method="post" style="display: contents;">
+                            <button type="submit" class="btn-secondary-glass full-width">Add Quiz</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p>No modules created yet.</p>
+        {% endfor %}
+
+        <!-- Add New Module Form -->
+        <div class="add-module-form form-container-glassy">
+            <div class="form-header">
+                <h3 class="form-title" style="font-size:1.5rem;">Add New Module</h3>
+            </div>
+            <form action="{{ url_for('instructor.add_module', course_id=course.id) }}" method="post" class="add-module-form-inner">
+                <input type="text" name="title" placeholder="New Module Title" required class="input-glassy">
+                <button type="submit" class="btn-primary-glass">Add Module</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

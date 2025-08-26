@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Chat Rooms{% endblock %}
+
+{% block content %}
+<div class="admin-container admin-chat-container">
+    <aside class="chat-sidebar">
+        <div class="sidebar-header">
+            <h3>Chat Rooms</h3>
+            <a href="{{ url_for('admin.create_chat_room') }}" class="btn-glass info compact-btn" title="Create New Room">
+                <i class="fas fa-plus"></i>
+            </a>
+        </div>
+        <div class="chat-list">
+            {% for room in rooms %}
+            <a href="#" class="chat-list-item {% if loop.first %}active{% endif %}" data-room-id="{{ room.id }}">
+                <img src="{{ url_for('static', filename='uploads/images/' + room.cover_image) if room.cover_image else url_for('static', filename='images/course_placeholder.jpg') }}" alt="{{ room.name }} cover" class="chat-avatar">
+                <div class="chat-info">
+                    <span class="chat-name">{{ room.name }}</span>
+                    <span class="chat-preview">
+                        {% if room.is_locked %}
+                            <i class="fas fa-lock"></i> Locked
+                        {% else %}
+                            {{ room.members.count() }} members
+                        {% endif %}
+                    </span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <main class="chat-main">
+        <div class="chat-header">
+            <button class="btn-glass back-to-list-btn"><i class="fas fa-arrow-left"></i></button>
+            <h2 id="chat-title">General</h2>
+            <div class="chat-actions">
+                <button class="btn-glass info">Edit</button>
+                <button class="btn-glass reject">Lock</button>
+            </div>
+        </div>
+        <div class="chat-conversation-viewer">
+            <!-- Chat messages will be loaded here dynamically. This is a placeholder. -->
+            <div class="chat-bubble-wrapper received">
+                <div class="chat-bubble">
+                    <p>Hello! This is a sample message from a user.</p>
+                    <span class="bubble-meta">John Doe - 10:30 AM</span>
+                </div>
+            </div>
+            <div class="chat-bubble-wrapper sent">
+                <div class="chat-bubble">
+                    <p>Hi John! This is a response from an admin. The new chat interface looks great!</p>
+                    <span class="bubble-meta">Admin - 10:31 AM</span>
+                </div>
+            </div>
+             <div class="chat-bubble-wrapper received">
+                <div class="chat-bubble">
+                    <p>I agree, the glowing effect is a nice touch.</p>
+                    <span class="bubble-meta">Jane Smith - 10:32 AM</span>
+                </div>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" placeholder="Type a message...">
+            <button class="btn-glass approve">Send</button>
+        </div>
+    </main>
+</div>
+{% endblock %}

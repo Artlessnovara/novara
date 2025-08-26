@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Instructor Dashboard{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor_dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="instructor-container">
+    <div class="instructor-header">
+        <h1>Your Dashboard</h1>
+        <p>Welcome, {{ current_user.name }}. Here you can manage your courses and library submissions.</p>
+    </div>
+
+    <div class="dashboard-actions">
+        <a href="{{ url_for('instructor.create_course') }}" class="btn-primary-glass">Create New Course</a>
+        <a href="{{ url_for('instructor.exam_dashboard') }}" class="btn-secondary-glass">Manage Exams</a>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="glassy-card">
+            <h2>Your Courses</h2>
+            <ul class="content-list">
+                {% for course in courses %}
+                <li class="content-list-item">
+                    <div class="item-details">
+                        <span class="title">{{ course.title }}</span>
+                        <span class="status {% if course.approved %}approved{% else %}pending{% endif %}">
+                            {% if course.approved %}Approved{% else %}Pending{% endif %}
+                        </span>
+                    </div>
+                    <div class="item-actions">
+                        <a href="{{ url_for('instructor.manage_course', course_id=course.id) }}" class="btn btn-manage">Manage</a>
+                    </div>
+                </li>
+                {% else %}
+                <li><p>You have not created any courses yet.</p></li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="glassy-card">
+            <h2>Your Library Submissions</h2>
+            <ul class="content-list">
+                {% for material in library_materials %}
+                <li class="content-list-item">
+                    <div class="item-details">
+                        <span class="title">{{ material.title }}</span>
+                        <span class="status {% if material.approved %}approved{% elif material.rejection_reason %}rejected{% else %}pending{% endif %}">
+                            {% if material.approved %}
+                                Approved
+                            {% elif material.rejection_reason %}
+                            Rejected: <span class="rejection-reason-text">Reason: {{ material.rejection_reason }}</span>
+                            {% else %}
+                                Pending
+                            {% endif %}
+                        </span>
+                    </div>
+                </li>
+                {% else %}
+                <li><p>You have not submitted any library materials yet.</p></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="library-form-container">
+        <div class="library-form-header">
+            <h2>Submit New Library Material</h2>
+        </div>
+        <form action="{{ url_for('instructor.submit_library_material') }}" method="post" enctype="multipart/form-data">
+            <div class="library-form-grid">
+                <div class="library-form-group">
+                    <label for="lib_title">Title</label>
+                    <input type="text" id="lib_title" name="title" required class="library-form-input" placeholder="e.g., Advanced Python Programming">
+                </div>
+                <div class="library-form-group">
+                    <label for="lib_category">Category</label>
+                    <select id="lib_category" name="category_id" required class="library-form-input">
+                        <option value="">Select a category...</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="library-form-group full-span">
+                    <label for="lib_description">Description</label>
+                    <textarea id="lib_description" name="description" rows="4" class="library-form-input" placeholder="A brief summary of your material..."></textarea>
+                </div>
+                <div class="library-form-group">
+                    <label for="lib_price">Price (₦)</label>
+                    <input type="number" id="lib_price" name="price_naira" min="0" value="0" required class="library-form-input" placeholder="Enter 0 for free">
+                </div>
+                <div class="library-form-group">
+                    <label for="lib_file">Upload File</label>
+                    <input type="file" id="lib_file" name="file" required class="library-form-input">
+                </div>
+            </div>
+            <button type="submit" class="library-submit-btn">Submit for Review</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.classList.add('instructor-dashboard');
+    });
+</script>
+{% endblock %}

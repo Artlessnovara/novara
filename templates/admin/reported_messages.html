@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Reported Chat Messages{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Reported Messages</h1>
+        <p>Review messages reported by students for inappropriate content.</p>
+    </div>
+
+    <div class="glassy-table-wrapper">
+        <div class="glassy-table">
+            <!-- Table Header -->
+            <div class="table-header" style="grid-template-columns: 3fr 1.5fr 1.5fr 1.5fr 1.5fr 1fr;">
+                <div class="table-cell">Message</div>
+                <div class="table-cell">Author</div>
+                <div class="table-cell">Reported By</div>
+                <div class="table-cell">Room</div>
+                <div class="table-cell">Reported At</div>
+                <div class="table-cell">Actions</div>
+            </div>
+
+            <!-- Table Body -->
+            {% for report in reports %}
+            <div class="table-row-card">
+                <div class="table-row" style="grid-template-columns: 3fr 1.5fr 1.5fr 1.5fr 1.5fr 1fr;">
+                    <div class="table-cell" data-label="Message">"{{ report.message.content }}"</div>
+                    <div class="table-cell" data-label="Author">{{ report.message.author.name }}</div>
+                    <div class="table-cell" data-label="Reported By">{{ report.reporter.name }}</div>
+                    <div class="table-cell" data-label="Room">{{ report.message.room.name }}</div>
+                    <div class="table-cell" data-label="Reported At">{{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
+                    <div class="table-cell actions-cell" data-label="Actions">
+                        <a href="{{ url_for('admin.manage_users') }}" class="btn-glass info compact-btn">Manage User</a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="glass-card full-width-card">
+                <p>There are no reported messages.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Group Requests{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Manage Group Requests</h1>
+        <p>Review and process new group creation requests.</p>
+    </div>
+
+    <div class="admin-grid" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));">
+        {% for request in requests %}
+        <div class="glass-card group-request-card">
+            <div class="card-header">
+                <img src="{{ url_for('static', filename=request.cover_image) if request.cover_image else url_for('static', filename='images/course_placeholder.jpg') }}" alt="Group Icon" class="group-icon">
+                <div>
+                    <h3 class="card-title">{{ request.name }}</h3>
+                    <p class="card-subtitle">Requested by: {{ request.requester.name }}</p>
+                </div>
+            </div>
+            <div class="card-body">
+                <p>{{ request.description }}</p>
+                <div class="request-details">
+                    <span><strong>Type:</strong> {{ request.room_type|capitalize }}</span>
+                    <span><strong>Members:</strong> {{ request.requester.role|capitalize }}</span>
+                </div>
+            </div>
+            <div class="card-footer action-buttons-container">
+                <form action="{{ url_for('admin.approve_group_request', request_id=request.id) }}" method="POST" style="display: inline;">
+                    <button type="submit" class="btn-action btn-action-positive">Approve</button>
+                </form>
+                <button type="button" class="btn-action btn-action-negative" onclick="openRejectModal('{{ request.id }}')">
+                    Reject
+                </button>
+            </div>
+        </div>
+
+        <!-- Rejection Modal -->
+        <div id="reject-modal-{{ request.id }}" class="modal-overlay" style="display: none;">
+            <div class="modal-content form-container-glassy">
+                <div class="form-header">
+                    <h4 class="form-title" style="font-size: 1.5rem;">Reject: {{ request.name }}</h4>
+                </div>
+                <form action="{{ url_for('admin.reject_group_request', request_id=request.id) }}" method="POST">
+                    <div class="form-group">
+                        <label for="rejection_reason-{{ request.id }}">Reason for Rejection (Optional)</label>
+                        <textarea class="input-glassy" id="rejection_reason-{{ request.id }}" name="rejection_reason" rows="4"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary-glass" onclick="closeRejectModal('{{ request.id }}')">Cancel</button>
+                        <button type="submit" class="btn-primary-glass">Confirm Rejection</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="glass-card full-width-card">
+            <p class="text-center">No pending group requests.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function openRejectModal(requestId) {
+    document.getElementById('reject-modal-' + requestId).style.display = 'flex';
+}
+function closeRejectModal(requestId) {
+    document.getElementById('reject-modal-' + requestId).style.display = 'none';
+}
+</script>
+{% endblock %}

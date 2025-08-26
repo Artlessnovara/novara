@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Add Members to {{ room.name }}{% endblock %}
+
+{% block content %}
+<div class="ice-sky-content">
+    <div class="glassy-card-container">
+        <div class="form-header text-center">
+            <h2 class="form-title">Add Members to {{ room.name }}</h2>
+        </div>
+        <form action="{{ url_for('main.add_members', room_id=room.id) }}" method="POST">
+            <div class="form-group">
+                <label class="form-label">Select users to add</label>
+                <input type="text" id="member-search" placeholder="Search for users..." class="form-input">
+                <div class="user-list-glassy">
+                    {% for user in users %}
+                    <div class="user-item-glassy form-check">
+                        <input type="checkbox" name="members" value="{{ user.id }}" id="user-{{ user.id }}" class="form-check-input">
+                        <label for="user-{{ user.id }}" class="form-check-label">{{ user.name }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="form-actions text-center">
+                <button type="submit" class="btn-primary">Add Selected Members</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.user-list-glassy {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+}
+.user-item-glassy {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+.user-item-glassy:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+.user-item-glassy input[type="checkbox"] {
+    margin-right: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('member-search').addEventListener('keyup', function() {
+        let filter = this.value.toLowerCase();
+        let users = document.querySelectorAll('.user-item-glassy');
+        users.forEach(user => {
+            let label = user.querySelector('label');
+            if (label.textContent.toLowerCase().includes(filter)) {
+                user.style.display = 'flex';
+            } else {
+                user.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

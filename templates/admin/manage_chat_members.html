@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Members for {{ room.name }}{% endblock %}
+
+{% block styles %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    /* Custom Select2 Glassy Theme */
+    .select2-container--default .select2-selection--multiple {
+        background-color: rgba(255, 255, 255, 0.3);
+        border: 1px solid transparent;
+        border-image: linear-gradient(to right, #3b82f6, #14b8a6) 1;
+        border-radius: 16px;
+        padding: 0.5rem;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+        border-radius: 8px;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    .select2-dropdown {
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container-glassy">
+    <div class="form-header">
+        <h2 class="form-title">Manage Members for: {{ room.name }}</h2>
+        <p>This room is private. Only selected users will have access.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin.manage_chat_members', room_id=room.id) }}">
+        <div class="form-group">
+            <label for="members">Select Members</label>
+            <select id="members" name="members" multiple="multiple" style="width: 100%;">
+                {% for user in users %}
+                <option value="{{ user.id }}" {% if user.id in member_ids %}selected{% endif %}>
+                    {{ user.name }} ({{ user.email }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-actions">
+            <a href="{{ url_for('admin.manage_chat') }}" class="btn-secondary-glass">Back to Room List</a>
+            <button type="submit" class="btn-primary-glass">Update Members</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#members').select2({
+        placeholder: "Select members",
+        allowClear: true,
+        width: 'resolve'
+    });
+});
+</script>
+{% endblock %}

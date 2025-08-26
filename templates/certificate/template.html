@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Certificate of Completion</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 30px;
+            background: linear-gradient(135deg, #e0f7fa, #b3e5fc);
+            color: #37474f;
+            height: 100%;
+            box-sizing: border-box;
+            position: relative;
+            border: 1px solid #29b6f6;
+            outline: 5px solid #0288d1;
+            outline-offset: -15px;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 80px;
+            font-family: 'Poppins', sans-serif;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: bold;
+            z-index: -1;
+            text-transform: uppercase;
+            letter-spacing: 10px;
+        }
+
+        .certificate-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .institute-name {
+            font-size: 36px;
+            font-weight: 700;
+            color: #0288d1;
+            letter-spacing: 2px;
+        }
+
+        .cert-title {
+            font-size: 24px;
+            color: #29b6f6;
+            margin-top: 5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+        .main-body {
+            margin: 30px 0;
+        }
+
+        .intro-text {
+            font-style: italic;
+            font-size: 18px;
+        }
+
+        .recipient-name {
+            font-size: 64px;
+            font-weight: 700;
+            color: #0288d1;
+            margin: 15px 0;
+            text-transform: uppercase;
+        }
+
+        .course-text {
+            font-size: 16px;
+        }
+
+        .course-name {
+            font-size: 28px;
+            font-style: italic;
+            color: #29b6f6;
+            margin-top: 10px;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 50px;
+            width: calc(100% - 60px);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .footer-left, .footer-right {
+            width: 45%;
+            font-size: 12px;
+        }
+
+        .footer-left {
+            text-align: left;
+        }
+
+        .footer-right {
+            text-align: center;
+        }
+
+        .signature-line {
+            border-top: 1px solid #29b6f6;
+            padding-top: 5px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="watermark">Scholars Novara Institute</div>
+
+    <div class="certificate-container">
+        <header class="header">
+            <div class="institute-name">Scholars Novara Institute</div>
+            <div class="cert-title">Certificate of Completion</div>
+        </header>
+
+        <section class="main-body">
+            <p class="intro-text">This is to certify that</p>
+            <div class="recipient-name">{{ student_name }}</div>
+            <p class="course-text">has successfully completed the course in</p>
+            <div class="course-name">"{{ course_name }}"</div>
+        </section>
+
+        <footer class="footer">
+            <div class="footer-left">
+                <p>Issued on: {{ completion_date }}</p>
+                <p>Certificate ID: {{ certificate_id }}</p>
+            </div>
+            <div class="footer-right">
+                <div class="signature-line">Authorized Signature</div>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

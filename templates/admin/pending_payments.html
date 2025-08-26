@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Payments{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Pending Payments</h1>
+        <p>Verify and process submitted proofs of payment for courses.</p>
+    </div>
+
+    <div class="glassy-table-wrapper">
+        <div class="glassy-table">
+            <!-- Table Header -->
+            <div class="table-header">
+                <div class="table-cell">User</div>
+                <div class="table-cell">Course</div>
+                <div class="table-cell">Amount</div>
+                <div class="table-cell">Status</div>
+                <div class="table-cell">Actions</div>
+            </div>
+
+            <!-- Table Body -->
+            {% for enrollment in pending_enrollments %}
+            <div class="table-row-card">
+                <div class="table-row">
+                    <div class="table-cell" data-label="User">
+                        <span class="user-name">{{ enrollment.student.name }}</span>
+                        <span class="user-email">{{ enrollment.student.email }}</span>
+                    </div>
+                    <div class="table-cell" data-label="Course">{{ enrollment.course.title }}</div>
+                    <div class="table-cell" data-label="Amount">₦{{ "{:,.2f}".format(enrollment.course.price_naira) }}</div>
+                    <div class="table-cell" data-label="Status">
+                        <span class="status-badge pending">Pending</span>
+                    </div>
+                    <div class="table-cell actions-cell action-buttons-container" data-label="Actions">
+                        <a href="{{ url_for('admin.payment_proof', filename=enrollment.proof_of_payment_path) }}" target="_blank" class="btn-action btn-action-neutral">View Proof</a>
+                        <form action="{{ url_for('admin.approve_payment', enrollment_id=enrollment.id) }}" method="post" style="display:inline;">
+                            <button type="submit" class="btn-action btn-action-positive">Approve</button>
+                        </form>
+                        <button class="btn-action btn-action-negative" onclick="toggleRejectForm('{{ enrollment.id }}')">Reject</button>
+                    </div>
+                </div>
+                <!-- Hidden Rejection Form -->
+                <div class="rejection-form" id="reject-form-{{ enrollment.id }}">
+                    <form action="{{ url_for('admin.reject_payment', enrollment_id=enrollment.id) }}" method="post">
+                        <input type="text" name="reason" placeholder="Reason for rejection (required)" required class="input-glassy">
+                        <button type="submit" class="btn-action btn-action-negative">Confirm Reject</button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="glass-card full-width-card">
+                <p>No payments are currently pending verification.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleRejectForm(enrollmentId) {
+    const form = document.getElementById('reject-form-' + enrollmentId);
+    if (form.style.display === 'block') {
+        form.style.display = 'none';
+    } else {
+        form.style.display = 'block';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Create Chat Room{% endblock %}
+
+{% block styles %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    /* Custom Select2 Glassy Theme */
+    .select2-container--default .select2-selection--multiple {
+        background-color: rgba(255, 255, 255, 0.3);
+        border: 1px solid transparent;
+        border-image: linear-gradient(to right, #3b82f6, #14b8a6) 1;
+        border-radius: 16px;
+        padding: 0.5rem;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+        border-radius: 8px;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    .select2-dropdown {
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container-glassy">
+    <div class="form-header">
+        <h2 class="form-title">Create New Chat Room</h2>
+    </div>
+    <form method="POST" action="{{ url_for('admin.create_chat_room') }}" enctype="multipart/form-data">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="name">Room Name</label>
+                <input type="text" class="input-glassy" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="cover_image">Cover Image</label>
+                <input type="file" class="input-glassy" id="cover_image" name="cover_image">
+            </div>
+            <div class="form-group full-span">
+                <label for="description">Description</label>
+                <textarea class="input-glassy" id="description" name="description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="room_type">Room Type</label>
+                <select class="input-glassy" id="room_type" name="room_type">
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="speech_enabled">Options</label>
+                <div class="radio-group-glassy">
+                    <input type="checkbox" class="form-check-input" id="speech_enabled" name="speech_enabled" checked>
+                    <label class="form-check-label" for="speech_enabled">Enable Speech-to-Text</label>
+                </div>
+            </div>
+            <div class="form-group full-span" id="members-select-container" style="display: none;">
+                <label for="members">Select Members for Private Room</label>
+                <select id="members" name="members" multiple="multiple" style="width: 100%;">
+                    {% for user in users %}
+                    <option value="{{ user.id }}">{{ user.name }} ({{ user.email }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-actions">
+            <a href="{{ url_for('admin.manage_chat') }}" class="btn-secondary-glass">Cancel</a>
+            <button type="submit" class="btn-primary-glass">Create Room</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#members').select2({
+        placeholder: "Select members",
+        allowClear: true,
+        width: 'resolve'
+    });
+
+    $('#room_type').on('change', function() {
+        if (this.value === 'private') {
+            $('#members-select-container').show();
+        } else {
+            $('#members-select-container').hide();
+        }
+    }).trigger('change');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Courses{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Course Management</h1>
+        <p>Approve, organize, and oversee all courses on the platform.</p>
+    </div>
+
+    <div class="manage-courses-layout">
+        <!-- Main Content: Course Grid -->
+        <main class="course-grid-main">
+            <div class="course-grid">
+                {% for course in all_courses %}
+                <div class="course-card-admin">
+                    <img src="{{ url_for('static', filename='uploads/images/' + course.cover_image) if course.cover_image else url_for('static', filename='images/course_placeholder.jpg') }}" alt="Course cover for {{ course.title }}">
+                    <div class="course-card-content">
+                        <h3 class="course-title">{{ course.title }}</h3>
+                        <p class="instructor-name">by {{ course.instructor.name }}</p>
+                        <div class="course-status">
+                            {% if not course.approved %}
+                                <span class="status-badge pending">Pending Approval</span>
+                            {% else %}
+                                <span class="status-badge approved">Approved</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="course-card-actions action-buttons-container">
+                        {% if not course.approved %}
+                            <form action="{{ url_for('admin.approve_course', course_id=course.id) }}" method="post" style="display:inline;">
+                                <button type="submit" class="btn-action btn-action-positive">Approve</button>
+                            </form>
+                        {% endif %}
+                        <a href="#" class="btn-action btn-action-neutral">Edit</a>
+                        <form action="{{ url_for('admin.delete_course', course_id=course.id) }}" method="POST" onsubmit="return confirm('Are you sure?');" style="display:inline;">
+                            <button type="submit" class="btn-action btn-action-negative">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
+
+        <!-- Sidebar: Create/Edit Form -->
+        <aside class="course-form-panel">
+            <div class="form-wrapper form-container-glassy" style="padding: 2rem; margin: 0;">
+                <div class="form-header" style="margin-bottom: 1.5rem;">
+                    <h3 class="form-title" style="font-size: 1.5rem;">Create New Course</h3>
+                </div>
+                <form>
+                    <div class="form-group">
+                        <label for="course-title">Course Title</label>
+                        <input type="text" id="course-title" name="title" placeholder="e.g., Advanced Python" class="input-glassy">
+                    </div>
+                    <div class="form-group">
+                        <label for="course-category">Category</label>
+                        <select id="course-category" name="category" class="input-glassy">
+                            <option>Programming</option>
+                            <option>Design</option>
+                            <option>Marketing</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="course-instructor">Instructor</label>
+                        <select id="course-instructor" name="instructor" class="input-glassy">
+                            <option>John Doe</option>
+                            <option>Jane Smith</option>
+                        </select>
+                    </div>
+                    <div class="form-actions" style="margin-top: 1.5rem;">
+                        <button type="submit" class="btn-primary-glass full-width">Create Course</button>
+                    </div>
+                </form>
+            </div>
+        </aside>
+    </div>
+</div>
+{% endblock %}
