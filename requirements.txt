@@ -1,0 +1,9 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Pillow
+Flask-SocketIO
+WeasyPrint
+bleach
+beautifulsoup4
+Flask-Migrate
