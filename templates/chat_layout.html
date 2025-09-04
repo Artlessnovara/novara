@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novara</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <!-- Using Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <a href="{{ url_for('main.profile') }}" class="logo-link" title="Profile/Settings">
+                    <div class="logo-placeholder">N</div>
+                </a>
+            </div>
+            <div class="header-center">
+                <h1>Novara</h1>
+            </div>
+            <div class="header-right">
+                <button class="icon-btn search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+                <button class="icon-btn add-btn"><i class="fa-solid fa-plus"></i></button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            {% block chat_content %}{% endblock %}
+        </main>
+
+        <nav class="bottom-nav">
+            <a href="#" class="nav-item active">
+                <i class="fa-solid fa-comments"></i>
+                <span>Chats</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fa-solid fa-camera-retro"></i>
+                <span>Status</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fa-solid fa-users"></i>
+                <span>Communities</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fa-solid fa-phone"></i>
+                <span>Calls</span>
+            </a>
+        </nav>
+    </div>
+    {% block chat_scripts %}{% endblock %}
+</body>
+</html>

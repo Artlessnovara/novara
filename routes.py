@@ -963,6 +963,65 @@ def chat_room_info(room_id):
 
     return render_template('chat_info.html', room=room, media_messages=media_messages, user_role_in_room=user_role_in_room)
 
+
+@main.route('/new_chat_interface')
+@login_required
+def new_chat_interface():
+    """
+    A temporary route to display and test the new chat UI layout.
+    """
+    dummy_chats = [
+        {
+            'avatar_url': url_for('static', filename='profile_pics/default.jpg'),
+            'name': 'Web Development Course',
+            'timestamp': '10:45 AM',
+            'last_message': 'Hey everyone, remember the meeting tomorrow!',
+            'unread_count': 2,
+        },
+        {
+            'avatar_url': url_for('static', filename='profile_pics/default.jpg'),
+            'name': 'John Doe',
+            'timestamp': '9:30 AM',
+            'last_message': 'Thanks for the help with the project. It was a lifesaver!',
+            'unread_count': 0,
+        },
+        {
+            'avatar_url': url_for('static', filename='profile_pics/default.jpg'),
+            'name': 'Data Science Group',
+            'timestamp': 'Yesterday',
+            'last_message': 'Can anyone explain the new paper on transformers?',
+            'unread_count': 5,
+        },
+        {
+            'avatar_url': url_for('static', filename='profile_pics/default.jpg'),
+            'name': 'Admin Announcements',
+            'timestamp': 'Yesterday',
+            'last_message': 'Please update your profiles by the end of the week.',
+            'unread_count': 1,
+        }
+    ]
+    return render_template('chat/list.html', chats=dummy_chats)
+
+
+@main.route('/new_chat_interface/room')
+@login_required
+def new_chat_room():
+    """
+    A temporary route to display and test the new chat conversation view.
+    """
+    dummy_chat_info = {
+        'avatar_url': url_for('static', filename='profile_pics/default.jpg'),
+        'name': 'Web Development Course',
+    }
+    dummy_messages = [
+        {'text': 'Hey, how is everyone?', 'timestamp': '10:30 AM', 'is_sender': False},
+        {'text': 'Doing great! Just working on the new UI.', 'timestamp': '10:31 AM', 'is_sender': True},
+        {'text': 'Looks awesome! Can\'t wait to see it.', 'timestamp': '10:32 AM', 'is_sender': False},
+        {'text': 'I have a question about the new layout. Where can I find the specs?', 'timestamp': '10:33 AM', 'is_sender': False},
+        {'text': 'I\'ll send them over to you right now.', 'timestamp': '10:34 AM', 'is_sender': True},
+    ]
+    return render_template('chat/room.html', chat_info=dummy_chat_info, messages=dummy_messages)
+
 @main.route('/chat/upload', methods=['POST'])
 @login_required
 def upload_chat_file():

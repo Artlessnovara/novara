@@ -1,0 +1,35 @@
+{% extends "chat_layout.html" %}
+
+{% block chat_content %}
+<div class="chat-list-page">
+    <!-- The search bar will be part of the header, which is in chat_layout.html -->
+    <!-- This container will hold the list of chats -->
+    <div class="chat-list">
+        {% if chats %}
+            {% for chat in chats %}
+            <a href="#" class="chat-item-link">
+                <div class="chat-item">
+                    <div class="chat-item-avatar">
+                        <img src="{{ chat.avatar_url }}" alt="{{ chat.name }}">
+                    </div>
+                    <div class="chat-item-details">
+                        <div class="chat-item-header">
+                            <h3 class="chat-item-name">{{ chat.name }}</h3>
+                            <span class="chat-item-timestamp">{{ chat.timestamp }}</span>
+                        </div>
+                        <div class="chat-item-preview">
+                            <p class="chat-item-last-message">{{ chat.last_message }}</p>
+                            {% if chat.unread_count > 0 %}
+                            <span class="chat-item-unread">{{ chat.unread_count }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        {% else %}
+            <p class="empty-chat-list">No chats found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
