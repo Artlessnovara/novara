@@ -1,0 +1,93 @@
+{% extends "chat_layout.html" %}
+
+{% block chat_content %}
+<div class="form-page">
+    <div class="form-container">
+        <div class="form-header">
+            <a href="{{ url_for('main.chat_list') }}" class="back-btn"><i class="fa-solid fa-arrow-left"></i></a>
+            <h2 class="form-title">Create New Group</h2>
+        </div>
+        <form action="{{ url_for('main.create_group') }}" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="group_name">Group Name</label>
+                <input type="text" id="group_name" name="group_name" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label for="group_description">Description (Optional)</label>
+                <textarea id="group_description" name="group_description" rows="3" class="form-input"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="group_icon">Group Icon (Optional)</label>
+                <input type="file" id="group_icon" name="group_icon" accept="image/*" class="form-input">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                    {% if current_user.role == 'admin' %}
+                        Create Group
+                    {% else %}
+                        Request Creation
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.form-page {
+    padding: 1rem;
+    background-color: var(--bg-color);
+    height: 100%;
+}
+.form-container {
+    background-color: #ffffff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    max-width: 500px;
+    margin: 2rem auto;
+}
+.form-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.form-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+.form-group {
+    margin-bottom: 1.5rem;
+}
+.form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+.form-actions {
+    text-align: right;
+    margin-top: 2rem;
+}
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+</style>
+{% endblock %}

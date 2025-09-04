@@ -10,7 +10,19 @@ def register_chat_events(socketio):
     def is_user_authorized_for_room(user, room):
         if user.role == 'admin':
             return True
-        if room.room_type == 'public':
+
+        if room.room_type == 'private':
+            if user.role == 'student':
+                return False
+            # Ensure the other member is also not a student
+            members = room.members.all()
+            if len(members) == 2:
+                other_user = members[0].user if members[0].user_id != user.id else members[1].user
+                if other_user.role == 'student':
+                    return False
+            # Let explicit membership check handle the rest
+
+        if room.room_type == 'public' or room.room_type == 'community_channel':
             return True
 
         # Check for course-based access for course rooms

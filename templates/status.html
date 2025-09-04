@@ -1,0 +1,128 @@
+{% extends "chat_layout.html" %}
+
+{% block chat_content %}
+<div class="status-page">
+    <div class="status-section">
+        <div class="status-item my-status">
+            <a href="{{ url_for('main.view_my_status') if my_statuses else url_for('main.add_status') }}" class="status-avatar-wrapper">
+                <div class="status-avatar">
+                    <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="My Status">
+                </div>
+                {% if can_post_status %}
+                <div class="add-status-icon">+</div>
+                {% endif %}
+            </a>
+            <div class="status-info">
+                <h3 class="status-name">My Status</h3>
+                <p class="status-time">
+                    {% if my_statuses %}
+                        {{ my_statuses|length }} updates
+                    {% else %}
+                        Tap to add status update
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-section">
+        <h4 class="section-title">Recent Updates</h4>
+        {% for update in recent_updates %}
+        <a href="{{ url_for('main.view_user_status', user_id=update.user.id) }}" class="status-item-link">
+            <div class="status-item">
+                <div class="status-avatar-wrapper">
+                    <div class="status-avatar {% if not update.all_viewed %}unviewed{% endif %}">
+                        <img src="{{ url_for('static', filename='profile_pics/' + update.user.profile_pic) }}" alt="{{ update.user.name }}">
+                    </div>
+                </div>
+                <div class="status-info">
+                    <h3 class="status-name">{{ update.user.name }}</h3>
+                    <p class="status-time">{{ update.statuses|length }} updates</p>
+                </div>
+            </div>
+        </a>
+        {% else %}
+        <p class="no-updates">No recent updates from others.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.status-page {
+    padding: 1rem;
+}
+.status-section {
+    margin-bottom: 2rem;
+}
+.section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #54656f;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+}
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.status-item-link {
+    text-decoration: none;
+    color: inherit;
+}
+.my-status .status-avatar-wrapper {
+    position: relative;
+}
+.add-status-icon {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: bold;
+    border: 2px solid white;
+}
+.status-avatar-wrapper {
+    text-decoration: none;
+}
+.status-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    padding: 3px;
+    border: 2px solid transparent;
+}
+.status-avatar.unviewed {
+    border-color: var(--primary-color);
+}
+.status-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+.status-info .status-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+}
+.status-info .status-time {
+    font-size: 0.9rem;
+    color: #54656f;
+    margin: 0;
+}
+.no-updates {
+    color: #54656f;
+    padding: 1rem;
+    text-align: center;
+}
+</style>
+{% endblock %}

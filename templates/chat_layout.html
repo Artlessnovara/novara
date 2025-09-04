@@ -24,7 +24,7 @@
             </div>
             <div class="header-right">
                 <button class="icon-btn search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
-                <button class="icon-btn add-btn"><i class="fa-solid fa-plus"></i></button>
+                <a href="{{ url_for('main.create_group') }}" class="icon-btn add-btn"><i class="fa-solid fa-plus"></i></a>
             </div>
         </header>
 
@@ -33,24 +33,32 @@
         </main>
 
         <nav class="bottom-nav">
-            <a href="#" class="nav-item active">
+            <a href="{{ url_for('main.chat_list') }}" class="nav-item {% if request.endpoint == 'main.chat_list' or request.endpoint == 'main.chat_room' %}active{% endif %}">
                 <i class="fa-solid fa-comments"></i>
                 <span>Chats</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{{ url_for('main.status') }}" class="nav-item {% if request.endpoint == 'main.status' %}active{% endif %}">
                 <i class="fa-solid fa-camera-retro"></i>
                 <span>Status</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{{ url_for('main.communities') }}" class="nav-item {% if request.endpoint == 'main.communities' %}active{% endif %}">
                 <i class="fa-solid fa-users"></i>
                 <span>Communities</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="{{ url_for('main.calls') }}" class="nav-item {% if request.endpoint == 'main.calls' %}active{% endif %}">
                 <i class="fa-solid fa-phone"></i>
                 <span>Calls</span>
             </a>
         </nav>
     </div>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+        })();
+    </script>
     {% block chat_scripts %}{% endblock %}
 </body>
 </html>

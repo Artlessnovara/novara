@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Communities{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Manage Communities</h1>
+        <a href="{{ url_for('admin.create_community') }}" class="btn-primary">Create New Community</a>
+    </div>
+
+    <div class="admin-table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Channels</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for community in communities %}
+                <tr>
+                    <td>{{ community.name }}</td>
+                    <td>{{ community.description or 'N/A' }}</td>
+                    <td>{{ community.channels.count() }}</td>
+                    <td>
+                        <a href="#" class="btn-secondary">Manage Channels</a>
+                        <a href="#" class="btn-danger">Delete</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center">No communities found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
