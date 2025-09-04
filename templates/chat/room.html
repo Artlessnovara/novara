@@ -1,0 +1,54 @@
+{% extends "chat_layout.html" %}
+
+{% block chat_content %}
+<div class="conversation-page">
+    <div class="conversation-header">
+        <a href="#" class="back-btn"><i class="fa-solid fa-arrow-left"></i></a>
+        <div class="conversation-info">
+            {% if chat_info.avatar_url %}
+            <img src="{{ chat_info.avatar_url }}" alt="{{ chat_info.name }}" class="conversation-avatar">
+            {% endif %}
+            <span class="conversation-name">{{ chat_info.name }}</span>
+        </div>
+        <a href="#" class="info-btn"><i class="fa-solid fa-circle-info"></i></a>
+    </div>
+
+    <div class="message-area">
+        {% for message in messages %}
+        <div class="message-bubble-wrapper {% if message.is_sender %}sender{% else %}receiver{% endif %}">
+            <div class="message-bubble">
+                <p class="message-content">{{ message.text }}</p>
+                <span class="message-timestamp">{{ message.timestamp }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="message-input-bar">
+        <button class="icon-btn emoji-btn"><i class="fa-regular fa-face-smile"></i></button>
+        <textarea class="message-input" placeholder="Type a message" rows="1"></textarea>
+        <button class="icon-btn send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+</div>
+{% endblock %}
+
+{% block chat_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-resize textarea
+    const textarea = document.querySelector('.message-input');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    }
+
+    // Scroll to the bottom of the messages
+    const messageArea = document.querySelector('.message-area');
+    if (messageArea) {
+        messageArea.scrollTop = messageArea.scrollHeight;
+    }
+});
+</script>
+{% endblock %}
