@@ -2,14 +2,25 @@
 
 /* --- Base Styles & Theming --- */
 :root {
-    --bg-color: #ffffff;
+    --bg-color: #f0f2f5;
     --text-color: #1a1a1a;
-    --primary-color: #27ae60; /* Green accent from user prompt */
-    --sender-bubble-bg: #e7f8ef; /* Light green for sent messages */
-    --receiver-bubble-bg: #ffffff; /* White for received messages */
-    --header-bg: #ffffff;
-    --bottom-nav-bg: #f8f9fa;
-    --border-color: #e9ecef;
+    --primary-color: #00a884;
+    --sender-bubble-bg: #dcf8c6;
+    --receiver-bubble-bg: #f1f1f1; /* Light gray for received messages */
+    --header-bg: #f0f2f5;
+    --bottom-nav-bg: #ffffff;
+    --border-color: #e0e0e0;
+}
+
+:root.dark-mode {
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --primary-color: #00a884;
+    --sender-bubble-bg: #005c4b;
+    --receiver-bubble-bg: #2a2a2a;
+    --header-bg: #1f1f1f;
+    --bottom-nav-bg: #1f1f1f;
+    --border-color: #3a3a3a;
 }
 
 body {
@@ -181,7 +192,7 @@ body {
 }
 
 .chat-item:hover {
-    background-color: #f1f1f1;
+    background-color: #f5f5f5;
 }
 
 .chat-item-avatar {
@@ -261,7 +272,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: #e5ddd5; /* WhatsApp-like background */
+    background-color: var(--bg-color);
 }
 
 .conversation-header {
@@ -269,7 +280,7 @@ body {
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 1rem;
-    background-color: var(--header-bg);
+    background-color: transparent;
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
 }
@@ -284,6 +295,10 @@ body {
 .conversation-name {
     font-weight: 600;
     flex-grow: 1;
+}
+
+.conversation-header .icon-btn {
+    color: #54656f;
 }
 
 .message-area {

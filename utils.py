@@ -97,3 +97,30 @@ def filter_profanity(text):
     # This is a simple implementation. A more robust one would handle punctuation.
     censored_words = [word if word.lower() not in BANNED_WORDS else '***' for word in words]
     return ' '.join(censored_words)
+
+def save_status_file(file):
+    """Saves an image for a status update."""
+    allowed_extensions = {'png', 'jpg', 'jpeg'}
+    max_size = 5 * 1024 * 1024 # 5MB
+
+    filename = secure_filename(file.filename)
+    if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+        return None
+
+    file.seek(0, os.SEEK_END)
+    file_length = file.tell()
+    if file_length > max_size:
+        return None
+    file.seek(0)
+
+    random_hex = os.urandom(8).hex()
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+
+    upload_folder = os.path.join(current_app.root_path, 'static/status_files')
+    os.makedirs(upload_folder, exist_ok=True)
+
+    filepath = os.path.join(upload_folder, new_filename)
+    file.save(filepath)
+
+    return os.path.join('status_files', new_filename)

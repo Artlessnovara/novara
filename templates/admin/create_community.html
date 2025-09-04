@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Create New Community{% endblock %}
+
+{% block content %}
+<div class="form-container-glassy">
+    <div class="form-header">
+        <h2 class="form-title">Create New Community</h2>
+    </div>
+    <form action="{{ url_for('admin.create_community') }}" method="POST" enctype="multipart/form-data">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="name">Community Name</label>
+                <input type="text" id="name" name="name" required class="input-glassy">
+            </div>
+            <div class="form-group">
+                <label for="cover_image">Cover Image</label>
+                <input type="file" id="cover_image" name="cover_image" accept="image/*" class="input-glassy">
+            </div>
+            <div class="form-group full-span">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" rows="4" class="input-glassy"></textarea>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-primary-glass">Create Community</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

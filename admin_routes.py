@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, abort, flash, redirect, url_for, r
 from flask_login import login_required, current_user
 import os
 
-from models import User, Course, Category, LibraryMaterial, PlatformSetting, Enrollment, CertificateRequest, Certificate, LibraryPurchase, ChatRoom, ChatRoomMember, MutedUser, ReportedMessage, AdminLog, GroupRequest
+from models import User, Course, Category, LibraryMaterial, PlatformSetting, Enrollment, CertificateRequest, Certificate, LibraryPurchase, ChatRoom, ChatRoomMember, MutedUser, ReportedMessage, AdminLog, GroupRequest, Community
 from extensions import db
 from pdf_generator import generate_certificate_pdf
 from utils import save_chat_room_cover_image
@@ -50,6 +50,58 @@ def dashboard():
 def manage_chat():
     all_rooms = ChatRoom.query.order_by(ChatRoom.name).all()
     return render_template('admin/manage_chat.html', rooms=all_rooms)
+
+@admin_bp.route('/community/create', methods=['GET', 'POST'])
+def create_community():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        cover_image_file = request.files.get('cover_image')
+
+        if not name:
+            flash('Community name is required.', 'danger')
+            return redirect(url_for('admin.create_community'))
+
+        cover_image_path = None
+        if cover_image_file:
+            # Re-use a utility function for saving images
+            cover_image_path = save_chat_room_cover_image(cover_image_file)
+
+        new_community = Community(
+            name=name,
+            description=description,
+            cover_image=cover_image_path,
+            created_by_id=current_user.id
+        )
+        db.session.add(new_community)
+        db.session.commit()
+
+        # Create default channels
+        announcements_channel = ChatRoom(
+            name="Announcements",
+            description="Official announcements from the admin.",
+            room_type='community_channel',
+            community_id=new_community.id,
+            is_locked=True # Only admins can post
+        )
+        general_channel = ChatRoom(
+            name="General Chat",
+            description="A place for all community members to chat.",
+            room_type='community_channel',
+            community_id=new_community.id
+        )
+        db.session.add_all([announcements_channel, general_channel])
+        db.session.commit()
+
+        flash(f'Community "{name}" created successfully with default channels.', 'success')
+        return redirect(url_for('admin.manage_communities'))
+
+    return render_template('admin/create_community.html')
+
+@admin_bp.route('/communities')
+def manage_communities():
+    communities = Community.query.all()
+    return render_template('admin/manage_communities.html', communities=communities)
 
 @admin_bp.route('/group-requests')
 def manage_group_requests():

@@ -1,0 +1,62 @@
+{% extends "chat_layout.html" %}
+
+{% block chat_content %}
+<div class="form-page">
+    <div class="form-container">
+        <div class="form-header">
+            <a href="{{ url_for('main.status') }}" class="back-btn"><i class="fa-solid fa-arrow-left"></i></a>
+            <h2 class="form-title">Add New Status</h2>
+        </div>
+        <form action="{{ url_for('main.add_status') }}" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="status_type">Status Type</label>
+                <select id="status_type" name="status_type" class="form-input">
+                    <option value="text">Text</option>
+                    <option value="image">Image</option>
+                </select>
+            </div>
+            <div id="text-input-group" class="form-group">
+                <label for="text_content">Text</label>
+                <textarea id="text_content" name="text_content" rows="5" class="form-input" placeholder="What's on your mind?"></textarea>
+            </div>
+            <div id="image-input-group" class="form-group" style="display: none;">
+                <label for="image_file">Image</label>
+                <input type="file" id="image_file" name="image_file" accept="image/*" class="form-input">
+            </div>
+            <div id="caption-input-group" class="form-group" style="display: none;">
+                <label for="caption">Caption (Optional)</label>
+                <input type="text" id="caption" name="caption" class="form-input" placeholder="Add a caption...">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Post Status</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.form-page { padding: 1rem; background-color: var(--bg-color); height: 100%; }
+.form-container { background-color: #ffffff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 500px; margin: 2rem auto; }
+.form-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
+.form-title { margin: 0; font-size: 1.5rem; font-weight: 600; }
+.form-group { margin-bottom: 1.5rem; }
+.form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
+.form-input { width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
+.form-actions { text-align: right; margin-top: 2rem; }
+.btn-primary { background-color: var(--primary-color); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block chat_scripts %}
+<script>
+document.getElementById('status_type').addEventListener('change', function() {
+    const isText = this.value === 'text';
+    document.getElementById('text-input-group').style.display = isText ? 'block' : 'none';
+    document.getElementById('image-input-group').style.display = isText ? 'none' : 'block';
+    document.getElementById('caption-input-group').style.display = isText ? 'none' : 'block';
+
+    document.getElementById('text_content').required = isText;
+    document.getElementById('image_file').required = !isText;
+});
+</script>
+{% endblock %}

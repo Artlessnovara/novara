@@ -1,7 +1,7 @@
 from extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import synonym
 
 class Enrollment(db.Model):
@@ -318,12 +318,23 @@ class LibraryPurchase(db.Model):
     rejection_reason = db.Column(db.String(255), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Community(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    cover_image = db.Column(db.String(150), nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    creator = db.relationship('User', backref='created_communities')
+
 class ChatRoom(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
     room_type = db.Column(db.String(50), nullable=False, default='public')  # public, private, course
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=True, unique=True)
+    community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=True)
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Nullable for auto-created rooms
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_locked = db.Column(db.Boolean, nullable=False, default=False)
@@ -335,6 +346,7 @@ class ChatRoom(db.Model):
     messages = db.relationship('ChatMessage', backref='room', lazy='dynamic', cascade="all, delete-orphan")
     members = db.relationship('ChatRoomMember', backref='room', lazy='dynamic', cascade="all, delete-orphan")
     creator = db.relationship('User', backref='created_chat_rooms')
+    community = db.relationship('Community', backref=db.backref('channels', lazy='dynamic'))
     polls = db.relationship('Poll', back_populates='room', lazy='dynamic', cascade="all, delete-orphan")
 
 class ChatRoomMember(db.Model):
@@ -406,6 +418,34 @@ class AdminLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     admin = db.relationship('User', backref='admin_logs')
+
+class Status(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content_type = db.Column(db.String(50), nullable=False, default='text') # text, image, video
+    content = db.Column(db.String(255), nullable=False) # File path or text content
+    caption = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+
+    user = db.relationship('User', backref=db.backref('statuses', lazy='dynamic'))
+    views = db.relationship('StatusView', backref='status', lazy='dynamic', cascade="all, delete-orphan")
+
+    def __init__(self, **kwargs):
+        super(Status, self).__init__(**kwargs)
+        if not self.created_at:
+            self.created_at = datetime.utcnow()
+        self.expires_at = self.created_at + timedelta(hours=24)
+
+class StatusView(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    status_id = db.Column(db.Integer, db.ForeignKey('status.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='status_views')
+
+    __table_args__ = (db.UniqueConstraint('status_id', 'user_id', name='_status_user_view_uc'),)
 
 class Poll(db.Model):
     id = db.Column(db.Integer, primary_key=True)

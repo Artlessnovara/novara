@@ -3,9 +3,10 @@ from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 import random
 import secrets
-from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer
+from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community
 from extensions import db
-from utils import save_chat_file
+from utils import save_chat_file, save_status_file
+from datetime import timedelta
 
 main = Blueprint('main', __name__)
 
@@ -747,11 +748,14 @@ def save_group_icon(form_picture):
 @main.route('/chat/create', methods=['GET', 'POST'])
 @login_required
 def create_group():
+    if current_user.role == 'student':
+        flash("You are not allowed to create groups.", "warning")
+        return redirect(url_for('main.chat_list'))
+
     if request.method == 'POST':
         group_name = request.form.get('group_name')
         group_description = request.form.get('group_description')
-        group_type = request.form.get('group_type')
-        members = request.form.getlist('members') # This will be handled upon approval for non-admins
+        group_type = 'public' # Simplified for now
 
         icon_path = None
         if 'group_icon' in request.files:
@@ -759,7 +763,6 @@ def create_group():
             if file.filename != '':
                 icon_path = save_group_icon(file)
 
-        # Admin role creates the group directly
         if current_user.role == 'admin':
             new_room = ChatRoom(
                 name=group_name,
@@ -768,28 +771,16 @@ def create_group():
                 created_by_id=current_user.id,
                 cover_image=icon_path
             )
-            if group_type == 'public':
-                new_room.join_token = secrets.token_urlsafe(16)
-
             db.session.add(new_room)
             db.session.commit()
-
             # Add creator as admin
             creator_member = ChatRoomMember(chat_room_id=new_room.id, user_id=current_user.id, role_in_room='admin')
             db.session.add(creator_member)
-
-            # Add selected members
-            for user_id in members:
-                if int(user_id) != current_user.id:
-                    member = ChatRoomMember(chat_room_id=new_room.id, user_id=int(user_id), role_in_room='member')
-                    db.session.add(member)
-
             db.session.commit()
             flash('Group created successfully!', 'success')
             return redirect(url_for('main.chat_room', room_id=new_room.id))
 
-        # Instructor and Student roles submit a request
-        else:
+        elif current_user.role == 'instructor':
             new_request = GroupRequest(
                 name=group_name,
                 description=group_description,
@@ -802,9 +793,7 @@ def create_group():
             flash('Your group request has been sent for Admin approval.', 'success')
             return redirect(url_for('main.chat_list'))
 
-    # For GET request
-    users = User.query.filter(User.id != current_user.id).all()
-    return render_template('create_group.html', users=users)
+    return render_template('chat/create_group.html')
 
 @main.route('/chat/<int:room_id>/edit-icon', methods=['GET', 'POST'])
 @login_required
@@ -876,50 +865,49 @@ def join_chat(token):
 @login_required
 def chat_list():
     """
-    Displays the list of chat rooms available to the current user.
+    Displays the list of chat rooms available to the current user using the new UI.
     """
     # Admins see all rooms
     if current_user.role == 'admin':
         user_rooms = ChatRoom.query.order_by(ChatRoom.last_message_timestamp.desc().nullslast()).all()
     else:
         # Students and instructors see public rooms and rooms they are members of
-        member_room_ids = db.session.query(ChatRoomMember.chat_room_id).filter_by(user_id=current_user.id).all()
-        member_room_ids = [item[0] for item in member_room_ids]
+        member_room_ids = [m.chat_room_id for m in current_user.chat_memberships]
+        user_rooms = ChatRoom.query.filter(
+            (ChatRoom.room_type == 'public') | (ChatRoom.id.in_(member_room_ids))
+        ).order_by(ChatRoom.last_message_timestamp.desc().nullslast()).all()
 
-        user_rooms_query = ChatRoom.query.filter(
-            (ChatRoom.room_type == 'public') |
-            (ChatRoom.id.in_(member_room_ids))
-        ).order_by(ChatRoom.last_message_timestamp.desc().nullslast())
-        user_rooms = user_rooms_query.all()
-
-    room_data = []
+    chat_data = []
     for room in user_rooms:
+        # Get last message
+        last_message = room.messages.order_by(ChatMessage.timestamp.desc()).first()
+
+        # Get unread count
         last_read = UserLastRead.query.filter_by(user_id=current_user.id, room_id=room.id).first()
         last_read_time = last_read.last_read_timestamp if last_read else datetime.min
-
         unread_count = db.session.query(ChatMessage).filter(
             ChatMessage.room_id == room.id,
             ChatMessage.timestamp > last_read_time,
             ChatMessage.user_id != current_user.id
         ).count()
 
-        room_data.append({
+        chat_data.append({
             'id': room.id,
+            'avatar_url': url_for('static', filename=room.cover_image or 'profile_pics/default.jpg'),
             'name': room.name,
-            'description': room.description,
-            'cover_image': room.cover_image,
-            'member_count': room.members.count(),
+            'timestamp': last_message.timestamp.strftime('%I:%M %p') if last_message else '',
+            'last_message': last_message.content if last_message else 'No messages yet.',
             'unread_count': unread_count
         })
 
-    return render_template('chat_list.html', rooms=room_data)
+    return render_template('chat/list.html', chats=chat_data)
 
 
 @main.route('/chat/<int:room_id>')
 @login_required
 def chat_room(room_id):
     """
-    Displays the actual chat interface for a specific room.
+    Displays the actual chat interface for a specific room using the new UI.
     """
     room = ChatRoom.query.get_or_404(room_id)
 
@@ -931,10 +919,23 @@ def chat_room(room_id):
     if not (is_member or is_public or is_admin):
         abort(403)
 
-    # For the old template, we need to pass a list of rooms,
-    # so we'll just pass the current room for now.
-    # This will be refactored in the frontend step.
-    return render_template('chat.html', rooms=[room], current_room=room, user_role=current_user.role)
+    chat_info = {
+        'id': room.id,
+        'name': room.name,
+        'avatar_url': url_for('static', filename=room.cover_image or 'profile_pics/default.jpg')
+    }
+
+    # Fetch recent messages
+    recent_messages = room.messages.order_by(ChatMessage.timestamp.asc()).limit(50).all()
+    messages_data = []
+    for msg in recent_messages:
+        messages_data.append({
+            'text': msg.content,
+            'timestamp': msg.timestamp.strftime('%I:%M %p'),
+            'is_sender': msg.user_id == current_user.id
+        })
+
+    return render_template('chat/room.html', chat_info=chat_info, messages=messages_data)
 
 @main.route('/chat/<int:room_id>/info')
 @login_required
@@ -1377,3 +1378,164 @@ def seed_db():
 
     flash('Database has been cleared and re-seeded with sample data.')
     return redirect(url_for('main.home'))
+
+@main.route('/status')
+@login_required
+def status():
+    # Only Admins and Instructors can post statuses
+    can_post_status = current_user.role in ['admin', 'instructor']
+
+    # Get active statuses from the last 24 hours
+    now = datetime.utcnow()
+
+    # My active statuses
+    my_statuses = Status.query.filter(
+        Status.user_id == current_user.id,
+        Status.expires_at > now
+    ).order_by(Status.created_at.desc()).all()
+
+    # Recent updates from others (Admins and Instructors only)
+    recent_updates_query = Status.query.join(User).filter(
+        User.role.in_(['admin', 'instructor']),
+        Status.user_id != current_user.id,
+        Status.expires_at > now
+    ).order_by(User.id, Status.created_at.desc())
+
+    recent_updates_by_user = {}
+    for s in recent_updates_query:
+        if s.user_id not in recent_updates_by_user:
+            recent_updates_by_user[s.user_id] = {
+                'user': s.user,
+                'statuses': [],
+                'all_viewed': True # Assume all are viewed until we find one that is not
+            }
+        recent_updates_by_user[s.user_id]['statuses'].append(s)
+
+    # Check which statuses have been viewed
+    for user_id, data in recent_updates_by_user.items():
+        for s in data['statuses']:
+            is_viewed = StatusView.query.filter_by(status_id=s.id, user_id=current_user.id).first()
+            if not is_viewed:
+                data['all_viewed'] = False
+                break
+
+    return render_template('status.html',
+                           my_statuses=my_statuses,
+                           recent_updates=recent_updates_by_user.values(),
+                           can_post_status=can_post_status)
+
+@main.route('/status/view/<int:user_id>')
+@login_required
+def view_user_status(user_id):
+    # This route just renders the viewer shell.
+    # The data will be fetched by JavaScript.
+    user = User.query.get_or_404(user_id)
+    return render_template('chat/view_status.html', view_user=user)
+
+@main.route('/status/data/<int:user_id>')
+@login_required
+def get_user_status_data(user_id):
+    now = datetime.utcnow()
+    statuses = Status.query.filter(
+        Status.user_id == user_id,
+        Status.expires_at > now
+    ).order_by(Status.created_at).all()
+
+    statuses_data = []
+    for s in statuses:
+        is_viewed = StatusView.query.filter_by(status_id=s.id, user_id=current_user.id).first() is not None
+        statuses_data.append({
+            'id': s.id,
+            'content_type': s.content_type,
+            'content': s.content if s.content_type == 'text' else url_for('static', filename=s.content),
+            'caption': s.caption,
+            'viewed': is_viewed
+        })
+
+    user = User.query.get_or_404(user_id)
+    return jsonify({
+        'user_info': {
+            'name': user.name,
+            'avatar_url': url_for('static', filename='profile_pics/' + user.profile_pic)
+        },
+        'statuses': statuses_data
+    })
+
+@main.route('/status/mark_viewed/<int:status_id>', methods=['POST'])
+@login_required
+def mark_status_viewed(status_id):
+    # Check if already viewed to avoid duplicate entries
+    existing_view = StatusView.query.filter_by(status_id=status_id, user_id=current_user.id).first()
+    if not existing_view:
+        new_view = StatusView(status_id=status_id, user_id=current_user.id)
+        db.session.add(new_view)
+        db.session.commit()
+    return jsonify({'status': 'success'})
+
+@main.route('/status/add', methods=['GET', 'POST'])
+@login_required
+def add_status():
+    if current_user.role not in ['admin', 'instructor']:
+        flash("You are not allowed to post a status.", "warning")
+        return redirect(url_for('main.status'))
+
+    if request.method == 'POST':
+        status_type = request.form.get('status_type')
+
+        if status_type == 'text':
+            content = request.form.get('text_content')
+            if not content:
+                flash("Text content cannot be empty.", "danger")
+                return redirect(url_for('main.add_status'))
+
+            new_status = Status(user_id=current_user.id, content_type='text', content=content)
+            db.session.add(new_status)
+            db.session.commit()
+            flash("Your status has been posted.", "success")
+            return redirect(url_for('main.status'))
+
+        elif status_type == 'image':
+            if 'image_file' not in request.files:
+                flash('No image file selected.', 'danger')
+                return redirect(url_for('main.add_status'))
+
+            file = request.files['image_file']
+            if file.filename == '':
+                flash('No image file selected.', 'danger')
+                return redirect(url_for('main.add_status'))
+
+            saved_path = save_status_file(file)
+            if not saved_path:
+                flash('Invalid file type or size. Allowed: png, jpg, jpeg. Max size: 5MB.', 'danger')
+                return redirect(url_for('main.add_status'))
+
+            caption = request.form.get('caption')
+            new_status = Status(
+                user_id=current_user.id,
+                content_type='image',
+                content=saved_path,
+                caption=caption
+            )
+            db.session.add(new_status)
+            db.session.commit()
+            flash("Your image status has been posted.", "success")
+            return redirect(url_for('main.status'))
+
+    return render_template('chat/add_status.html')
+
+@main.route('/communities')
+@login_required
+def communities():
+    all_communities = Community.query.order_by(Community.name).all()
+    return render_template('communities.html', communities=all_communities)
+
+@main.route('/community/<int:community_id>')
+@login_required
+def view_community(community_id):
+    community = Community.query.get_or_404(community_id)
+    return render_template('chat/view_community.html', community=community)
+
+@main.route('/calls')
+@login_required
+def calls():
+    return render_template('calls.html')
