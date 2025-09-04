@@ -59,6 +59,14 @@
             }
         })();
     </script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        var socket = io();
+        socket.on('connect', function() {
+            console.log('Socket.IO connected!');
+            // Any initial event subscriptions can go here
+        });
+    </script>
     {% block chat_scripts %}{% endblock %}
 </body>
 </html>

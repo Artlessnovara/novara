@@ -24,12 +24,81 @@
         {% endfor %}
     </div>
 
+    <div id="media-menu" class="media-menu hidden">
+        <div class="media-menu-row">
+            <button class="media-option-btn" id="media-camera-btn"><i class="fa-solid fa-camera"></i><span>Camera</span></button>
+            <button class="media-option-btn" id="media-gallery-btn"><i class="fa-solid fa-images"></i><span>Gallery</span></button>
+            <button class="media-option-btn" id="media-document-btn"><i class="fa-solid fa-file-lines"></i><span>Document</span></button>
+        </div>
+        <div class="media-menu-row">
+            <button class="media-option-btn" id="media-voice-btn"><i class="fa-solid fa-microphone"></i><span>Voice Note</span></button>
+            <button class="media-option-btn" id="media-contact-btn"><i class="fa-solid fa-user"></i><span>Contact</span></button>
+            <button class="media-option-btn" id="create-poll-btn"><i class="fa-solid fa-chart-simple"></i><span>Poll</span></button>
+        </div>
+    </div>
+
     <div class="message-input-bar">
         <button class="icon-btn emoji-btn"><i class="fa-regular fa-face-smile"></i></button>
+        <button class="icon-btn media-btn"><i class="fa-solid fa-paperclip"></i></button>
         <textarea class="message-input" placeholder="Type a message" rows="1"></textarea>
         <button class="icon-btn send-btn"><i class="fa-solid fa-paper-plane"></i></button>
     </div>
 </div>
+
+<style>
+    .media-menu {
+        position: absolute;
+        bottom: 70px; /* Adjust based on input bar height */
+        left: 10px;
+        right: 10px;
+        background-color: #f0f0f0;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        transform: translateY(100%);
+        opacity: 0;
+        z-index: 1000;
+    }
+    .media-menu.hidden {
+        transform: translateY(100%);
+        opacity: 0;
+        pointer-events: none;
+    }
+    .media-menu:not(.hidden) {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    .media-menu-row {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 15px;
+    }
+    .media-menu-row:last-child {
+        margin-bottom: 0;
+    }
+    .media-option-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 12px;
+        color: #333;
+    }
+    .media-option-btn i {
+        font-size: 24px;
+        margin-bottom: 5px;
+        width: 50px;
+        height: 50px;
+        line-height: 50px;
+        border-radius: 50%;
+        background-color: #fff;
+        color: #007bff;
+        text-align: center;
+    }
+</style>
 {% endblock %}
 
 {% block chat_scripts %}
@@ -49,6 +118,75 @@ document.addEventListener('DOMContentLoaded', function() {
     if (messageArea) {
         messageArea.scrollTop = messageArea.scrollHeight;
     }
+
+    // Media menu toggle
+    const mediaBtn = document.querySelector('.media-btn');
+    const mediaMenu = document.getElementById('media-menu');
+    const conversationPage = document.querySelector('.conversation-page');
+
+    if (mediaBtn && mediaMenu) {
+        mediaBtn.addEventListener('click', function(event) {
+            event.stopPropagation();
+            mediaMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!mediaMenu.contains(event.target) && !mediaBtn.contains(event.target)) {
+                mediaMenu.classList.add('hidden');
+            }
+        });
+    }
+
+    // Poll creation logic
+    const pollBtn = document.getElementById('create-poll-btn');
+    if (pollBtn) {
+        pollBtn.addEventListener('click', function() {
+            const question = prompt("Enter the poll question:");
+            if (!question) return;
+
+            let options = [];
+            let option;
+            while (options.length < 10 && (option = prompt(`Enter option ${options.length + 1} (or leave blank to finish):`))) {
+                options.push(option);
+            }
+
+            if (options.length < 2) {
+                alert("A poll requires at least two options.");
+                return;
+            }
+
+            // Hide the media menu after gathering input
+            if (mediaMenu) {
+                mediaMenu.classList.add('hidden');
+            }
+
+            socket.emit('create_poll', {
+                room_id: {{ chat_info.id|tojson }},
+                question: question,
+                options: options
+            });
+        });
+    }
+
+    // Placeholder logic for other media buttons
+    const placeholderBtns = [
+        {id: 'media-camera-btn', name: 'Camera'},
+        {id: 'media-gallery-btn', name: 'Gallery'},
+        {id: 'media-document-btn', name: 'Document'},
+        {id: 'media-voice-btn', name: 'Voice Note'},
+        {id: 'media-contact-btn', name: 'Contact'},
+    ];
+    placeholderBtns.forEach(btnInfo => {
+        const btn = document.getElementById(btnInfo.id);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                alert(btnInfo.name + ' functionality is not yet implemented.');
+                if (mediaMenu) {
+                    mediaMenu.classList.add('hidden');
+                }
+            });
+        }
+    });
 });
 </script>
 {% endblock %}

@@ -7,7 +7,7 @@
     <div class="chat-list">
         {% if chats %}
             {% for chat in chats %}
-            <a href="#" class="chat-item-link">
+            <a href="{{ url_for('main.chat_room', room_id=chat.id) }}" class="chat-item-link">
                 <div class="chat-item">
                     <div class="chat-item-avatar">
                         <img src="{{ chat.avatar_url }}" alt="{{ chat.name }}">
