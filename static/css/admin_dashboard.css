@@ -293,8 +293,11 @@ body.admin-page {
 .status-badge.approved { background-color: rgba(34, 197, 94, 0.2); color: #15803d; }
 .status-badge.pending { background-color: rgba(249, 115, 22, 0.2); color: #b45309; }
 .status-badge.banned { background-color: rgba(239, 68, 68, 0.2); color: #b91c1c; }
-.user-actions .actions-wrapper { display: flex; gap: 0.5rem; }
-.mobile-actions-menu { display: none; }
+.mobile-actions {
+    display: none; /* Hide mobile actions by default */
+    position: relative;
+}
+
 
 /* --- General Responsiveness --- */
 @media (max-width: 1024px) {
@@ -325,21 +328,41 @@ body.admin-page {
 @media (max-width: 767px) {
     .user-info { grid-template-columns: 1fr; }
     .user-details { grid-column: 1 / -1; }
-    .user-actions .actions-wrapper .btn-glass { display: none; }
-    .mobile-actions-menu { display: block; position: relative; }
-    .dropdown-toggle { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
-    .dropdown-content {
-        display: none;
+
+    .action-buttons-container .desktop-actions { display: none; } /* Hide desktop buttons */
+    .action-buttons-container .mobile-actions { display: block; } /* Show mobile container */
+
+    .more-actions-toggle {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #1a2551;
+        padding: 0.5rem;
+        line-height: 1;
+    }
+
+    .more-actions-dropdown {
+        display: none; /* Hidden by default */
         position: absolute;
         right: 0;
         top: 100%;
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
         border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        z-index: 10;
+        box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+        z-index: 100;
+        min-width: 160px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        padding: 0.5rem 0;
+        list-style: none;
     }
-    .dropdown-content a, .dropdown-content button {
+    .more-actions-dropdown.is-open {
+        display: block; /* Show when JS adds this class */
+    }
+
+    .more-actions-dropdown a,
+    .more-actions-dropdown button {
         display: block;
         padding: 0.75rem 1.5rem;
         text-align: left;
@@ -348,8 +371,18 @@ body.admin-page {
         border: none;
         color: #1a2551;
         text-decoration: none;
+        font-size: 0.9rem;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
     }
-    .mobile-actions-menu:hover .dropdown-content { display: block; }
+    .more-actions-dropdown form {
+        display: block;
+        margin: 0;
+    }
+    .more-actions-dropdown a:hover,
+    .more-actions-dropdown button:hover {
+        background: rgba(0, 0, 0, 0.05);
+    }
 }
 
 /* --- Manage Courses Page --- */
