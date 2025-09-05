@@ -1,6 +1,7 @@
-{% extends "chat_layout.html" %}
+{% extends "base.html" %}
 
-{% block chat_content %}
+{% block styles %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
     .info-page { padding: 15px; color: #333; }
     .info-header { text-align: center; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
@@ -21,11 +22,17 @@
     .action-btn { display: block; width: 100%; padding: 12px; border: none; background-color: #f0f0f0; border-radius: 8px; text-align: left; font-size: 16px; margin-bottom: 10px; cursor: pointer; text-decoration: none; color: #333; }
     .action-btn i { margin-right: 10px; }
     .action-btn.report-btn, .action-btn.delete-btn { color: #dc3545; }
+    .content-list { list-style: none; padding: 0; }
+    .content-item { padding: 10px; border-bottom: 1px solid #eee; }
+    .content-item a { text-decoration: none; color: #007bff; }
 </style>
 
+{% endblock %}
+
+{% block content %}
 <div class="info-page">
     <div class="info-header">
-        <a href="{{ url_for('main.chat_room', room_id=room.id) }}" class="back-btn" style="position: absolute; top: 15px; left: 15px; font-size: 20px;"><i class="fa-solid fa-arrow-left"></i></a>
+        <a href="{{ url_for('main.chat_list') }}" class="back-btn" style="position: absolute; top: 100px; left: 15px; font-size: 16px; color: #007bff; text-decoration: none;"><i class="fa-solid fa-arrow-left"></i> Back to Chats</a>
         <img src="{{ url_for('static', filename=room.cover_image or 'profile_pics/default.jpg') }}" alt="{{ room.name }}" class="info-avatar">
         <h2 class="info-name">{{ room.name }}</h2>
         {% if room.description %}<p class="info-description">{{ room.description }}</p>{% endif %}
@@ -34,6 +41,8 @@
     <div class="info-tabs">
         <div class="tab-buttons">
             <button class="tab-btn active" onclick="showTab('media')">Media</button>
+            <button class="tab-btn" onclick="showTab('docs')">Docs</button>
+            <button class="tab-btn" onclick="showTab('links')">Links</button>
             <button class="tab-btn" onclick="showTab('members')">Members</button>
             {% if user_role_in_room == 'admin' %}<button class="tab-btn" onclick="showTab('admin')">Admin</button>{% endif %}
         </div>
@@ -48,6 +57,32 @@
                         <p>No media has been shared yet.</p>
                     {% endfor %}
                 </div>
+            </div>
+            <div id="docs" class="tab-pane">
+                {% if doc_messages %}
+                    <ul class="content-list">
+                    {% for msg in doc_messages %}
+                        <li class="content-item">
+                            <a href="{{ url_for('static', filename=msg.file_path) }}" download>
+                                <i class="fa-solid fa-file-arrow-down"></i> {{ msg.file_name }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No documents have been shared in this chat.</p>
+                {% endif %}
+            </div>
+            <div id="links" class="tab-pane">
+                {% if link_messages %}
+                    <ul class="content-list">
+                    {% for msg in link_messages %}
+                        <li class="content-item"><a href="{{ msg.content.split()[0] }}" target="_blank">{{ msg.content }}</a></li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No links have been shared in this chat.</p>
+                {% endif %}
             </div>
             <div id="members" class="tab-pane">
                 <ul class="members-list">
@@ -74,14 +109,26 @@
     </div>
 
     <div class="info-actions">
-        <button class="action-btn mute-btn" id="mute-btn"><i class="fa-solid fa-bell-slash"></i> Mute Notifications</button>
+        <button class="action-btn mute-btn" id="mute-btn">
+            <i class="fa-solid fa-bell-slash"></i>
+            <span id="mute-btn-text">
+                {% if is_muted %}Unmute Notifications{% else %}Mute Notifications{% endif %}
+            </span>
+        </button>
         <button class="action-btn report-btn" id="report-btn"><i class="fa-solid fa-flag"></i> Report Group</button>
     </div>
 </div>
 {% endblock %}
 
-{% block chat_scripts %}
+{% block scripts %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
+    var socket = io();
+
+    socket.on('connect', function() {
+        console.log('Socket.IO connected for chat info page.');
+    });
+
     function showTab(tabId) {
         document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -92,12 +139,42 @@
     document.addEventListener('DOMContentLoaded', function() {
         const muteBtn = document.getElementById('mute-btn');
         if (muteBtn) {
-            muteBtn.addEventListener('click', () => alert('Mute functionality is not yet implemented.'));
+            muteBtn.addEventListener('click', () => {
+                socket.emit('toggle_mute', { room_id: {{ room.id|tojson }} });
+            });
         }
 
         const reportBtn = document.getElementById('report-btn');
         if (reportBtn) {
-            reportBtn.addEventListener('click', () => alert('Report functionality is not yet implemented.'));
+            reportBtn.addEventListener('click', () => {
+                const reason = prompt("Please provide a reason for reporting this group:");
+                if (reason) { // Proceed only if a reason is provided
+                    socket.emit('report_group', {
+                        room_id: {{ room.id|tojson }},
+                        reason: reason
+                    });
+                }
+            });
+        }
+    });
+
+    socket.on('status', function(data) {
+        // Generic handler for status messages from the server
+        alert(data.msg);
+    });
+
+    socket.on('error', function(data) {
+        // Generic handler for error messages
+        alert('Error: ' + data.msg);
+    });
+
+    socket.on('mute_status_changed', function(data) {
+        if (data.room_id === {{ room.id|tojson }}) {
+            const muteText = document.getElementById('mute-btn-text');
+            if (muteText) {
+                muteText.textContent = data.is_muted ? 'Unmute Notifications' : 'Mute Notifications';
+                // You could also add a small visual confirmation like a temporary highlight
+            }
         }
     });
 </script>

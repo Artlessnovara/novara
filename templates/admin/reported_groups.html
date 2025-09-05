@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Reported Groups{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Reported Groups</h1>
+        <p>Review groups reported by users.</p>
+    </div>
+
+    <div class="glassy-table-wrapper">
+        <div class="glassy-table">
+            <!-- Table Header -->
+            <div class="table-header" style="grid-template-columns: 2fr 3fr 1.5fr 1.5fr 1fr;">
+                <div class="table-cell">Group Name</div>
+                <div class="table-cell">Reason</div>
+                <div class="table-cell">Reported By</div>
+                <div class="table-cell">Reported At</div>
+                <div class="table-cell">Actions</div>
+            </div>
+
+            <!-- Table Body -->
+            {% for report in reports %}
+            <div class="table-row-card">
+                <div class="table-row" style="grid-template-columns: 2fr 3fr 1.5fr 1.5fr 1fr;">
+                    <div class="table-cell" data-label="Group Name">{{ report.room.name }}</div>
+                    <div class="table-cell" data-label="Reason">{{ report.reason }}</div>
+                    <div class="table-cell" data-label="Reported By">{{ report.reporter.name }}</div>
+                    <div class="table-cell" data-label="Reported At">{{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
+                    <div class="table-cell actions-cell" data-label="Actions">
+                        <a href="{{ url_for('main.chat_room', room_id=report.room.id) }}" class="btn-glass info compact-btn" target="_blank">View Group</a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="glass-card full-width-card">
+                <p>There are no reported groups.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

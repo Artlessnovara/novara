@@ -382,6 +382,13 @@ class MutedUser(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (db.UniqueConstraint('user_id', 'room_id', name='_user_room_uc'),)
 
+class MutedRoom(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    room_id = db.Column(db.Integer, db.ForeignKey('chat_room.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    __table_args__ = (db.UniqueConstraint('user_id', 'room_id', name='_user_muted_room_uc'),)
+
 class ReportedMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     message_id = db.Column(db.Integer, db.ForeignKey('chat_message.id'), nullable=False)
@@ -389,6 +396,16 @@ class ReportedMessage(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     message = db.relationship('ChatMessage', backref='reports')
+    reporter = db.relationship('User', foreign_keys=[reported_by_id])
+
+class ReportedGroup(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('chat_room.id'), nullable=False)
+    reported_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reason = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    room = db.relationship('ChatRoom', backref='group_reports')
     reporter = db.relationship('User', foreign_keys=[reported_by_id])
 
 class MessageReaction(db.Model):

@@ -3,7 +3,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 import random
 import secrets
-from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community
+from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community
 from extensions import db
 from utils import save_chat_file, save_status_file
 from datetime import timedelta
@@ -493,6 +493,7 @@ def submit_payment_proof(course_id):
     return redirect(url_for('main.course_detail', course_id=course.id))
 
 from sqlalchemy import or_
+import re
 
 @main.route('/library')
 def library():
@@ -882,14 +883,17 @@ def chat_list():
         # Get last message
         last_message = room.messages.order_by(ChatMessage.timestamp.desc()).first()
 
-        # Get unread count
-        last_read = UserLastRead.query.filter_by(user_id=current_user.id, room_id=room.id).first()
-        last_read_time = last_read.last_read_timestamp if last_read else datetime.min
-        unread_count = db.session.query(ChatMessage).filter(
-            ChatMessage.room_id == room.id,
-            ChatMessage.timestamp > last_read_time,
-            ChatMessage.user_id != current_user.id
-        ).count()
+        # Get unread count, but only for non-muted rooms
+        is_muted = MutedRoom.query.filter_by(user_id=current_user.id, room_id=room.id).first() is not None
+        unread_count = 0
+        if not is_muted:
+            last_read = UserLastRead.query.filter_by(user_id=current_user.id, room_id=room.id).first()
+            last_read_time = last_read.last_read_timestamp if last_read else datetime.min
+            unread_count = db.session.query(ChatMessage).filter(
+                ChatMessage.room_id == room.id,
+                ChatMessage.timestamp > last_read_time,
+                ChatMessage.user_id != current_user.id
+            ).count()
 
         chat_data.append({
             'id': room.id,
@@ -962,7 +966,30 @@ def chat_room_info(room_id):
     ).first()
     user_role_in_room = user_membership.role_in_room if user_membership else None
 
-    return render_template('chat_info.html', room=room, media_messages=media_messages, user_role_in_room=user_role_in_room)
+    # Check if the user has muted this room
+    is_muted = MutedRoom.query.filter_by(user_id=current_user.id, room_id=room_id).first() is not None
+
+    # Fetch links (simple regex for URLs)
+    link_messages = db.session.query(ChatMessage).filter(
+        ChatMessage.room_id == room_id,
+        ChatMessage.content.op('regexp')(r'https?://[^\s]+')
+    ).order_by(ChatMessage.timestamp.desc()).limit(20).all()
+
+    # Fetch documents by extension
+    doc_extensions = ('.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt')
+    doc_messages = ChatMessage.query.filter(
+        ChatMessage.room_id == room_id,
+        ChatMessage.file_name.isnot(None),
+        or_(*[ChatMessage.file_name.ilike(f'%{ext}') for ext in doc_extensions])
+    ).order_by(ChatMessage.timestamp.desc()).limit(20).all()
+
+    return render_template('chat_info.html',
+                           room=room,
+                           media_messages=media_messages,
+                           user_role_in_room=user_role_in_room,
+                           is_muted=is_muted,
+                           link_messages=link_messages,
+                           doc_messages=doc_messages)
 
 
 @main.route('/new_chat_interface')

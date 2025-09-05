@@ -2,7 +2,7 @@ from flask_socketio import emit, join_room, leave_room
 from flask_login import current_user
 from extensions import db
 from datetime import datetime
-from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, MutedUser, ReportedMessage, MessageReaction, UserLastRead, Poll, PollOption, PollVote
+from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote
 from utils import filter_profanity
 
 def register_chat_events(socketio):
@@ -220,6 +220,37 @@ def register_chat_events(socketio):
 
         emit('status', {'msg': 'Message has been reported to administrators.'})
 
+    @socketio.on('report_group')
+    def report_group(data):
+        if not current_user.is_authenticated:
+            return
+
+        room_id = data.get('room_id')
+        reason = data.get('reason')
+
+        if not room_id:
+            return
+
+        # Prevent duplicate reports
+        existing_report = ReportedGroup.query.filter_by(
+            room_id=room_id,
+            reported_by_id=current_user.id
+        ).first()
+
+        if existing_report:
+            emit('error', {'msg': 'You have already reported this group.'})
+            return
+
+        new_report = ReportedGroup(
+            room_id=room_id,
+            reported_by_id=current_user.id,
+            reason=reason
+        )
+        db.session.add(new_report)
+        db.session.commit()
+
+        emit('status', {'msg': 'Group has been reported to administrators.'})
+
 
     @socketio.on('remove_member')
     def remove_member(data):
@@ -315,6 +346,34 @@ def register_chat_events(socketio):
             'room_id': message.room_id,
             'new_content': new_content
         }, to=message.room_id)
+
+    @socketio.on('toggle_mute')
+    def toggle_mute(data):
+        if not current_user.is_authenticated:
+            return
+
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+
+        # Check for existing mute
+        existing_mute = MutedRoom.query.filter_by(
+            user_id=current_user.id,
+            room_id=room_id
+        ).first()
+
+        new_status = False
+        if existing_mute:
+            db.session.delete(existing_mute)
+            new_status = False # Unmuted
+        else:
+            new_mute = MutedRoom(user_id=current_user.id, room_id=room_id)
+            db.session.add(new_mute)
+            new_status = True # Muted
+
+        db.session.commit()
+
+        emit('mute_status_changed', {'room_id': room_id, 'is_muted': new_status})
 
     @socketio.on('create_poll')
     def create_poll(data):
