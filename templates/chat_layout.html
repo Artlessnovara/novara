@@ -60,13 +60,8 @@
         })();
     </script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script type="text/javascript" charset="utf-8">
-        var socket = io();
-        socket.on('connect', function() {
-            console.log('Socket.IO connected!');
-            // Any initial event subscriptions can go here
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/socket_handler.js') }}"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
     {% block chat_scripts %}{% endblock %}
 </body>
 </html>
