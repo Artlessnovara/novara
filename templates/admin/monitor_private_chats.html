@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Private Chat Monitoring{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Private Chat Monitoring</h1>
+        <p>Review private conversations between Admins and Instructors.</p>
+    </div>
+
+    <div class="glassy-table-wrapper">
+        <div class="glassy-table">
+            <!-- Table Header -->
+            <div class="table-header" style="grid-template-columns: 3fr 2fr 1fr;">
+                <div class="table-cell">Participants</div>
+                <div class="table-cell">Last Message</div>
+                <div class="table-cell">Actions</div>
+            </div>
+
+            <!-- Table Body -->
+            {% for room in rooms %}
+            <div class="table-row-card">
+                <div class="table-row" style="grid-template-columns: 3fr 2fr 1fr;">
+                    <div class="table-cell" data-label="Participants">
+                        {% for member in room.members %}
+                            {{ member.user.name }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="table-cell" data-label="Last Message">
+                        {% if room.last_message_timestamp %}
+                            {{ room.last_message_timestamp.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            No messages yet
+                        {% endif %}
+                    </div>
+                    <div class="table-cell actions-cell" data-label="Actions">
+                        <a href="{{ url_for('admin.view_private_chat', room_id=room.id) }}" class="btn-glass info compact-btn">View Chat</a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="glass-card full-width-card">
+                <p>There are no private chats to display.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

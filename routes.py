@@ -3,7 +3,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 import random
 import secrets
-from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community
+from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll
 from extensions import db
 from utils import save_chat_file, save_status_file
 from datetime import timedelta
@@ -930,16 +930,11 @@ def chat_room(room_id):
     }
 
     # Fetch recent messages
+    # This part can be simplified. The template can handle rendering logic.
+    # We will fetch the full message objects instead.
     recent_messages = room.messages.order_by(ChatMessage.timestamp.asc()).limit(50).all()
-    messages_data = []
-    for msg in recent_messages:
-        messages_data.append({
-            'text': msg.content,
-            'timestamp': msg.timestamp.strftime('%I:%M %p'),
-            'is_sender': msg.user_id == current_user.id
-        })
 
-    return render_template('chat/room.html', chat_info=chat_info, messages=messages_data)
+    return render_template('chat/room.html', chat_info=chat_info, messages=recent_messages, current_user_id=current_user.id)
 
 @main.route('/chat/<int:room_id>/info')
 @login_required
@@ -983,13 +978,17 @@ def chat_room_info(room_id):
         or_(*[ChatMessage.file_name.ilike(f'%{ext}') for ext in doc_extensions])
     ).order_by(ChatMessage.timestamp.desc()).limit(20).all()
 
+    # Fetch polls
+    polls = Poll.query.filter_by(room_id=room_id).order_by(Poll.created_at.desc()).limit(20).all()
+
     return render_template('chat_info.html',
                            room=room,
                            media_messages=media_messages,
                            user_role_in_room=user_role_in_room,
                            is_muted=is_muted,
                            link_messages=link_messages,
-                           doc_messages=doc_messages)
+                           doc_messages=doc_messages,
+                           polls=polls)
 
 
 @main.route('/new_chat_interface')

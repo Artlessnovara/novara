@@ -659,3 +659,26 @@ def reported_groups():
 
     reports = ReportedGroup.query.order_by(ReportedGroup.timestamp.desc()).all()
     return render_template('admin/reported_groups.html', reports=reports)
+
+@admin_bp.route('/monitor/private-chats')
+@login_required
+def monitor_private_chats():
+    if current_user.role != 'admin':
+        abort(403)
+
+    private_rooms = ChatRoom.query.filter_by(room_type='private').order_by(ChatRoom.last_message_timestamp.desc()).all()
+    return render_template('admin/monitor_private_chats.html', rooms=private_rooms)
+
+@admin_bp.route('/monitor/private-chat/<int:room_id>')
+@login_required
+def view_private_chat(room_id):
+    if current_user.role != 'admin':
+        abort(403)
+
+    room = ChatRoom.query.get_or_404(room_id)
+    if room.room_type != 'private':
+        flash('This is not a private chat room.', 'danger')
+        return redirect(url_for('admin.monitor_private_chats'))
+
+    messages = room.messages.order_by(ChatMessage.timestamp.asc()).all()
+    return render_template('admin/view_private_chat.html', room=room, messages=messages)

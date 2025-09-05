@@ -15,10 +15,20 @@
 
     <div class="message-area">
         {% for message in messages %}
-        <div class="message-bubble-wrapper {% if message.is_sender %}sender{% else %}receiver{% endif %}">
+        <div class="message-bubble-wrapper {% if message.user_id == current_user_id %}sender{% else %}receiver{% endif %}">
             <div class="message-bubble">
-                <p class="message-content">{{ message.text }}</p>
-                <span class="message-timestamp">{{ message.timestamp }}</span>
+                {% if message.file_path %}
+                    {% if message.file_name.lower().endswith(('png', 'jpg', 'jpeg', 'gif', 'webp')) %}
+                        <img src="/static/{{ message.file_path }}" alt="{{ message.file_name }}" class="message-image">
+                    {% else %}
+                        <a href="/static/{{ message.file_path }}" class="message-file" download>
+                            <i class="fa-solid fa-file-arrow-down"></i> {{ message.file_name }}
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <p class="message-content">{{ message.content }}</p>
+                {% endif %}
+                <span class="message-timestamp">{{ message.timestamp.strftime('%I:%M %p') }}</span>
             </div>
         </div>
         {% endfor %}
@@ -98,6 +108,19 @@
         color: #007bff;
         text-align: center;
     }
+    .message-image {
+        max-width: 100%;
+        border-radius: 8px;
+        margin-bottom: 5px;
+    }
+    .message-file {
+        display: inline-block;
+        padding: 10px;
+        background-color: rgba(0,0,0,0.1);
+        border-radius: 8px;
+        text-decoration: none;
+        color: inherit;
+    }
 </style>
 {% endblock %}
 
@@ -168,11 +191,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Placeholder logic for other media buttons
+    // File upload logic
+    function triggerFileUpload(accept) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = accept;
+        input.style.display = 'none';
+
+        input.addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/chat/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Upload failed: ' + data.error);
+                    return;
+                }
+                socket.emit('message', {
+                    room_id: {{ chat_info.id|tojson }},
+                    file_path: data.file_path,
+                    file_name: data.file_name
+                });
+            })
+            .catch(error => {
+                console.error('Upload error:', error);
+                alert('An error occurred during upload.');
+            });
+        });
+        document.body.appendChild(input);
+        input.click();
+        document.body.removeChild(input);
+    }
+
+    document.getElementById('media-gallery-btn')?.addEventListener('click', () => {
+        triggerFileUpload('image/*,video/*');
+        if (mediaMenu) mediaMenu.classList.add('hidden');
+    });
+
+    document.getElementById('media-document-btn')?.addEventListener('click', () => {
+        triggerFileUpload('.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt');
+        if (mediaMenu) mediaMenu.classList.add('hidden');
+    });
+
+    // Placeholder logic for remaining buttons
     const placeholderBtns = [
         {id: 'media-camera-btn', name: 'Camera'},
-        {id: 'media-gallery-btn', name: 'Gallery'},
-        {id: 'media-document-btn', name: 'Document'},
         {id: 'media-voice-btn', name: 'Voice Note'},
         {id: 'media-contact-btn', name: 'Contact'},
     ];
@@ -186,6 +257,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+    });
+
+    socket.on('message', function(data) {
+        if (data.room_id !== {{ chat_info.id|tojson }}) {
+            return; // Ignore messages for other rooms
+        }
+
+        const messageArea = document.querySelector('.message-area');
+        const messageBubbleWrapper = document.createElement('div');
+        messageBubbleWrapper.classList.add('message-bubble-wrapper');
+        if (data.user_id === {{ current_user_id }}) {
+            messageBubbleWrapper.classList.add('sender');
+        } else {
+            messageBubbleWrapper.classList.add('receiver');
+        }
+
+        let fileHtml = '';
+        if (data.file_path) {
+            if (data.file_name.toLowerCase().match(/\.(png|jpg|jpeg|gif|webp)$/)) {
+                fileHtml = `<img src="/static/${data.file_path}" alt="${data.file_name}" class="message-image">`;
+            } else {
+                fileHtml = `<a href="/static/${data.file_path}" class="message-file" download>
+                                <i class="fa-solid fa-file-arrow-down"></i> ${data.file_name}
+                            </a>`;
+            }
+        }
+
+        let textHtml = data.content ? `<p class="message-content">${data.content}</p>` : '';
+
+        const messageBubble = `
+            <div class="message-bubble">
+                ${fileHtml}
+                ${textHtml}
+                <span class="message-timestamp">${new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>
+        `;
+        messageBubbleWrapper.innerHTML = messageBubble;
+        messageArea.appendChild(messageBubbleWrapper);
+        messageArea.scrollTop = messageArea.scrollHeight;
     });
 });
 </script>

@@ -36,6 +36,9 @@
         <img src="{{ url_for('static', filename=room.cover_image or 'profile_pics/default.jpg') }}" alt="{{ room.name }}" class="info-avatar">
         <h2 class="info-name">{{ room.name }}</h2>
         {% if room.description %}<p class="info-description">{{ room.description }}</p>{% endif %}
+        {% if room.creator %}
+        <p class="info-meta">Created by {{ room.creator.name }} on {{ room.created_at.strftime('%b %d, %Y') }}</p>
+        {% endif %}
     </div>
 
     <div class="info-tabs">
@@ -43,6 +46,7 @@
             <button class="tab-btn active" onclick="showTab('media')">Media</button>
             <button class="tab-btn" onclick="showTab('docs')">Docs</button>
             <button class="tab-btn" onclick="showTab('links')">Links</button>
+            <button class="tab-btn" onclick="showTab('polls')">Polls</button>
             <button class="tab-btn" onclick="showTab('members')">Members</button>
             {% if user_role_in_room == 'admin' %}<button class="tab-btn" onclick="showTab('admin')">Admin</button>{% endif %}
         </div>
@@ -84,12 +88,23 @@
                     <p>No links have been shared in this chat.</p>
                 {% endif %}
             </div>
+            <div id="polls" class="tab-pane">
+                {% if polls %}
+                    <ul class="content-list">
+                    {% for poll in polls %}
+                        <li class="content-item">{{ poll.question }}</li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No polls have been created in this chat.</p>
+                {% endif %}
+            </div>
             <div id="members" class="tab-pane">
                 <ul class="members-list">
                     {% for member in room.members %}
                     <li>
                         <img src="{{ url_for('static', filename='profile_pics/' + member.user.profile_pic) }}" alt="{{ member.user.name }}" class="member-avatar">
-                        <span>{{ member.user.name }}</span>
+                        <span>{{ member.user.name }} <span class="role-tag">{{ member.user.role|capitalize }}</span></span>
                     </li>
                     {% endfor %}
                 </ul>
@@ -115,6 +130,7 @@
                 {% if is_muted %}Unmute Notifications{% else %}Mute Notifications{% endif %}
             </span>
         </button>
+        <button class="action-btn" id="exit-group-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Exit Group</button>
         <button class="action-btn report-btn" id="report-btn"><i class="fa-solid fa-flag"></i> Report Group</button>
     </div>
 </div>
@@ -156,11 +172,23 @@
                 }
             });
         }
+
+        const exitBtn = document.getElementById('exit-group-btn');
+        if (exitBtn) {
+            exitBtn.addEventListener('click', () => {
+                if (confirm("Are you sure you want to exit this group?")) {
+                    socket.emit('exit_group', { room_id: {{ room.id|tojson }} });
+                }
+            });
+        }
     });
 
     socket.on('status', function(data) {
         // Generic handler for status messages from the server
         alert(data.msg);
+        if (data.msg.includes('left the group')) {
+            window.location.href = "{{ url_for('main.chat_list') }}";
+        }
     });
 
     socket.on('error', function(data) {
