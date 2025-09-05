@@ -927,15 +927,26 @@ def chat_room(room_id):
 
     # Fetch recent messages
     recent_messages = room.messages.order_by(ChatMessage.timestamp.asc()).limit(50).all()
-    messages_data = []
-    for msg in recent_messages:
-        messages_data.append({
-            'text': msg.content,
-            'timestamp': msg.timestamp.strftime('%I:%M %p'),
-            'is_sender': msg.user_id == current_user.id
-        })
 
-    return render_template('chat/room.html', chat_info=chat_info, messages=messages_data)
+    return render_template('chat/room.html', chat_info=chat_info, messages=recent_messages, current_user_id=current_user.id)
+
+@main.route('/chat/upload', methods=['POST'])
+@login_required
+def upload_chat_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    if file:
+        file_path, file_name = save_chat_file(file)
+        if file_path:
+            return jsonify({'file_path': file_path, 'file_name': file_name})
+        else:
+            return jsonify({'error': 'Invalid file type or error during save.'}), 400
+
+    return jsonify({'error': 'File upload failed.'}), 500
 
 @main.route('/chat/<int:room_id>/info')
 @login_required

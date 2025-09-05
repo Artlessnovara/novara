@@ -15,40 +15,176 @@
 
     <div class="message-area">
         {% for message in messages %}
-        <div class="message-bubble-wrapper {% if message.is_sender %}sender{% else %}receiver{% endif %}">
+        <div class="message-bubble-wrapper {% if message.user_id == current_user_id %}sender{% else %}receiver{% endif %}">
             <div class="message-bubble">
-                <p class="message-content">{{ message.text }}</p>
-                <span class="message-timestamp">{{ message.timestamp }}</span>
+                {% if message.file_path %}
+                    {% set file_ext = message.file_name.lower().split('.')[-1] %}
+                    {% if file_ext in ['png', 'jpg', 'jpeg', 'gif', 'webp'] %}
+                        <img src="{{ url_for('static', filename=message.file_path) }}" alt="{{ message.file_name }}" class="message-image">
+                    {% else %}
+                        <a href="{{ url_for('static', filename=message.file_path) }}" class="message-file" download>
+                            <i class="fa-solid fa-file-arrow-down"></i> {{ message.file_name }}
+                        </a>
+                    {% endif %}
+                {% endif %}
+                {% if message.content %}
+                    <p class="message-content">{{ message.content }}</p>
+                {% endif %}
+                <span class="message-timestamp">{{ message.timestamp.strftime('%I:%M %p') }}</span>
             </div>
         </div>
         {% endfor %}
     </div>
 
+    <div id="media-menu" class="media-menu hidden">
+        <div class="media-menu-row">
+            <button class="media-option-btn" id="media-gallery-btn"><i class="fa-solid fa-images"></i><span>Gallery</span></button>
+            <button class="media-option-btn" id="media-document-btn"><i class="fa-solid fa-file-lines"></i><span>Document</span></button>
+        </div>
+    </div>
+
     <div class="message-input-bar">
         <button class="icon-btn emoji-btn"><i class="fa-regular fa-face-smile"></i></button>
-        <textarea class="message-input" placeholder="Type a message" rows="1"></textarea>
-        <button class="icon-btn send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+        <button class="icon-btn media-btn"><i class="fa-solid fa-paperclip"></i></button>
+        <textarea class="message-input" id="message-input" placeholder="Type a message" rows="1"></textarea>
+        <button class="icon-btn send-btn" id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
     </div>
 </div>
+
+<style>
+    .media-menu { position: absolute; bottom: 70px; left: 10px; right: 10px; background-color: #f0f0f0; border-radius: 10px; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); transition: transform 0.3s ease-out, opacity 0.3s ease-out; transform: translateY(100%); opacity: 0; z-index: 1000; }
+    .media-menu.hidden { transform: translateY(100%); opacity: 0; pointer-events: none; }
+    .media-menu:not(.hidden) { transform: translateY(0); opacity: 1; }
+    .media-menu-row { display: flex; justify-content: space-around; margin-bottom: 15px; }
+    .media-menu-row:last-child { margin-bottom: 0; }
+    .media-option-btn { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 12px; color: #333; }
+    .media-option-btn i { font-size: 24px; margin-bottom: 5px; width: 50px; height: 50px; line-height: 50px; border-radius: 50%; background-color: #fff; color: #007bff; text-align: center; }
+    .message-image { max-width: 100%; border-radius: 8px; margin-bottom: 5px; }
+    .message-file { display: inline-block; padding: 10px; background-color: rgba(0,0,0,0.1); border-radius: 8px; text-decoration: none; color: inherit; }
+</style>
 {% endblock %}
 
 {% block chat_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const messageArea = document.querySelector('.message-area');
+    const mediaBtn = document.querySelector('.media-btn');
+    const mediaMenu = document.getElementById('media-menu');
+
     // Auto-resize textarea
-    const textarea = document.querySelector('.message-input');
-    if (textarea) {
-        textarea.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
-    }
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
 
     // Scroll to the bottom of the messages
-    const messageArea = document.querySelector('.message-area');
-    if (messageArea) {
-        messageArea.scrollTop = messageArea.scrollHeight;
+    messageArea.scrollTop = messageArea.scrollHeight;
+
+    // Send text message
+    sendBtn.addEventListener('click', function() {
+        const content = messageInput.value.trim();
+        if (content) {
+            socket.emit('message', {
+                room_id: {{ chat_info.id|tojson }},
+                content: content
+            });
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+        }
+    });
+
+    // Media menu toggle
+    mediaBtn.addEventListener('click', function(event) {
+        event.stopPropagation();
+        mediaMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', function(event) {
+        if (!mediaMenu.contains(event.target) && !mediaBtn.contains(event.target)) {
+            mediaMenu.classList.add('hidden');
+        }
+    });
+
+    // File upload logic
+    function triggerFileUpload(accept) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = accept;
+        input.style.display = 'none';
+
+        input.addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/chat/upload', { method: 'POST', body: formData })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) { return alert('Upload failed: ' + data.error); }
+                socket.emit('message', {
+                    room_id: {{ chat_info.id|tojson }},
+                    file_path: data.file_path,
+                    file_name: data.file_name
+                });
+            })
+            .catch(error => console.error('Upload error:', error));
+        });
+        document.body.appendChild(input);
+        input.click();
+        document.body.removeChild(input);
     }
+
+    document.getElementById('media-gallery-btn')?.addEventListener('click', () => {
+        triggerFileUpload('image/*,video/*');
+        if (mediaMenu) mediaMenu.classList.add('hidden');
+    });
+
+    document.getElementById('media-document-btn')?.addEventListener('click', () => {
+        triggerFileUpload('.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt');
+        if (mediaMenu) mediaMenu.classList.add('hidden');
+    });
+
+    socket.on('message', function(data) {
+        if (data.room_id !== {{ chat_info.id|tojson }}) {
+            return; // Ignore messages for other rooms
+        }
+
+        const messageArea = document.querySelector('.message-area');
+        const messageBubbleWrapper = document.createElement('div');
+        messageBubbleWrapper.classList.add('message-bubble-wrapper');
+        if (data.user_id === {{ current_user_id }}) {
+            messageBubbleWrapper.classList.add('sender');
+        } else {
+            messageBubbleWrapper.classList.add('receiver');
+        }
+
+        let fileHtml = '';
+        if (data.file_path) {
+            if (data.file_name.toLowerCase().match(/\.(png|jpg|jpeg|gif|webp)$/)) {
+                fileHtml = `<img src="/static/${data.file_path}" alt="${data.file_name}" class="message-image">`;
+            } else {
+                fileHtml = `<a href="/static/${data.file_path}" class="message-file" download>
+                                <i class="fa-solid fa-file-arrow-down"></i> ${data.file_name}
+                            </a>`;
+            }
+        }
+
+        let textHtml = data.content ? `<p class="message-content">${data.content}</p>` : '';
+
+        const messageBubble = `
+            <div class="message-bubble">
+                ${fileHtml}
+                ${textHtml}
+                <span class="message-timestamp">${new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>
+        `;
+        messageBubbleWrapper.innerHTML = messageBubble;
+        messageArea.appendChild(messageBubbleWrapper);
+        messageArea.scrollTop = messageArea.scrollHeight;
+    });
 });
 </script>
 {% endblock %}

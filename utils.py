@@ -7,7 +7,16 @@ def save_chat_file(file):
     Saves a file uploaded in the chat.
     Validates file type and returns the saved path and original filename.
     """
-    allowed_extensions = {'pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'gif'}
+    allowed_extensions = {
+        # Documents
+        'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt',
+        # Images
+        'png', 'jpg', 'jpeg', 'gif', 'webp',
+        # Audio
+        'mp3', 'wav', 'ogg', 'webm',
+        # Video
+        'mp4', 'mov', 'avi', 'mkv'
+    }
     original_filename = secure_filename(file.filename)
 
     if '.' not in original_filename or original_filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
