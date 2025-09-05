@@ -29,6 +29,7 @@ class User(UserMixin, db.Model):
     can_make_calls = db.Column(db.Boolean, default=True, nullable=False)
     profile_pic = db.Column(db.String(150), nullable=False, default='default.jpg')
     bio = db.Column(db.Text, nullable=True)
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
 
     courses_taught = db.relationship('Course', backref='instructor', lazy='dynamic')
     enrollments = db.relationship('Enrollment', back_populates='student', lazy='dynamic')
@@ -39,7 +40,8 @@ class User(UserMixin, db.Model):
     exam_submissions = db.relationship('ExamSubmission', backref='student', lazy='dynamic')
     lesson_completions = db.relationship('LessonCompletion', backref='user', lazy='dynamic', cascade="all, delete-orphan")
     library_purchases = db.relationship('LibraryPurchase', backref='user', lazy='dynamic', cascade="all, delete-orphan")
-    chat_messages = db.relationship('ChatMessage', backref='author', lazy='dynamic')
+    chat_messages = db.relationship('ChatMessage', foreign_keys='ChatMessage.user_id', back_populates='author', lazy='dynamic')
+    forwarded_messages = db.relationship('ChatMessage', foreign_keys='ChatMessage.forwarded_from_id', back_populates='forwarded_from', lazy='dynamic')
 
     def is_enrolled(self, course):
         return Enrollment.query.filter_by(student=self, course=course, status='approved').count() > 0
@@ -371,8 +373,13 @@ class ChatMessage(db.Model):
     is_pinned = db.Column(db.Boolean, default=False)
     is_edited = db.Column(db.Boolean, default=False)
     replied_to_id = db.Column(db.Integer, db.ForeignKey('chat_message.id'), nullable=True)
+    read_at = db.Column(db.DateTime, nullable=True)
+    is_forwarded = db.Column(db.Boolean, default=False)
+    forwarded_from_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
+    author = db.relationship('User', foreign_keys=[user_id], back_populates='chat_messages')
     replies = db.relationship('ChatMessage', backref=db.backref('replied_to', remote_side=[id]), lazy='dynamic')
+    forwarded_from = db.relationship('User', foreign_keys=[forwarded_from_id], back_populates='forwarded_messages')
     reactions = db.relationship('MessageReaction', backref='message', lazy='dynamic', cascade="all, delete-orphan")
     poll = db.relationship('Poll', back_populates='message', uselist=False, cascade="all, delete-orphan")
 
