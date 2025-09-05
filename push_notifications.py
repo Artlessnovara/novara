@@ -10,9 +10,10 @@ def initialize_firebase():
     cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
     if cred_path:
         try:
-            cred = credentials.Certificate(cred_path)
-            firebase_admin.initialize_app(cred)
-            print("Firebase Admin SDK initialized successfully.")
+            if not firebase_admin._apps:
+                cred = credentials.Certificate(cred_path)
+                firebase_admin.initialize_app(cred)
+                print("Firebase Admin SDK initialized successfully.")
         except Exception as e:
             print(f"Error initializing Firebase Admin SDK: {e}")
     else:
