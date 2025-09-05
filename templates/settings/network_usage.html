@@ -1,0 +1,27 @@
+{% extends "settings/settings_layout.html" %}
+{% set back_url = url_for('main.storage_settings') %}
+
+{% block settings_title %}Network Usage{% endblock %}
+
+{% block settings_content %}
+<div class="network-stats">
+    <p>This feature is under development. It will show you detailed statistics about your data usage in the app.</p>
+
+    <div class="stat-item">
+        <span>Total Messages Sent:</span>
+        <span>Coming soon...</span>
+    </div>
+    <div class="stat-item">
+        <span>Total Messages Received:</span>
+        <span>Coming soon...</span>
+    </div>
+    <div class="stat-item">
+        <span>Media Sent:</span>
+        <span>Coming soon...</span>
+    </div>
+    <div class="stat-item">
+        <span>Media Received:</span>
+        <span>Coming soon...</span>
+    </div>
+</div>
+{% endblock %}

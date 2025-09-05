@@ -1,0 +1,14 @@
+{% extends "settings/settings_layout.html" %}
+{% set back_url = url_for('main.help_settings') %}
+
+{% block settings_title %}Terms and Privacy Policy{% endblock %}
+
+{% block settings_content %}
+<div class="static-content">
+    <h2>Terms of Service</h2>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. ...</p>
+
+    <h2>Privacy Policy</h2>
+    <p>Praesent quis ante de morbi ligula. ...</p>
+</div>
+{% endblock %}

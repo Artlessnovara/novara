@@ -1,0 +1,91 @@
+{% extends "settings/settings_layout.html" %}
+{% set back_url = url_for('main.chats_settings') %}
+
+{% block settings_title %}Chat Wallpaper{% endblock %}
+
+{% block settings_content %}
+<div class="wallpaper-options">
+    <h4>Select a color</h4>
+    <div class="color-grid">
+        <div class="color-swatch" data-color="#ffffff" style="background-color: #ffffff; border: 1px solid #e0e0e0;"></div>
+        <div class="color-swatch" data-color="#f0f2f5" style="background-color: #f0f2f5;"></div>
+        <div class="color-swatch" data-color="#dcf8c6" style="background-color: #dcf8c6;"></div>
+        <div class="color-swatch" data-color="#e6e6e6" style="background-color: #e6e6e6;"></div>
+        <div class="color-swatch" data-color="#cce5ff" style="background-color: #cce5ff;"></div>
+        <div class="color-swatch" data-color="#ffcce5" style="background-color: #ffcce5;"></div>
+    </div>
+
+    <h4>Or upload your own</h4>
+    <div class="upload-area">
+        <input type="file" id="wallpaper-upload" accept="image/*">
+        <label for="wallpaper-upload" class="btn">Choose Image</label>
+        <p id="upload-status"></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colorSwatches = document.querySelectorAll('.color-swatch');
+    const uploadInput = document.getElementById('wallpaper-upload');
+    const uploadStatus = document.getElementById('upload-status');
+
+    function setWallpaper(value) {
+        // Update chat background preview in real-time (optional)
+        // document.querySelector('.message-area').style.background = value;
+
+        // Save preference
+        fetch("{{ url_for('main.set_user_preference') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_wallpaper: value })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status !== 'success') {
+                alert('Failed to save wallpaper.');
+            } else {
+                alert('Wallpaper updated! It will be visible in your chats.');
+            }
+        });
+    }
+
+    colorSwatches.forEach(swatch => {
+        swatch.addEventListener('click', function() {
+            const color = this.dataset.color;
+            setWallpaper(color);
+        });
+    });
+
+    uploadInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        uploadStatus.textContent = 'Uploading...';
+        const formData = new FormData();
+        formData.append('wallpaper', file);
+
+        fetch("{{ url_for('main.upload_wallpaper') }}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                uploadStatus.textContent = 'Upload complete!';
+                const imageUrl = `url({{ url_for('static', filename='') }}${data.filepath})`;
+                setWallpaper(imageUrl);
+            } else {
+                uploadStatus.textContent = 'Upload failed: ' + data.message;
+                alert('Upload failed: ' + data.message);
+            }
+        })
+        .catch(error => {
+            uploadStatus.textContent = 'An error occurred during upload.';
+            console.error('Wallpaper upload error:', error);
+        });
+    });
+});
+</script>
+{% endblock %}

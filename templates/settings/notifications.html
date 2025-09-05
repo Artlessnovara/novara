@@ -1,0 +1,71 @@
+{% extends "settings/settings_layout.html" %}
+
+{% block settings_title %}Notifications{% endblock %}
+
+{% block settings_content %}
+<div class="settings-list">
+    <p class="description">Note: These settings save your preferences, but the backend to deliver notifications is still under development.</p>
+    <div class="settings-item">
+        <div class="settings-text">
+            <span class="settings-label">Message Notifications</span>
+            <span class="settings-sublabel">Enable/disable, set sound, vibration.</span>
+        </div>
+        <label class="switch">
+            <input type="checkbox" id="message-notifications" {% if current_user.message_notifications_enabled %}checked{% endif %}>
+            <span class="slider round"></span>
+        </label>
+    </div>
+    <div class="settings-item">
+        <div class="settings-text">
+            <span class="settings-label">Group Notifications</span>
+            <span class="settings-sublabel">Enable/disable, set sound, vibration.</span>
+        </div>
+        <label class="switch">
+            <input type="checkbox" id="group-notifications" {% if current_user.group_notifications_enabled %}checked{% endif %}>
+            <span class="slider round"></span>
+        </label>
+    </div>
+    <div class="settings-item">
+        <div class="settings-text">
+            <span class="settings-label">Call Notifications</span>
+            <span class="settings-sublabel">Enable/disable, choose ringtone. (Placeholder)</span>
+        </div>
+        <label class="switch">
+            <input type="checkbox" disabled>
+            <span class="slider round"></span>
+        </label>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const messageToggle = document.getElementById('message-notifications');
+    const groupToggle = document.getElementById('group-notifications');
+
+    function savePreference(key, value) {
+        fetch("{{ url_for('main.set_user_preference') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [key]: value })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status !== 'success') {
+                console.error('Failed to save preference:', data.message);
+                // Optionally revert the toggle
+            }
+        });
+    }
+
+    messageToggle.addEventListener('change', function() {
+        savePreference('message_notifications_enabled', this.checked);
+    });
+
+    groupToggle.addEventListener('change', function() {
+        savePreference('group_notifications_enabled', this.checked);
+    });
+});
+</script>
+{% endblock %}

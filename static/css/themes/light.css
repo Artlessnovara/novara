@@ -1,0 +1,15 @@
+/* static/css/themes/light.css */
+
+:root {
+    --bg-color: #f0f2f5;
+    --text-color: #1a1a1a;
+    --primary-color: #00a884;
+    --sender-bubble-bg: #dcf8c6;
+    --receiver-bubble-bg: #ffffff; /* Changed to white for a cleaner look */
+    --header-bg: #f0f2f5;
+    --bottom-nav-bg: #ffffff;
+    --border-color: #e0e0e0;
+    --input-bg: #ffffff;
+    --secondary-text-color: #8e8e93;
+    --hover-bg-color: #f5f5f5;
+}

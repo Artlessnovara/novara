@@ -1,0 +1,13 @@
+{% extends "settings/settings_layout.html" %}
+
+{% block settings_title %}Storage and Data{% endblock %}
+
+{% block settings_content %}
+<div class="settings-list">
+    <a href="{{ url_for('main.manage_storage') }}" class="settings-item">
+        <div class="settings-text">
+            <span class="settings-label">Manage Storage</span>
+        </div>
+    </a>
+</div>
+{% endblock %}

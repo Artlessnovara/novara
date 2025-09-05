@@ -30,6 +30,10 @@ class User(UserMixin, db.Model):
     profile_pic = db.Column(db.String(150), nullable=False, default='default.jpg')
     bio = db.Column(db.Text, nullable=True)
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    theme = db.Column(db.String(10), default='light')
+    chat_wallpaper = db.Column(db.String(255), nullable=True)
+    message_notifications_enabled = db.Column(db.Boolean, default=True)
+    group_notifications_enabled = db.Column(db.Boolean, default=True)
 
     courses_taught = db.relationship('Course', backref='instructor', lazy='dynamic')
     enrollments = db.relationship('Enrollment', back_populates='student', lazy='dynamic')
@@ -553,3 +557,13 @@ class ChatClearTimestamp(db.Model):
     room = db.relationship('ChatRoom', backref='clear_timestamps')
 
     __table_args__ = (db.UniqueConstraint('user_id', 'room_id', name='_user_room_clear_uc'),)
+
+class SupportTicket(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(50), default='open') # open, in_progress, closed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='support_tickets')
