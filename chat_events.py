@@ -16,6 +16,9 @@ def register_chat_events(socketio):
     def on_connect():
         if current_user.is_authenticated:
             user_sids[current_user.id] = request.sid
+            current_user.last_seen = datetime.utcnow()
+            db.session.commit()
+            emit('user_online', {'user_id': current_user.id}, broadcast=True)
 
     @socketio.on('disconnect')
     def on_disconnect():
@@ -33,6 +36,9 @@ def register_chat_events(socketio):
                             emit('participant_left', {'user_id': current_user.id}, to=user_sids.get(user_id))
 
             del user_sids[current_user.id]
+            current_user.last_seen = datetime.utcnow()
+            db.session.commit()
+            emit('user_offline', {'user_id': current_user.id, 'last_seen': current_user.last_seen.isoformat() + "Z"}, broadcast=True)
 
 
     def is_user_authorized_for_room(user, room):
@@ -166,10 +172,16 @@ def register_chat_events(socketio):
                     'content': new_message.replied_to.content
                 }
 
+            forwarded_from_data = None
+            if new_message.is_forwarded and new_message.forwarded_from:
+                forwarded_from_data = {
+                    'name': new_message.forwarded_from.name
+                }
+
             msg_data = {
-                'user_name': current_user.name,
-                'user_id': current_user.id,
-                'user_profile_pic': current_user.profile_pic or 'default.jpg',
+                'user_name': new_message.author.name,
+                'user_id': new_message.user_id,
+                'user_profile_pic': new_message.author.profile_pic or 'default.jpg',
                 'content': new_message.content,
                 'file_path': new_message.file_path,
                 'file_name': new_message.file_name,
@@ -178,13 +190,131 @@ def register_chat_events(socketio):
                 'message_id': new_message.id,
                 'is_pinned': new_message.is_pinned,
                 'reactions': [], # New messages have no reactions
-                'replied_to': replied_to_data
+                'replied_to': replied_to_data,
+                'is_forwarded': new_message.is_forwarded,
+                'forwarded_from': forwarded_from_data
             }
 
             emit('message', msg_data, to=room_id)
         except Exception as e:
             print(f"Error handling message: {e}")
             emit('error', {'msg': 'An unexpected error occurred. Please try again.'})
+
+    @socketio.on('typing_start')
+    def handle_typing_start(data):
+        if not current_user.is_authenticated:
+            return
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+
+        emit('user_typing_start', {
+            'user_id': current_user.id,
+            'user_name': current_user.name
+        }, to=room_id, include_self=False)
+
+    @socketio.on('typing_stop')
+    def handle_typing_stop(data):
+        if not current_user.is_authenticated:
+            return
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+
+        emit('user_typing_stop', {
+            'user_id': current_user.id
+        }, to=room_id, include_self=False)
+
+    @socketio.on('mark_as_read')
+    def handle_mark_as_read(data):
+        if not current_user.is_authenticated:
+            return
+
+        message_ids = data.get('message_ids', [])
+        room_id = data.get('room_id')
+
+        if not message_ids or not room_id:
+            return
+
+        messages = ChatMessage.query.filter(
+            ChatMessage.id.in_(message_ids),
+            ChatMessage.read_at.is_(None),
+            ChatMessage.user_id != current_user.id # Can't mark your own messages as read
+        ).all()
+
+        updated_message_ids = []
+        for msg in messages:
+            msg.read_at = datetime.utcnow()
+            updated_message_ids.append(msg.id)
+
+        if updated_message_ids:
+            db.session.commit()
+
+            # Notify the entire room that messages have been read
+            # The client side will handle filtering for the relevant user
+            emit('messages_read', {
+                'room_id': room_id,
+                'message_ids': updated_message_ids,
+                'read_by_user_id': current_user.id
+            }, to=room_id)
+
+    @socketio.on('get_user_status')
+    def get_user_status(data):
+        if not current_user.is_authenticated:
+            return
+
+        user_id = data.get('user_id')
+        if not user_id:
+            return
+
+        user = User.query.get(user_id)
+        if not user:
+            return
+
+        is_online = user.id in user_sids
+
+        emit('user_status_response', {
+            'user_id': user.id,
+            'is_online': is_online,
+            'last_seen': user.last_seen.isoformat() + "Z" if user.last_seen else None
+        })
+
+    @socketio.on('forward_message')
+    def handle_forward_message(data):
+        if not current_user.is_authenticated:
+            return
+
+        original_message_id = data.get('original_message_id')
+        target_room_ids = data.get('target_room_ids', [])
+
+        if not original_message_id or not target_room_ids:
+            return
+
+        original_message = ChatMessage.query.get(original_message_id)
+        if not original_message:
+            return
+
+        for room_id in target_room_ids:
+            room = ChatRoom.query.get(room_id)
+            if room and is_user_authorized_for_room(current_user, room):
+
+                new_message = ChatMessage(
+                    room_id=room.id,
+                    user_id=current_user.id,
+                    content=original_message.content,
+                    file_path=original_message.file_path,
+                    file_name=original_message.file_name,
+                    is_forwarded=True,
+                    forwarded_from_id=original_message.user_id
+                )
+                db.session.add(new_message)
+                room.last_message_timestamp = datetime.utcnow()
+
+        db.session.commit()
+        # The regular 'message' event will be triggered by the client-side logic
+        # after this. No need to emit from here. We can just confirm.
+        emit('status', {'msg': 'Message forwarded successfully.'})
+
 
     @socketio.on('delete_message')
     def delete_message(data):

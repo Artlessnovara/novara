@@ -8,7 +8,10 @@
             {% if chat_info.avatar_url %}
             <img src="{{ chat_info.avatar_url }}" alt="{{ chat_info.name }}" class="conversation-avatar">
             {% endif %}
-            <span class="conversation-name">{{ chat_info.name }}</span>
+            <div>
+                <span class="conversation-name">{{ chat_info.name }}</span>
+                <span id="user-status" class="user-status"></span>
+            </div>
         </div>
         <div class="header-actions">
             {% if current_user.role in ['admin', 'instructor'] and current_user.can_make_calls %}
@@ -33,8 +36,11 @@
 
     <div class="message-area">
         {% for message in messages %}
-        <div class="message-bubble-wrapper {% if message.user_id == current_user_id %}sender{% else %}receiver{% endif %}">
+        <div class="message-bubble-wrapper {% if message.user_id == current_user.id %}sender{% else %}receiver{% endif %}" data-message-id="{{ message.id }}" data-is-read="{{ 'true' if message.read_at else 'false' }}">
             <div class="message-bubble">
+                {% if message.is_forwarded %}
+                <p class="forwarded-indicator"><i class="fa-solid fa-share"></i> Forwarded</p>
+                {% endif %}
                 {% if message.file_path %}
                     {% if message.file_name.lower().endswith(('png', 'jpg', 'jpeg', 'gif', 'webp')) %}
                         <img src="/static/{{ message.file_path }}" alt="{{ message.file_name }}" class="message-image">
@@ -69,9 +75,16 @@
                     {% endif %}
                 {% endif %}
                 <span class="message-timestamp">{{ message.timestamp.strftime('%I:%M %p') }}</span>
+                <span class="read-receipts">
+                    <i class="fa-solid {% if message.read_at %}fa-check-double{% else %}fa-check{% endif %}"></i>
+                </span>
             </div>
         </div>
         {% endfor %}
+    </div>
+
+    <div id="typing-indicator" class="typing-indicator hidden">
+        <p></p>
     </div>
 
     <div id="media-menu" class="media-menu hidden">
@@ -98,6 +111,29 @@
         <button class="icon-btn send-btn"><i class="fa-solid fa-paper-plane"></i></button>
     </div>
 </div>
+
+<!-- Message Forwarding Modal -->
+<div id="forward-modal" class="camera-modal hidden">
+    <div class="contact-share-content">
+        <h3>Forward message to...</h3>
+        <div id="forward-chat-list" class="contact-list">
+            <!-- Chat list will be populated here by JS -->
+        </div>
+        <div class="form-actions" style="margin-top: 1rem;">
+            <button id="cancel-forward-btn" class="btn btn-secondary">Cancel</button>
+            <button id="confirm-forward-btn" class="btn btn-primary">Send</button>
+        </div>
+    </div>
+</div>
+
+<!-- Message Context Menu -->
+<div id="message-context-menu" class="context-menu hidden">
+    <ul>
+        <li id="forward-menu-item">Forward</li>
+        <!-- Other options like Reply, Copy, Delete can be added here -->
+    </ul>
+</div>
+
 
 <!-- Camera Modal -->
 <div id="camera-modal" class="camera-modal hidden">
@@ -564,6 +600,49 @@
     }
     emoji-picker.hidden {
         display: none;
+    }
+    .read-receipts {
+        font-size: 0.8em;
+        color: #888;
+        margin-left: 5px;
+    }
+    .read-receipts .fa-check-double {
+        color: #34b7f1; /* Blue for read */
+    }
+    .user-status {
+        font-size: 0.8em;
+        color: #666;
+    }
+    .user-status.online {
+        color: #28a745; /* Green for online */
+    }
+    .context-menu {
+        position: absolute;
+        z-index: 10000;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 5px 0;
+    }
+    .context-menu ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .context-menu li {
+        padding: 8px 15px;
+        cursor: pointer;
+    }
+    .context-menu li:hover {
+        background-color: #f0f0f0;
+    }
+    #forward-chat-list .contact-item {
+        display: flex;
+        align-items: center;
+    }
+    #forward-chat-list input[type="checkbox"] {
+        margin-right: 10px;
     }
 </style>
 {% endblock %}
@@ -1386,6 +1465,227 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+    });
+
+    // --- Typing Indicator Logic ---
+    let typingTimer;
+    const doneTypingInterval = 1500; // 1.5 seconds
+    const messageInputForTyping = document.querySelector('.message-input');
+    const typingIndicator = document.getElementById('typing-indicator');
+    let usersTyping = {};
+
+    messageInputForTyping.addEventListener('input', () => {
+        clearTimeout(typingTimer);
+        socket.emit('typing_start', { room_id: {{ chat_info.id|tojson }} });
+        typingTimer = setTimeout(() => {
+            socket.emit('typing_stop', { room_id: {{ chat_info.id|tojson }} });
+        }, doneTypingInterval);
+    });
+
+    socket.on('user_typing_start', (data) => {
+        if (data.user_id !== {{ current_user.id }}) {
+            usersTyping[data.user_id] = data.user_name;
+            updateTypingIndicator();
+        }
+    });
+
+    socket.on('user_typing_stop', (data) => {
+        if (data.user_id !== {{ current_user.id }}) {
+            delete usersTyping[data.user_id];
+            updateTypingIndicator();
+        }
+    });
+
+    function updateTypingIndicator() {
+        const userNames = Object.values(usersTyping);
+        const indicatorText = typingIndicator.querySelector('p');
+
+        if (userNames.length === 0) {
+            typingIndicator.classList.add('hidden');
+        } else {
+            let text;
+            if (userNames.length === 1) {
+                text = `${userNames[0]} is typing...`;
+            } else if (userNames.length === 2) {
+                text = `${userNames[0]} and ${userNames[1]} are typing...`;
+            } else {
+                text = `${userNames.slice(0, 2).join(', ')} and others are typing...`;
+            }
+            indicatorText.textContent = text;
+            typingIndicator.classList.remove('hidden');
+        }
+    }
+
+    // --- Read Receipts Logic ---
+    const unreadMessages = new Map();
+    const observer = new IntersectionObserver((entries) => {
+        const messagesToMarkAsRead = [];
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const messageId = entry.target.dataset.messageId;
+                if (unreadMessages.has(messageId)) {
+                    messagesToMarkAsRead.push(messageId);
+                    unreadMessages.delete(messageId); // Remove from map once it's being processed
+                }
+            }
+        });
+
+        if (messagesToMarkAsRead.length > 0) {
+            socket.emit('mark_as_read', {
+                message_ids: messagesToMarkAsRead,
+                room_id: {{ chat_info.id|tojson }}
+            });
+        }
+    }, { threshold: 0.9 });
+
+    function initializeReadReceipts() {
+        document.querySelectorAll('.message-bubble-wrapper.receiver').forEach(bubble => {
+            const messageId = bubble.dataset.messageId;
+            if (messageId && !bubble.dataset.isRead) {
+                unreadMessages.set(messageId, bubble);
+                observer.observe(bubble);
+            }
+        });
+    }
+
+    socket.on('messages_read', (data) => {
+        if (data.room_id === {{ chat_info.id|tojson }}) {
+            data.message_ids.forEach(messageId => {
+                // Find the sender's message bubble and update its receipt
+                const messageBubble = document.querySelector(`.message-bubble-wrapper.sender[data-message-id="${messageId}"]`);
+                if (messageBubble) {
+                    const receipt = messageBubble.querySelector('.read-receipts i');
+                    if (receipt) {
+                        receipt.classList.remove('fa-check');
+                        receipt.classList.add('fa-check-double');
+                    }
+                    messageBubble.dataset.isRead = 'true';
+                }
+            });
+        }
+    });
+
+    // Call this on initial load
+    initializeReadReceipts();
+
+    // Also need to re-initialize for new incoming messages
+    const originalOnMessage = socket.listeners('message')[0];
+    socket.off('message', originalOnMessage); // Temporarily remove original listener
+    socket.on('message', function(data) {
+        originalOnMessage(data); // Call original handler
+        if (data.room_id === {{ chat_info.id|tojson }} && data.user_id !== {{ current_user.id }}) {
+            const newBubble = document.querySelector(`.message-bubble-wrapper[data-message-id="${data.message_id}"]`);
+            if (newBubble) {
+                unreadMessages.set(data.message_id, newBubble);
+                observer.observe(newBubble);
+            }
+        }
+    });
+
+    // --- User Status Logic ---
+    const userStatus = document.getElementById('user-status');
+    const otherUserId = {{ chat_info.other_user_id|tojson }};
+
+    function formatLastSeen(isoString) {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        const now = new Date();
+        const diffSeconds = Math.round((now - date) / 1000);
+
+        if (diffSeconds < 60) return 'last seen just now';
+        if (diffSeconds < 3600) return `last seen ${Math.floor(diffSeconds / 60)} minutes ago`;
+        if (diffSeconds < 86400) return `last seen ${Math.floor(diffSeconds / 3600)} hours ago`;
+
+        return `last seen on ${date.toLocaleDateString()}`;
+    }
+
+    if (otherUserId) {
+        // You would typically fetch the initial status via an API call,
+        // but for now we'll just wait for socket events.
+        userStatus.textContent = 'loading...'; // Initial state
+
+        socket.on('user_online', (data) => {
+            if (data.user_id === otherUserId) {
+                userStatus.textContent = 'Online';
+                userStatus.classList.add('online');
+            }
+        });
+
+        socket.on('user_offline', (data) => {
+            if (data.user_id === otherUserId) {
+                userStatus.textContent = formatLastSeen(data.last_seen);
+                userStatus.classList.remove('online');
+            }
+        });
+    }
+
+    // --- Message Forwarding Logic ---
+    const messageAreaForForward = document.querySelector('.message-area');
+    const contextMenu = document.getElementById('message-context-menu');
+    const forwardModal = document.getElementById('forward-modal');
+    let currentForwardMessageId = null;
+
+    messageAreaForForward.addEventListener('contextmenu', function(e) {
+        const messageBubble = e.target.closest('.message-bubble-wrapper');
+        if (messageBubble) {
+            e.preventDefault();
+            currentForwardMessageId = messageBubble.dataset.messageId;
+            contextMenu.style.top = `${e.pageY}px`;
+            contextMenu.style.left = `${e.pageX}px`;
+            contextMenu.classList.remove('hidden');
+        }
+    });
+
+    document.addEventListener('click', function() {
+        contextMenu.classList.add('hidden');
+    });
+
+    document.getElementById('forward-menu-item').addEventListener('click', async function() {
+        if (!currentForwardMessageId) return;
+
+        // Fetch user's chats and populate modal
+        const chatListContainer = document.getElementById('forward-chat-list');
+        chatListContainer.innerHTML = 'Loading...';
+        forwardModal.classList.remove('hidden');
+
+        try {
+            const response = await fetch('/chat/list_for_forwarding');
+            const chats = await response.json();
+            chatListContainer.innerHTML = '';
+            chats.forEach(chat => {
+                const item = document.createElement('div');
+                item.className = 'contact-item';
+                item.innerHTML = `
+                    <input type="checkbox" value="${chat.id}" id="chat-${chat.id}">
+                    <label for="chat-${chat.id}">${chat.name}</label>
+                `;
+                chatListContainer.appendChild(item);
+            });
+        } catch (error) {
+            chatListContainer.innerHTML = 'Failed to load chats.';
+        }
+    });
+
+    document.getElementById('cancel-forward-btn').addEventListener('click', () => {
+        forwardModal.classList.add('hidden');
+    });
+
+    document.getElementById('confirm-forward-btn').addEventListener('click', () => {
+        const selectedChats = [];
+        document.querySelectorAll('#forward-chat-list input[type="checkbox"]:checked').forEach(checkbox => {
+            selectedChats.push(parseInt(checkbox.value, 10));
+        });
+
+        if (selectedChats.length > 0 && currentForwardMessageId) {
+            socket.emit('forward_message', {
+                original_message_id: currentForwardMessageId,
+                target_room_ids: selectedChats
+            });
+            forwardModal.classList.add('hidden');
+            alert('Message forwarded!');
+        } else {
+            alert('Please select at least one chat to forward to.');
+        }
     });
 });
 </script>

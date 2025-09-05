@@ -997,6 +997,27 @@ def chat_list():
 
     return render_template('chat/list.html', chats=chat_data)
 
+@main.route('/chat/list_for_forwarding')
+@login_required
+def list_for_forwarding():
+    # In a real app, you might want to show recent chats first
+    # For now, we'll just list all rooms the user is a member of.
+    memberships = current_user.chat_memberships.all()
+    rooms = [m.room for m in memberships]
+
+    chat_data = []
+    for room in rooms:
+        # For private chats, get the other user's name
+        if room.room_type == 'private':
+            other_member = next((m for m in room.members if m.user_id != current_user.id), None)
+            name = other_member.user.name if other_member else "Private Chat"
+        else:
+            name = room.name
+
+        chat_data.append({'id': room.id, 'name': name})
+
+    return jsonify(chat_data)
+
 
 @main.route('/chat/<int:room_id>')
 @login_required

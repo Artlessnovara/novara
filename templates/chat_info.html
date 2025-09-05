@@ -116,6 +116,7 @@
                 <img src="{{ url_for('static', filename='profile_pics/' + other_user.profile_pic) }}" alt="{{ other_user.name }}" class="info-avatar">
                 <h1 class="info-name">{{ other_user.name }}</h1>
                 <p class="info-subtext">{{ other_user.bio or 'No bio available.' }}</p>
+                <p id="user-status-info" class="info-subtext user-status"></p>
                 <span class="role-badge">{{ other_user.role | capitalize }}</span>
             </div>
 
@@ -421,6 +422,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Chat has been cleared.');
                 // Redirect to the now-empty chat room
                 window.location.href = "{{ url_for('main.chat_room', room_id=room.id) }}";
+            }
+        });
+    }
+
+    // --- User Status Logic ---
+    const userStatusInfo = document.getElementById('user-status-info');
+    const otherUserId = {{ other_user.id|tojson }};
+
+    function formatLastSeen(isoString) {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        const now = new Date();
+        const diffSeconds = Math.round((now - date) / 1000);
+
+        if (diffSeconds < 60) return 'last seen just now';
+        if (diffSeconds < 3600) return `last seen ${Math.floor(diffSeconds / 60)} minutes ago`;
+        if (diffSeconds < 86400) return `last seen ${Math.floor(diffSeconds / 3600)} hours ago`;
+
+        return `last seen on ${date.toLocaleDateString()}`;
+    }
+
+    if (otherUserId && userStatusInfo) {
+        // You would typically fetch the initial status via an API call,
+        // but for now we'll just wait for socket events.
+        userStatusInfo.textContent = 'loading...'; // Initial state
+
+        socket.on('user_online', (data) => {
+            if (data.user_id === otherUserId) {
+                userStatusInfo.textContent = 'Online';
+            }
+        });
+
+        socket.on('user_offline', (data) => {
+            if (data.user_id === otherUserId) {
+                userStatusInfo.textContent = formatLastSeen(data.last_seen);
+            }
+        });
+
+        // Request initial status
+        if(typeof socket !== 'undefined') {
+            socket.emit('get_user_status', { 'user_id': otherUserId });
+        }
+
+        socket.on('user_status_response', (data) => {
+            if(data.user_id === otherUserId) {
+                if (data.is_online) {
+                    userStatusInfo.textContent = 'Online';
+                } else {
+                    userStatusInfo.textContent = formatLastSeen(data.last_seen);
+                }
             }
         });
     }
