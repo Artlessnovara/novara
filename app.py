@@ -3,6 +3,7 @@ from extensions import db, login_manager, socketio
 from models import User, ChatRoom, ChatMessage
 import os
 import click
+import json
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from markupsafe import Markup
@@ -77,6 +78,13 @@ def create_app(config_object=None):
 
     # Register custom Jinja filters
     app.jinja_env.filters['secure_embeds'] = secure_embeds_filter
+
+    def from_json_filter(value, default=None):
+        try:
+            return json.loads(value)
+        except (TypeError, json.JSONDecodeError):
+            return default
+    app.jinja_env.filters['fromjson'] = from_json_filter
 
     @app.cli.command("init-db")
     def init_db():

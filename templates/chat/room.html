@@ -48,7 +48,25 @@
                         </a>
                     {% endif %}
                 {% else %}
-                    <p class="message-content">{{ message.content }}</p>
+                    {% set content_data = message.content|fromjson(default=none) %}
+                    {% if content_data and content_data.type == 'contact' %}
+                        <div class="contact-card">
+                            <img src="{{ url_for('static', filename='profile_pics/' + content_data.profile_pic) }}" alt="{{ content_data.name }}">
+                            <div class="contact-card-info">
+                                <strong>{{ content_data.name }}</strong>
+                                <a href="{{ url_for('main.view_user', user_id=content_data.user_id) }}">View Profile</a>
+                            </div>
+                        </div>
+                    {% elif content_data and content_data.type == 'location' %}
+                        <div class="location-card">
+                            <a href="https://www.openstreetmap.org/?mlat={{ content_data.latitude }}&mlon={{ content_data.longitude }}#map=15/{{ content_data.latitude }}/{{ content_data.longitude }}" target="_blank">
+                                <i class="fa-solid fa-map-location-dot"></i>
+                                <span>View Location</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="message-content">{{ message.content }}</p>
+                    {% endif %}
                 {% endif %}
                 <span class="message-timestamp">{{ message.timestamp.strftime('%I:%M %p') }}</span>
             </div>
@@ -65,11 +83,15 @@
         <div class="media-menu-row">
             <button class="media-option-btn" id="media-voice-btn"><i class="fa-solid fa-microphone"></i><span>Voice Note</span></button>
             <button class="media-option-btn" id="media-contact-btn"><i class="fa-solid fa-user"></i><span>Contact</span></button>
-            <button class="media-option-btn" id="create-poll-btn"><i class="fa-solid fa-chart-simple"></i><span>Poll</span></button>
+            <button class="media-option-btn" id="media-location-btn"><i class="fa-solid fa-location-dot"></i><span>Location</span></button>
+        </div>
+        <div class="media-menu-row">
+             <button class="media-option-btn" id="create-poll-btn"><i class="fa-solid fa-chart-simple"></i><span>Poll</span></button>
         </div>
     </div>
 
     <div class="message-input-bar">
+        <emoji-picker class="light hidden"></emoji-picker>
         <button class="icon-btn emoji-btn"><i class="fa-regular fa-face-smile"></i></button>
         <button class="icon-btn media-btn"><i class="fa-solid fa-paperclip"></i></button>
         <textarea class="message-input" placeholder="Type a message" rows="1"></textarea>
@@ -130,6 +152,17 @@
             <button id="toggle-camera-btn" class="call-control-btn"><i class="fa-solid fa-video"></i></button>
             <button id="end-active-call-btn" class="call-control-btn end-call"><i class="fa-solid fa-phone-slash"></i></button>
         </div>
+    </div>
+</div>
+
+<!-- Contact Share Modal -->
+<div id="contact-share-modal" class="camera-modal hidden">
+    <div class="contact-share-content">
+        <h3>Share a contact</h3>
+        <div id="contact-list" class="contact-list">
+            <!-- Contacts will be populated here by JS -->
+        </div>
+        <button id="close-contact-modal-btn" class="btn btn-secondary mt-3">Cancel</button>
     </div>
 </div>
 
@@ -461,12 +494,104 @@
     .join-call-banner.hidden {
         display: none;
     }
+    .contact-share-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 400px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .contact-list {
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+    .contact-item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+    .contact-item:hover {
+        background-color: #f7f7f7;
+    }
+    .contact-item img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 15px;
+    }
+    .contact-card {
+        padding: 10px 15px;
+        background-color: #f0f2f5;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        border: 1px solid #e0e0e0;
+    }
+    .contact-card img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+    }
+    .contact-card-info strong {
+        display: block;
+        font-size: 1.1em;
+    }
+    .contact-card-info a {
+        font-size: 0.9em;
+        text-decoration: none;
+    }
+    .location-card {
+        padding: 10px 15px;
+    }
+    .location-card a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    emoji-picker {
+        position: absolute;
+        bottom: 60px; /* Position above the input bar */
+        left: 10px;
+        z-index: 1000;
+    }
+    emoji-picker.hidden {
+        display: none;
+    }
 </style>
 {% endblock %}
 
 {% block chat_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Emoji Picker Logic
+    const emojiBtn = document.querySelector('.emoji-btn');
+    const emojiPicker = document.querySelector('emoji-picker');
+    const messageInput = document.querySelector('.message-input');
+
+    emojiBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        emojiPicker.classList.toggle('hidden');
+    });
+
+    emojiPicker.addEventListener('emoji-click', event => {
+        messageInput.value += event.detail.unicode;
+    });
+
+    // Hide picker when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!emojiPicker.contains(event.target) && !emojiBtn.contains(event.target)) {
+            emojiPicker.classList.add('hidden');
+        }
+    });
+
     // Auto-resize textarea
     const textarea = document.querySelector('.message-input');
     if (textarea) {
@@ -960,10 +1085,78 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
+    // --- Location Sharing Logic ---
+    const locationBtn = document.getElementById('media-location-btn');
+    locationBtn?.addEventListener('click', () => {
+        if (mediaMenu) mediaMenu.classList.add('hidden');
+        if (!navigator.geolocation) {
+            return alert('Geolocation is not supported by your browser.');
+        }
+
+        navigator.geolocation.getCurrentPosition((position) => {
+            const { latitude, longitude } = position.coords;
+            socket.emit('send_location', {
+                room_id: {{ chat_info.id|tojson }},
+                latitude: latitude,
+                longitude: longitude
+            });
+        }, () => {
+            alert('Unable to retrieve your location.');
+        });
+    });
+
+    // --- Contact Share Logic ---
+    const contactShareBtn = document.getElementById('media-contact-btn');
+    const contactShareModal = document.getElementById('contact-share-modal');
+    const closeContactModalBtn = document.getElementById('close-contact-modal-btn');
+    const contactList = document.getElementById('contact-list');
+
+    async function openContactShareModal() {
+        contactList.innerHTML = '<li>Loading...</li>'; // Show a loading state
+        contactShareModal.classList.remove('hidden');
+
+        try {
+            const response = await fetch(`/chat/room/${ {{ chat_info.id|tojson }} }/users`);
+            const users = await response.json();
+
+            contactList.innerHTML = ''; // Clear loading state
+            users.forEach(user => {
+                // Don't list the current user
+                if (user.id === {{ current_user.id }}) return;
+
+                const item = document.createElement('div');
+                item.className = 'contact-item';
+                item.dataset.userId = user.id;
+                item.innerHTML = `
+                    <img src="/static/profile_pics/${user.profile_pic || 'default.jpg'}" alt="${user.name}">
+                    <span>${user.name}</span>
+                `;
+                item.addEventListener('click', () => {
+                    socket.emit('send_contact', {
+                        room_id: {{ chat_info.id|tojson }},
+                        shared_user_id: user.id
+                    });
+                    contactShareModal.classList.add('hidden');
+                });
+                contactList.appendChild(item);
+            });
+        } catch (error) {
+            console.error('Failed to fetch users:', error);
+            contactList.innerHTML = '<li>Failed to load contacts.</li>';
+        }
+    }
+
+    contactShareBtn.addEventListener('click', () => {
+        if (mediaMenu) mediaMenu.classList.add('hidden');
+        openContactShareModal();
+    });
+    closeContactModalBtn.addEventListener('click', () => {
+        contactShareModal.classList.add('hidden');
+    });
+
+
     // Placeholder logic for remaining buttons
-    const placeholderBtns = [
-        {id: 'media-contact-btn', name: 'Contact'},
-    ];
+    const placeholderBtns = [];
     placeholderBtns.forEach(btnInfo => {
         const btn = document.getElementById(btnInfo.id);
         if (btn) {
@@ -1006,12 +1199,76 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        let textHtml = data.content ? `<p class="message-content">${data.content}</p>` : '';
+        let contentHtml;
+        try {
+            const contentData = JSON.parse(data.content);
+            if (contentData && contentData.type === 'contact') {
+                contentHtml = `
+                    <div class="contact-card">
+                        <img src="/static/profile_pics/${contentData.profile_pic}" alt="${contentData.name}">
+                        <div class="contact-card-info">
+                            <strong>${contentData.name}</strong>
+                            <a href="/user/${contentData.user_id}">View Profile</a>
+                        </div>
+                    </div>
+                `;
+            } else if (contentData && contentData.type === 'location') {
+                contentHtml = `
+                    <div class="location-card">
+                        <a href="https://www.openstreetmap.org/?mlat=${contentData.latitude}&mlon=${contentData.longitude}#map=15/${contentData.latitude}/${contentData.longitude}" target="_blank">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                            <span>View Location</span>
+                        </a>
+                    </div>
+                `;
+            } else {
+                throw new Error("Not a contact card");
+            }
+        } catch (e) {
+            contentHtml = data.content ? `<p class="message-content">${data.content}</p>` : '';
+        }
 
         const messageBubble = `
             <div class="message-bubble">
                 ${fileHtml}
-                ${textHtml}
+                ${contentHtml}
+                <span class="message-timestamp">${new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>
+        `;
+        messageBubbleWrapper.innerHTML = messageBubble;
+        messageArea.appendChild(messageBubbleWrapper);
+        messageArea.scrollTop = messageArea.scrollHeight;
+    });
+
+    socket.on('new_poll', function(data) {
+        if (data.room_id !== {{ chat_info.id|tojson }}) {
+            return;
+        }
+
+        const messageArea = document.querySelector('.message-area');
+        const pollWrapper = document.createElement('div');
+        pollWrapper.classList.add('message-bubble-wrapper');
+        pollWrapper.classList.add(data.user_id === {{ current_user.id }} ? 'sender' : 'receiver');
+        pollWrapper.setAttribute('id', `poll-${data.poll_id}`);
+
+        let optionsHtml = '';
+        data.options.forEach(option => {
+            optionsHtml += `
+                <div class="poll-option" data-option-id="${option.id}">
+                    <span class="poll-option-text">${option.text}</span>
+                    <span class="poll-option-votes">0 votes</span>
+                </div>
+            `;
+        });
+
+        const pollBubble = `
+            <div class="message-bubble">
+                <div class="poll-container">
+                    <p class="poll-question">${data.question}</p>
+                    <div class="poll-options">
+                        ${optionsHtml}
+                    </div>
+                </div>
                 <span class="message-timestamp">${new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
             </div>
         `;
