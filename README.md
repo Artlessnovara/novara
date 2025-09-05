@@ -116,3 +116,8 @@ python -m unittest discover tests
 *   **Database**: SQLite
 *   **Frontend**: Jinja2, JavaScript
 *   **Libraries**: WeasyPrint (for PDF generation), Bleach (for HTML sanitization), BeautifulSoup4
+
+## Troubleshooting
+
+*   **`TypeError: 'module' object is not callable` on `flask run`:** This can happen if the Firebase Admin SDK is initialized multiple times. The application code now includes a check to prevent this, but if you encounter it, ensure that `firebase_admin.initialize_app()` is only called once.
+*   **`ModuleNotFoundError`:** If you get an error about a missing module (e.g., `requests`), make sure you have installed all the dependencies from `requirements.txt` by running `pip install -r requirements.txt` in your virtual environment.
