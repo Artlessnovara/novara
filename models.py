@@ -524,3 +524,25 @@ class CallHistory(db.Model):
     caller = db.relationship('User', foreign_keys=[caller_id], backref='outgoing_calls')
     callee = db.relationship('User', foreign_keys=[callee_id], backref='incoming_calls')
     room = db.relationship('ChatRoom', backref='calls')
+
+class BlockedUser(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    blocker_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    blocked_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    blocker = db.relationship('User', foreign_keys=[blocker_id], backref='blocking')
+    blocked = db.relationship('User', foreign_keys=[blocked_id], backref='blocked_by')
+
+    __table_args__ = (db.UniqueConstraint('blocker_id', 'blocked_id', name='_user_block_uc'),)
+
+class ChatClearTimestamp(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    room_id = db.Column(db.Integer, db.ForeignKey('chat_room.id'), nullable=False)
+    cleared_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='cleared_chats')
+    room = db.relationship('ChatRoom', backref='clear_timestamps')
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'room_id', name='_user_room_clear_uc'),)

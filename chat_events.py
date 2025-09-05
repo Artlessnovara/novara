@@ -2,7 +2,7 @@ from flask_socketio import emit, join_room, leave_room
 from flask_login import current_user
 from extensions import db
 from datetime import datetime
-from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, Community, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote, CallHistory
+from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, Community, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote, CallHistory, BlockedUser, ChatClearTimestamp
 from utils import filter_profanity
 from flask import request
 
@@ -39,10 +39,26 @@ def register_chat_events(socketio):
         if user.role == 'admin':
             return True
 
+        # Specific student restrictions
+        if user.role == 'student':
+            is_member = ChatRoomMember.query.filter_by(user_id=user.id, chat_room_id=room.id).count() > 0
+            if room.room_type == 'course' and room.course_room:
+                 return is_member or user.is_enrolled(room.course_room)
+            # Students can only access rooms they are members of (no public access by default)
+            return is_member
+
         if room.room_type == 'private':
-            # The restriction on students in private chats is removed.
-            # Now, any user can be in a private chat as long as they are a member.
-            pass
+            # Check if either user has blocked the other
+            members = room.members.all()
+            if len(members) == 2:
+                other_user_id = members[0].user_id if members[0].user_id != user.id else members[1].user_id
+
+                # Check if current user blocked the other user
+                if BlockedUser.query.filter_by(blocker_id=user.id, blocked_id=other_user_id).first():
+                    return False
+                # Check if the other user blocked the current user
+                if BlockedUser.query.filter_by(blocker_id=other_user_id, blocked_id=user.id).first():
+                    return False
 
         if room.room_type == 'public' or room.room_type == 'community_channel':
             return True
@@ -814,6 +830,61 @@ def register_chat_events(socketio):
             'message_id': new_message.id
         }
         emit('message', msg_data, to=room_id)
+
+    @socketio.on('toggle_block_user')
+    def toggle_block_user(data):
+        if not current_user.is_authenticated: return
+
+        blocked_user_id = data.get('blocked_user_id')
+        if not blocked_user_id or blocked_user_id == current_user.id:
+            return
+
+        existing_block = BlockedUser.query.filter_by(
+            blocker_id=current_user.id,
+            blocked_id=blocked_user_id
+        ).first()
+
+        if existing_block:
+            db.session.delete(existing_block)
+            db.session.commit()
+            emit('user_block_status', {'blocked_user_id': blocked_user_id, 'is_blocked': False})
+        else:
+            new_block = BlockedUser(blocker_id=current_user.id, blocked_id=blocked_user_id)
+            db.session.add(new_block)
+            db.session.commit()
+            emit('user_block_status', {'blocked_user_id': blocked_user_id, 'is_blocked': True})
+
+    @socketio.on('clear_chat')
+    def clear_chat(data):
+        if not current_user.is_authenticated:
+            return
+
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+
+        room = ChatRoom.query.get(room_id)
+        if not room or not is_user_authorized_for_room(current_user, room):
+            return
+
+        clear_record = ChatClearTimestamp.query.filter_by(
+            user_id=current_user.id,
+            room_id=room_id
+        ).first()
+
+        if clear_record:
+            clear_record.cleared_at = datetime.utcnow()
+        else:
+            clear_record = ChatClearTimestamp(
+                user_id=current_user.id,
+                room_id=room_id,
+                cleared_at=datetime.utcnow()
+            )
+            db.session.add(clear_record)
+
+        db.session.commit()
+
+        emit('chat_cleared', {'room_id': room_id})
 
     @socketio.on('send_location')
     def send_location(data):
