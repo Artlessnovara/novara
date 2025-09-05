@@ -1,7 +1,50 @@
-{% extends "chat_layout.html" %}
-{% block chat_content %}
-<div class="page-placeholder">
-    <h1>Calls</h1>
-    <p>This feature is not available.</p>
+{% extends "base.html" %}
+
+{% block title %}Call History{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Call History</h2>
+    <div class="list-group">
+        {% for call in call_history %}
+            <a href="{{ url_for('main.chat_room', room_id=call.room_id) }}" class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">
+                        {% if call.caller_id == current_user.id %}
+                            {{ call.callee.name }}
+                        {% else %}
+                            {{ call.caller.name }}
+                        {% endif %}
+                    </h5>
+                    <small>{{ call.started_at.strftime('%b %d, %Y %I:%M %p') }}</small>
+                </div>
+                <p class="mb-1">
+                    {% if call.caller_id == current_user.id %}
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Outgoing
+                    {% else %}
+                        {% if call.status == 'missed' or call.status == 'declined' %}
+                            <i class="fa-solid fa-phone-slash text-danger"></i> Missed
+                        {% else %}
+                            <i class="fa-solid fa-arrow-down-left"></i> Incoming
+                        {% endif %}
+                    {% endif %}
+
+                    {% if call.call_type == 'video' %}
+                        <i class="fa-solid fa-video ms-2"></i>
+                    {% else %}
+                        <i class="fa-solid fa-phone ms-2"></i>
+                    {% endif %}
+                </p>
+                <small>
+                    Status: {{ call.status.capitalize() }}
+                    {% if call.duration %}
+                        - Duration: {{ (call.duration // 60) }}m {{ (call.duration % 60) }}s
+                    {% endif %}
+                </small>
+            </a>
+        {% else %}
+            <p>Your call history is empty.</p>
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}

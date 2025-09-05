@@ -505,3 +505,19 @@ class PollVote(db.Model):
 
     option = db.relationship('PollOption', back_populates='votes')
     user = db.relationship('User')
+
+class CallHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    caller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    callee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    room_id = db.Column(db.Integer, db.ForeignKey('chat_room.id'), nullable=False)
+    call_type = db.Column(db.String(50), nullable=False) # 'voice' or 'video'
+    status = db.Column(db.String(50), nullable=False, default='initiated') # initiated, answered, missed, declined, ended
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    answered_at = db.Column(db.DateTime, nullable=True)
+    ended_at = db.Column(db.DateTime, nullable=True)
+    duration = db.Column(db.Integer, nullable=True) # in seconds
+
+    caller = db.relationship('User', foreign_keys=[caller_id], backref='outgoing_calls')
+    callee = db.relationship('User', foreign_keys=[callee_id], backref='incoming_calls')
+    room = db.relationship('ChatRoom', backref='calls')

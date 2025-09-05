@@ -2,7 +2,7 @@ from flask_socketio import emit, join_room, leave_room
 from flask_login import current_user
 from extensions import db
 from datetime import datetime
-from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, Community, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote
+from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, Community, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote, CallHistory
 from utils import filter_profanity
 
 def register_chat_events(socketio):
@@ -572,3 +572,98 @@ def register_chat_events(socketio):
 
         db.session.commit()
         emit('community_mute_status_changed', {'community_id': community_id, 'is_muted': new_status})
+
+    # --- WebRTC Signaling Events ---
+
+    @socketio.on('start_call')
+    def start_call(data):
+        if not current_user.is_authenticated:
+            return
+
+        room_id = data.get('room_id')
+        callee_id = data.get('callee_id')
+        call_type = data.get('call_type')
+
+        # Permission Check: Only Admins and Instructors can initiate calls
+        if current_user.role not in ['admin', 'instructor']:
+            emit('call_error', {'message': 'You do not have permission to start calls.'})
+            return
+
+        room = ChatRoom.query.get(room_id)
+        if not room or not is_user_authorized_for_room(current_user, room):
+            emit('call_error', {'message': 'Cannot start call in this room.'})
+            return
+
+        # Create a record in call history
+        new_call = CallHistory(
+            caller_id=current_user.id,
+            callee_id=callee_id,
+            room_id=room_id,
+            call_type=call_type,
+            status='initiated'
+        )
+        db.session.add(new_call)
+        db.session.commit()
+
+        # Notify the original caller that the call has been logged and has an ID
+        emit('call_started', {'call_id': new_call.id})
+
+        # Notify the callee
+        emit('incoming_call', {
+            'caller_id': current_user.id,
+            'caller_name': current_user.name,
+            'caller_profile_pic': current_user.profile_pic,
+            'call_type': call_type,
+            'room_id': room_id,
+            'call_id': new_call.id
+        }, to=room_id) # Emitting to room, client will filter
+
+    @socketio.on('offer')
+    def handle_offer(data):
+        if not current_user.is_authenticated: return
+        emit('offer_received', {
+            'caller_id': current_user.id,
+            'offer': data['offer'],
+            'call_id': data['call_id']
+        }, to=data['room_id'])
+
+    @socketio.on('answer')
+    def handle_answer(data):
+        if not current_user.is_authenticated: return
+
+        call = CallHistory.query.get(data['call_id'])
+        if call:
+            call.status = 'answered'
+            call.answered_at = datetime.utcnow()
+            db.session.commit()
+
+        emit('answer_received', {
+            'callee_id': current_user.id,
+            'answer': data['answer']
+        }, to=data['room_id'])
+
+    @socketio.on('ice_candidate')
+    def handle_ice_candidate(data):
+        if not current_user.is_authenticated: return
+        emit('ice_candidate_received', {
+            'from_id': current_user.id,
+            'candidate': data['candidate']
+        }, to=data['room_id'])
+
+    @socketio.on('end_call')
+    def handle_end_call(data):
+        if not current_user.is_authenticated: return
+
+        call_id = data.get('call_id')
+        reason = data.get('reason', 'ended') # e.g., 'ended', 'declined', 'missed'
+
+        call = CallHistory.query.get(call_id)
+        if call:
+            call.status = reason
+            call.ended_at = datetime.utcnow()
+            if call.answered_at:
+                duration = call.ended_at - call.answered_at
+                call.duration = int(duration.total_seconds())
+            db.session.commit()
+
+        emit('call_ended', {'call_id': call_id}, to=data['room_id'])

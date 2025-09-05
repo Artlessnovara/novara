@@ -10,7 +10,13 @@
             {% endif %}
             <span class="conversation-name">{{ chat_info.name }}</span>
         </div>
-        <a href="#" class="info-btn"><i class="fa-solid fa-circle-info"></i></a>
+        <div class="header-actions">
+            {% if chat_info.room_type == 'private' and current_user.role in ['admin', 'instructor'] and chat_info.other_user_id %}
+                <button id="voice-call-btn" data-callee-id="{{ chat_info.other_user_id }}" class="icon-btn call-btn"><i class="fa-solid fa-phone"></i></button>
+                <button id="video-call-btn" data-callee-id="{{ chat_info.other_user_id }}" class="icon-btn call-btn"><i class="fa-solid fa-video"></i></button>
+            {% endif %}
+            <a href="#" class="info-btn"><i class="fa-solid fa-circle-info"></i></a>
+        </div>
     </div>
 
     <div class="message-area">
@@ -81,6 +87,35 @@
     <button class="icon-btn send-btn" id="send-voice-btn"><i class="fa-solid fa-paper-plane"></i></button>
 </div>
 
+<!-- Call UI Elements -->
+<div id="incoming-call-container" class="call-container hidden">
+    <div class="incoming-call-box">
+        <img id="incoming-caller-avatar" src="" alt="Caller" class="caller-avatar">
+        <h3 id="incoming-caller-name"></h3>
+        <p id="incoming-call-type"></p>
+        <div class="call-actions">
+            <button id="decline-call-btn" class="call-action-btn decline"><i class="fa-solid fa-phone-slash"></i></button>
+            <button id="accept-call-btn" class="call-action-btn accept"><i class="fa-solid fa-phone"></i></button>
+        </div>
+    </div>
+</div>
+
+<div id="active-call-container" class="call-container hidden">
+    <video id="remote-video" class="call-video" autoplay playsinline></video>
+    <video id="local-video" class="call-video" autoplay playsinline muted></video>
+    <div class="active-call-ui">
+        <div class="peer-info">
+            <h3 id="active-caller-name"></h3>
+            <p id="active-call-timer">00:00</p>
+        </div>
+        <div class="call-controls">
+            <button id="mute-mic-btn" class="call-control-btn"><i class="fa-solid fa-microphone"></i></button>
+            <button id="toggle-camera-btn" class="call-control-btn"><i class="fa-solid fa-video"></i></button>
+            <button id="end-active-call-btn" class="call-control-btn end-call"><i class="fa-solid fa-phone-slash"></i></button>
+        </div>
+    </div>
+</div>
+
 
 <style>
     .voice-recording-info {
@@ -98,6 +133,20 @@
         0% { transform: scale(1); }
         50% { transform: scale(1.1); }
         100% { transform: scale(1); }
+    }
+
+    .conversation-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        background-color: #f0f2f5;
+        border-bottom: 1px solid #ddd;
+    }
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
     }
 
     .camera-modal {
@@ -273,6 +322,104 @@
     }
     .receiver .poll-option-progress {
         background-color: #cceeff;
+    }
+
+    /* --- Call UI Styles --- */
+    .call-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 3000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+    .call-container.hidden {
+        display: none;
+    }
+    .incoming-call-box {
+        text-align: center;
+        color: white;
+    }
+    .caller-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 3px solid white;
+        margin-bottom: 20px;
+    }
+    .call-actions {
+        margin-top: 30px;
+        display: flex;
+        gap: 40px;
+    }
+    .call-action-btn {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        border: none;
+        color: white;
+        font-size: 30px;
+        cursor: pointer;
+    }
+    .call-action-btn.decline { background-color: #d9534f; }
+    .call-action-btn.accept { background-color: #5cb85c; }
+
+    /* Active Call */
+    #local-video {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        width: 150px;
+        border: 2px solid white;
+        border-radius: 8px;
+        z-index: 3001;
+    }
+    #remote-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .active-call-ui {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 20px;
+        z-index: 3002;
+        background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: white;
+    }
+    .peer-info {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .call-controls {
+        display: flex;
+        gap: 20px;
+    }
+    .call-control-btn {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: none;
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+    }
+    .call-control-btn.active {
+        background-color: rgba(255, 255, 255, 0.4);
+    }
+    .call-control-btn.end-call {
+        background-color: #d9534f;
     }
 </style>
 {% endblock %}
@@ -560,6 +707,184 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+
+    // --- WebRTC Call Logic ---
+    const voiceCallBtn = document.getElementById('voice-call-btn');
+    const videoCallBtn = document.getElementById('video-call-btn');
+    const incomingCallContainer = document.getElementById('incoming-call-container');
+    const activeCallContainer = document.getElementById('active-call-container');
+
+    let peerConnection;
+    let localStream;
+    let currentCallId;
+    let isCaller = false;
+    let receivedOffer;
+    let callData; // To store data from 'incoming_call' event
+
+    const servers = {
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    };
+
+    const setupPeerConnection = () => {
+        peerConnection = new RTCPeerConnection(servers);
+
+        peerConnection.onicecandidate = event => {
+            if (event.candidate) {
+                socket.emit('ice_candidate', {
+                    candidate: event.candidate,
+                    room_id: {{ chat_info.id|tojson }}
+                });
+            }
+        };
+
+        peerConnection.ontrack = event => {
+            const remoteVideo = document.getElementById('remote-video');
+            if (remoteVideo.srcObject !== event.streams[0]) {
+                remoteVideo.srcObject = event.streams[0];
+            }
+        };
+    };
+
+    const startCall = async (callType) => {
+        const calleeId = parseInt(voiceCallBtn.dataset.calleeId, 10);
+        isCaller = true;
+        callData = { callee_id: calleeId, call_type: callType };
+
+        setupPeerConnection();
+
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: callType === 'video',
+            audio: true
+        });
+        document.getElementById('local-video').srcObject = localStream;
+        localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+        });
+
+        socket.emit('start_call', {
+            room_id: {{ chat_info.id|tojson }},
+            callee_id: calleeId,
+            call_type: callType
+        });
+
+        activeCallContainer.classList.remove('hidden');
+    };
+
+    voiceCallBtn?.addEventListener('click', () => startCall('voice'));
+    videoCallBtn?.addEventListener('click', () => startCall('video'));
+
+    socket.on('call_started', async (data) => {
+        if (isCaller) {
+            currentCallId = data.call_id;
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            socket.emit('offer', {
+                offer: offer,
+                call_id: currentCallId,
+                room_id: {{ chat_info.id|tojson }}
+            });
+        }
+    });
+
+    socket.on('incoming_call', (data) => {
+        if (peerConnection || !incomingCallContainer.classList.contains('hidden')) return;
+
+        if (data.callee_id === {{ current_user.id }}) {
+            callData = data;
+            currentCallId = data.call_id;
+            document.getElementById('incoming-caller-name').innerText = data.caller_name;
+            document.getElementById('incoming-call-type').innerText = `Incoming ${data.call_type} call...`;
+            incomingCallContainer.classList.remove('hidden');
+        }
+    });
+
+    socket.on('offer_received', (data) => {
+        if (!isCaller && data.call_id === currentCallId) {
+            receivedOffer = data.offer;
+        }
+    });
+
+    document.getElementById('accept-call-btn').addEventListener('click', async () => {
+        if (!receivedOffer) {
+            console.error("Offer not received, cannot accept call.");
+            return;
+        }
+        isCaller = false;
+        incomingCallContainer.classList.add('hidden');
+        activeCallContainer.classList.remove('hidden');
+
+        setupPeerConnection();
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(receivedOffer));
+
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: callData.call_type === 'video',
+            audio: true
+        });
+        document.getElementById('local-video').srcObject = localStream;
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        socket.emit('answer', {
+            answer: answer,
+            call_id: currentCallId,
+            room_id: {{ chat_info.id|tojson }}
+        });
+    });
+
+    socket.on('answer_received', async (data) => {
+        if (isCaller) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        }
+    });
+
+    socket.on('ice_candidate_received', (data) => {
+        if (peerConnection) {
+            peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+    });
+
+    const endCall = (reason = 'ended') => {
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+        activeCallContainer.classList.add('hidden');
+        incomingCallContainer.classList.add('hidden');
+
+        if (currentCallId) {
+            socket.emit('end_call', {
+                call_id: currentCallId,
+                room_id: {{ chat_info.id|tojson }},
+                reason: reason
+            });
+        }
+        currentCallId = null;
+        isCaller = false;
+        receivedOffer = null;
+        callData = null;
+    };
+
+    document.getElementById('decline-call-btn').addEventListener('click', () => endCall('declined'));
+    document.getElementById('end-active-call-btn').addEventListener('click', () => endCall('ended'));
+
+    socket.on('call_ended', () => {
+        if (peerConnection) peerConnection.close();
+        if (localStream) localStream.getTracks().forEach(track => track.stop());
+        activeCallContainer.classList.add('hidden');
+        incomingCallContainer.classList.add('hidden');
+        currentCallId = null;
+        isCaller = false;
+        receivedOffer = null;
+        callData = null;
+    });
 
     // Placeholder logic for remaining buttons
     const placeholderBtns = [

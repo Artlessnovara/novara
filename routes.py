@@ -926,8 +926,19 @@ def chat_room(room_id):
     chat_info = {
         'id': room.id,
         'name': room.name,
-        'avatar_url': url_for('static', filename=room.cover_image or 'profile_pics/default.jpg')
+        'avatar_url': url_for('static', filename=room.cover_image or 'profile_pics/default.jpg'),
+        'room_type': room.room_type,
+        'other_user_id': None
     }
+
+    if room.room_type == 'private':
+        # Find the other user in the private chat
+        other_member = ChatRoomMember.query.filter(
+            ChatRoomMember.chat_room_id == room.id,
+            ChatRoomMember.user_id != current_user.id
+        ).first()
+        if other_member:
+            chat_info['other_user_id'] = other_member.user_id
 
     # Fetch recent messages
     # This part can be simplified. The template can handle rendering logic.
@@ -1580,4 +1591,7 @@ def view_community(community_id):
 @main.route('/calls')
 @login_required
 def calls():
-    return render_template('calls.html')
+    call_history = CallHistory.query.filter(
+        or_(CallHistory.caller_id == current_user.id, CallHistory.callee_id == current_user.id)
+    ).order_by(CallHistory.started_at.desc()).limit(100).all() # Limit to 100 for performance
+    return render_template('calls.html', call_history=call_history)
