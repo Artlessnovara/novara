@@ -2,7 +2,7 @@ from flask_socketio import emit, join_room, leave_room
 from flask_login import current_user
 from extensions import db
 from datetime import datetime
-from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote
+from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, Community, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote
 from utils import filter_profanity
 
 def register_chat_events(socketio):
@@ -304,6 +304,32 @@ def register_chat_events(socketio):
         else:
             emit('error', {'msg': 'You are not a member of this group.'})
 
+    @socketio.on('edit_group_description')
+    def edit_group_description(data):
+        if not current_user.is_authenticated:
+            return
+
+        room_id = data.get('room_id')
+        new_description = data.get('description', '')
+
+        room = ChatRoom.query.get(room_id)
+        if not room:
+            return
+
+        # Authorization Check
+        is_admin = current_user.role == 'admin'
+        # Add more specific instructor check if needed
+        is_creator = room.created_by_id == current_user.id
+
+        if not (is_admin or is_creator):
+             emit('error', {'msg': 'You do not have permission to edit this description.'})
+             return
+
+        room.description = new_description
+        db.session.commit()
+
+        emit('description_changed', {'room_id': room.id, 'new_description': new_description}, to=room_id)
+
 
     @socketio.on('react_to_message')
     def react_to_message(data):
@@ -495,3 +521,54 @@ def register_chat_events(socketio):
             'room_id': room.id,
             'options': options_with_votes
         }, to=room.id)
+
+    @socketio.on('leave_community')
+    def leave_community(data):
+        if not current_user.is_authenticated:
+            return
+
+        community_id = data.get('community_id')
+        community = Community.query.get(community_id)
+        if not community:
+            return
+
+        for channel in community.channels:
+            membership = ChatRoomMember.query.filter_by(
+                user_id=current_user.id,
+                chat_room_id=channel.id
+            ).first()
+            if membership:
+                db.session.delete(membership)
+
+        db.session.commit()
+        emit('status', {'msg': f"You have left the community '{community.name}'. You will be redirected."})
+
+    @socketio.on('mute_community')
+    def mute_community(data):
+        if not current_user.is_authenticated:
+            return
+
+        community_id = data.get('community_id')
+        community = Community.query.get(community_id)
+        if not community:
+            return
+
+        # This is a toggle. First, check if ANY channel is muted.
+        # If so, unmute all. If not, mute all.
+        is_any_muted = False
+        for channel in community.channels:
+            if MutedRoom.query.filter_by(user_id=current_user.id, room_id=channel.id).first():
+                is_any_muted = True
+                break
+
+        new_status = not is_any_muted
+        for channel in community.channels:
+            existing_mute = MutedRoom.query.filter_by(user_id=current_user.id, room_id=channel.id).first()
+            if new_status and not existing_mute: # Mute
+                new_mute = MutedRoom(user_id=current_user.id, room_id=channel.id)
+                db.session.add(new_mute)
+            elif not new_status and existing_mute: # Unmute
+                db.session.delete(existing_mute)
+
+        db.session.commit()
+        emit('community_mute_status_changed', {'community_id': community_id, 'is_muted': new_status})

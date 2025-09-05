@@ -1559,7 +1559,23 @@ def communities():
 @login_required
 def view_community(community_id):
     community = Community.query.get_or_404(community_id)
-    return render_template('chat/view_community.html', community=community)
+
+    # Get all channel IDs for this community
+    channel_ids = [channel.id for channel in community.channels]
+
+    # Get all unique members from all channels in this community
+    members = db.session.query(User).join(ChatRoomMember).filter(ChatRoomMember.chat_room_id.in_(channel_ids)).distinct().all()
+
+    # Get all media and docs from all channels
+    media_and_docs = ChatMessage.query.filter(
+        ChatMessage.room_id.in_(channel_ids),
+        ChatMessage.file_path.isnot(None)
+    ).order_by(ChatMessage.timestamp.desc()).limit(50).all()
+
+    return render_template('chat/view_community.html',
+                           community=community,
+                           members=members,
+                           media_and_docs=media_and_docs)
 
 @main.route('/calls')
 @login_required

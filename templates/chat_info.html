@@ -35,9 +35,15 @@
         <a href="{{ url_for('main.chat_list') }}" class="back-btn" style="position: absolute; top: 100px; left: 15px; font-size: 16px; color: #007bff; text-decoration: none;"><i class="fa-solid fa-arrow-left"></i> Back to Chats</a>
         <img src="{{ url_for('static', filename=room.cover_image or 'profile_pics/default.jpg') }}" alt="{{ room.name }}" class="info-avatar">
         <h2 class="info-name">{{ room.name }}</h2>
-        {% if room.description %}<p class="info-description">{{ room.description }}</p>{% endif %}
+        <div id="description-container">
+            {% if room.description %}<p class="info-description">{{ room.description }}</p>{% endif %}
+        </div>
+        {% if user_role_in_room == 'admin' %}
+        <button id="edit-desc-btn" class="btn-glass compact-btn" style="margin-top: 10px;">Edit Description</button>
+        {% endif %}
+
         {% if room.creator %}
-        <p class="info-meta">Created by {{ room.creator.name }} on {{ room.created_at.strftime('%b %d, %Y') }}</p>
+        <p class="info-meta" style="margin-top: 15px;">Created by {{ room.creator.name }} on {{ room.created_at.strftime('%b %d, %Y') }}</p>
         {% endif %}
     </div>
 
@@ -180,6 +186,47 @@
                     socket.emit('exit_group', { room_id: {{ room.id|tojson }} });
                 }
             });
+        }
+
+        const editDescBtn = document.getElementById('edit-desc-btn');
+        const descContainer = document.getElementById('description-container');
+
+        if (editDescBtn && descContainer) {
+            editDescBtn.addEventListener('click', function() {
+                const currentDesc = descContainer.querySelector('.info-description')?.textContent || '';
+                descContainer.innerHTML = `
+                    <textarea id="desc-textarea" class="form-control" style="width: 100%; min-height: 80px;">${currentDesc}</textarea>
+                    <button id="save-desc-btn" class="btn-primary" style="margin-top: 5px;">Save</button>
+                    <button id="cancel-desc-btn" class="btn-secondary" style="margin-top: 5px; margin-left: 5px;">Cancel</button>
+                `;
+                editDescBtn.style.display = 'none'; // Hide the edit button
+
+                document.getElementById('cancel-desc-btn').addEventListener('click', function() {
+                    descContainer.innerHTML = `<p class="info-description">${currentDesc}</p>`;
+                    editDescBtn.style.display = 'inline-block';
+                });
+
+                document.getElementById('save-desc-btn').addEventListener('click', function() {
+                    const newDesc = document.getElementById('desc-textarea').value;
+                    socket.emit('edit_group_description', {
+                        room_id: {{ room.id|tojson }},
+                        description: newDesc
+                    });
+                });
+            });
+        }
+    });
+
+    socket.on('description_changed', function(data) {
+        if (data.room_id === {{ room.id|tojson }}) {
+            const descContainer = document.getElementById('description-container');
+            const editDescBtn = document.getElementById('edit-desc-btn');
+            if(descContainer) {
+                descContainer.innerHTML = `<p class="info-description">${data.new_description}</p>`;
+            }
+            if(editDescBtn) {
+                editDescBtn.style.display = 'inline-block';
+            }
         }
     });
 
