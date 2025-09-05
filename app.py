@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from markupsafe import Markup
 from flask_migrate import Migrate
+from push_notifications import initialize_firebase
 
 def secure_embeds_filter(html_content):
     if not html_content:
@@ -78,6 +79,10 @@ def create_app(config_object=None):
 
     # Register custom Jinja filters
     app.jinja_env.filters['secure_embeds'] = secure_embeds_filter
+
+    # Initialize Firebase Admin SDK
+    with app.app_context():
+        initialize_firebase()
 
     def from_json_filter(value, default=None):
         try:

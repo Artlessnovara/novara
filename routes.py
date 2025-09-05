@@ -5,7 +5,7 @@ import random
 import secrets
 import os
 from werkzeug.utils import secure_filename
-from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview
+from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken
 from extensions import db
 from utils import save_chat_file, save_status_file, get_or_create_platform_setting, is_contact, get_or_create_private_room
 from datetime import timedelta
@@ -2098,6 +2098,30 @@ def clear_all_chats():
     except Exception as e:
         db.session.rollback()
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/fcm_token', methods=['POST'])
+@login_required
+def register_fcm_token():
+    data = request.get_json()
+    token = data.get('token')
+    if not token:
+        return jsonify({'status': 'error', 'message': 'Token is required'}), 400
+
+    # Check if the token already exists to avoid duplicates
+    existing_token = FCMToken.query.filter_by(token=token).first()
+    if existing_token:
+        # It could belong to another user, or the same user.
+        # If it's the same user, we can just update the timestamp.
+        # If it's a different user, it means the token has been re-assigned.
+        if existing_token.user_id != current_user.id:
+            existing_token.user_id = current_user.id
+        existing_token.timestamp = datetime.utcnow()
+    else:
+        new_token = FCMToken(user_id=current_user.id, token=token)
+        db.session.add(new_token)
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Token registered'})
 
 @main.route('/chat/<int:room_id>/export')
 @login_required
