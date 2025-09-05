@@ -116,6 +116,40 @@
             cursor: pointer;
             z-index: 20;
         }
+        .status-audio, .status-video {
+            max-width: 90%;
+            border-radius: 8px;
+        }
+        .poll-container {
+            background-color: white;
+            color: black;
+            padding: 1.5rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .poll-question { font-weight: 600; margin-bottom: 1rem; }
+        .poll-option {
+            background-color: #f0f2f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .poll-option-progress {
+            position: absolute;
+            left: 0; top: 0; height: 100%;
+            background-color: #d2e6ff;
+            z-index: 1;
+        }
+        .poll-option-text, .poll-option-votes {
+            position: relative;
+            z-index: 2;
+        }
+        .poll-option-text { font-weight: 500; }
+        .poll-option-votes { float: right; }
     </style>
 </head>
 <body>
@@ -194,14 +228,44 @@
 
         function showStatus(index) {
             clearTimeout(statusTimer);
-
             const status = statuses[index];
 
-            // Update content
-            if (status.content_type === 'image') {
-                statusContentContainer.innerHTML = `<img src="${status.content}" class="status-image">`;
-            } else {
+            // Reset styles
+            viewer.style.backgroundColor = '#111b21';
+            statusContentContainer.innerHTML = '';
+
+            // Update content based on type
+            if (status.content_type === 'text') {
+                viewer.style.backgroundColor = status.background || '#111b21';
                 statusContentContainer.innerHTML = `<div class="status-text">${status.content}</div>`;
+            } else if (status.content_type === 'image') {
+                statusContentContainer.innerHTML = `<img src="${status.content}" class="status-image">`;
+            } else if (status.content_type === 'voice') {
+                statusContentContainer.innerHTML = `<audio src="${status.content}" controls autoplay class="status-audio"></audio>`;
+            } else if (status.content_type === 'video') {
+                const video = document.createElement('video');
+                video.src = status.content;
+                video.className = 'status-video';
+                video.controls = true;
+                video.autoplay = true;
+                statusContentContainer.appendChild(video);
+            } else if (status.content_type === 'poll' && status.poll) {
+                let optionsHtml = '';
+                status.poll.options.forEach(opt => {
+                    optionsHtml += `
+                        <div class="poll-option" data-option-id="${opt.id}">
+                            <div class="poll-option-progress" style="width: ${opt.percentage}%;"></div>
+                            <span class="poll-option-text">${opt.text}</span>
+                            <span class="poll-option-votes">${opt.percentage}%</span>
+                        </div>
+                    `;
+                });
+                statusContentContainer.innerHTML = `
+                    <div class="poll-container">
+                        <p class="poll-question">${status.poll.question}</p>
+                        <div class="poll-options">${optionsHtml}</div>
+                    </div>
+                `;
             }
 
             if (status.caption) {

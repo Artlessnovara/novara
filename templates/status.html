@@ -4,7 +4,7 @@
 <div class="status-page">
     <div class="status-section">
         <div class="status-item my-status">
-            <a href="{{ url_for('main.view_my_status') if my_statuses else url_for('main.add_status') }}" class="status-avatar-wrapper">
+            <a href="{{ url_for('main.add_status') }}" class="status-avatar-wrapper">
                 <div class="status-avatar">
                     <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="My Status">
                 </div>
@@ -14,15 +14,30 @@
             </a>
             <div class="status-info">
                 <h3 class="status-name">My Status</h3>
-                <p class="status-time">
-                    {% if my_statuses %}
-                        {{ my_statuses|length }} updates
-                    {% else %}
-                        Tap to add status update
-                    {% endif %}
-                </p>
+                <p class="status-time">Tap to add status update</p>
             </div>
         </div>
+        {% if my_statuses %}
+        <div class="my-statuses-list">
+            <h4>Your active statuses:</h4>
+            {% for status in my_statuses %}
+            <a href="{{ url_for('main.view_user_status', user_id=current_user.id) }}" class="status-item-link">
+                <div class="status-item">
+                     <div class="status-info">
+                        <p class="status-time">
+                            {% if status.content_type == 'text' %}
+                                Text: {{ status.content|truncate(30) }}
+                            {% else %}
+                                {{ status.content_type|capitalize }} posted at {{ status.created_at.strftime('%H:%M') }}
+                            {% endif %}
+                        </p>
+                        <p class="seen-by"><i class="fa-solid fa-eye"></i> Seen by {{ status.views|length }}</p>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 
     <div class="status-section">
@@ -123,6 +138,24 @@
     color: #54656f;
     padding: 1rem;
     text-align: center;
+}
+.my-statuses-list {
+    margin-top: 1.5rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--border-color);
+}
+.my-statuses-list h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #54656f;
+}
+.seen-by {
+    font-size: 0.8rem;
+    color: var(--primary-color);
+    margin-top: 4px;
+}
+.seen-by i {
+    margin-right: 4px;
 }
 </style>
 {% endblock %}

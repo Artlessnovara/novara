@@ -452,14 +452,16 @@ class AdminLog(db.Model):
 class Status(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    content_type = db.Column(db.String(50), nullable=False, default='text') # text, image, video
+    content_type = db.Column(db.String(50), nullable=False, default='text') # text, image, video, voice, poll
     content = db.Column(db.String(255), nullable=False) # File path or text content
     caption = db.Column(db.Text, nullable=True)
+    background = db.Column(db.String(50), nullable=True) # For text statuses
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False, index=True)
 
     user = db.relationship('User', backref=db.backref('statuses', lazy='dynamic'))
     views = db.relationship('StatusView', backref='status', lazy='dynamic', cascade="all, delete-orphan")
+    poll = db.relationship('Poll', back_populates='status', uselist=False, cascade="all, delete-orphan")
 
     def __init__(self, **kwargs):
         super(Status, self).__init__(**kwargs)
@@ -487,8 +489,10 @@ class Poll(db.Model):
     room = db.relationship('ChatRoom', back_populates='polls')
     user = db.relationship('User')
     options = db.relationship('PollOption', back_populates='poll', cascade="all, delete-orphan")
-    message_id = db.Column(db.Integer, db.ForeignKey('chat_message.id'))
+    message_id = db.Column(db.Integer, db.ForeignKey('chat_message.id'), nullable=True)
     message = db.relationship('ChatMessage', back_populates='poll')
+    status_id = db.Column(db.Integer, db.ForeignKey('status.id'), nullable=True)
+    status = db.relationship('Status', back_populates='poll')
 
 class GroupRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)

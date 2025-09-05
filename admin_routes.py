@@ -5,7 +5,7 @@ import os
 from models import User, Course, Category, LibraryMaterial, PlatformSetting, Enrollment, CertificateRequest, Certificate, LibraryPurchase, ChatRoom, ChatRoomMember, MutedUser, ReportedMessage, ReportedGroup, AdminLog, GroupRequest, Community
 from extensions import db
 from pdf_generator import generate_certificate_pdf
-from utils import save_chat_room_cover_image
+from utils import save_chat_room_cover_image, get_or_create_platform_setting
 import secrets
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -438,6 +438,24 @@ def toggle_calling(user_id):
     db.session.commit()
     flash(f"Calling permissions for {user.name} have been {'enabled' if user.can_make_calls else 'disabled'}.", "success")
     return redirect(url_for('admin.manage_permissions'))
+
+@admin_bp.route('/permissions/status', methods=['GET', 'POST'])
+def status_permissions():
+    if request.method == 'POST':
+        student_setting = get_or_create_platform_setting('student_status_posting_enabled', 'false')
+        instructor_setting = get_or_create_platform_setting('instructor_status_posting_enabled', 'true')
+
+        student_setting.value = 'true' if request.form.get('student_status_posting') == 'on' else 'false'
+        instructor_setting.value = 'true' if request.form.get('instructor_status_posting') == 'on' else 'false'
+
+        db.session.commit()
+        flash('Status posting permissions have been updated.', 'success')
+        return redirect(url_for('admin.status_permissions'))
+
+    student_setting = get_or_create_platform_setting('student_status_posting_enabled', 'false')
+    instructor_setting = get_or_create_platform_setting('instructor_status_posting_enabled', 'true')
+
+    return render_template('admin/status_permissions.html', student_setting=student_setting, instructor_setting=instructor_setting)
 
 import secrets
 

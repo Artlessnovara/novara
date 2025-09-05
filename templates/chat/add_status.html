@@ -13,11 +13,27 @@
                 <select id="status_type" name="status_type" class="form-input">
                     <option value="text">Text</option>
                     <option value="image">Image</option>
+                    <option value="voice">Voice</option>
+                    <option value="poll">Poll</option>
+                    <option value="video">Video</option>
                 </select>
             </div>
             <div id="text-input-group" class="form-group">
                 <label for="text_content">Text</label>
                 <textarea id="text_content" name="text_content" rows="5" class="form-input" placeholder="What's on your mind?"></textarea>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>Background Color</label>
+                    <input type="hidden" name="background_color" id="background_color" value="#ffffff">
+                    <div class="color-grid">
+                        <div class="color-swatch" data-color="#FFFFFF" style="background-color: #FFFFFF; border: 1px solid #ddd;"></div>
+                        <div class="color-swatch" data-color="#F44336" style="background-color: #F44336;"></div>
+                        <div class="color-swatch" data-color="#E91E63" style="background-color: #E91E63;"></div>
+                        <div class="color-swatch" data-color="#9C27B0" style="background-color: #9C27B0;"></div>
+                        <div class="color-swatch" data-color="#2196F3" style="background-color: #2196F3;"></div>
+                        <div class="color-swatch" data-color="#4CAF50" style="background-color: #4CAF50;"></div>
+                        <div class="color-swatch" data-color="#FFEB3B" style="background-color: #FFEB3B;"></div>
+                    </div>
+                </div>
             </div>
             <div id="image-input-group" class="form-group" style="display: none;">
                 <label for="image_file">Image</label>
@@ -26,6 +42,29 @@
             <div id="caption-input-group" class="form-group" style="display: none;">
                 <label for="caption">Caption (Optional)</label>
                 <input type="text" id="caption" name="caption" class="form-input" placeholder="Add a caption...">
+            </div>
+            <div id="voice-input-group" class="form-group" style="display: none;">
+                <label>Voice Note</label>
+                <button type="button" id="record-voice-btn" class="btn">Record Voice</button>
+                <p id="voice-record-status"></p>
+                <audio id="voice-playback" controls style="display: none;"></audio>
+                <input type="hidden" name="voice_file_path" id="voice_file_path">
+            </div>
+            <div id="poll-input-group" class="form-group" style="display: none;">
+                <label for="poll_question">Poll Question</label>
+                <input type="text" id="poll_question" name="poll_question" class="form-input">
+                <label>Options</label>
+                <input type="text" name="poll_options" class="form-input" placeholder="Option 1">
+                <input type="text" name="poll_options" class="form-input" placeholder="Option 2">
+                <input type="text" name="poll_options" class="form-input" placeholder="Option 3 (optional)">
+                <input type="text" name="poll_options" class="form-input" placeholder="Option 4 (optional)">
+            </div>
+            <div id="video-input-group" class="form-group" style="display: none;">
+                <label>Video (max 30 seconds)</label>
+                <video id="video-preview" width="300" muted style="display: none;"></video>
+                <button type="button" id="record-video-btn" class="btn">Record Video</button>
+                <p id="video-record-status"></p>
+                <input type="hidden" name="video_file_path" id="video_file_path">
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn-primary">Post Status</button>
@@ -44,19 +83,201 @@
 .form-input { width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
 .form-actions { text-align: right; margin-top: 2rem; }
 .btn-primary { background-color: var(--primary-color); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+.color-grid { display: flex; gap: 10px; margin-top: 10px; }
+.color-swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; transition: transform 0.2s; }
+.color-swatch.selected { transform: scale(1.2); border: 2px solid var(--primary-color) !important; }
 </style>
 {% endblock %}
 
 {% block chat_scripts %}
 <script>
-document.getElementById('status_type').addEventListener('change', function() {
-    const isText = this.value === 'text';
-    document.getElementById('text-input-group').style.display = isText ? 'block' : 'none';
-    document.getElementById('image-input-group').style.display = isText ? 'none' : 'block';
-    document.getElementById('caption-input-group').style.display = isText ? 'none' : 'block';
+document.addEventListener('DOMContentLoaded', function() {
+    const statusTypeSelect = document.getElementById('status_type');
+    const textGroup = document.getElementById('text-input-group');
+    const imageGroup = document.getElementById('image-input-group');
+    const captionGroup = document.getElementById('caption-input-group');
+    const voiceGroup = document.getElementById('voice-input-group');
+    const pollGroup = document.getElementById('poll-input-group');
+    const videoGroup = document.getElementById('video-input-group');
+    const textContent = document.getElementById('text_content');
+    const imageFile = document.getElementById('image_file');
+    const voiceFilePathInput = document.getElementById('voice_file_path');
+    const pollQuestionInput = document.getElementById('poll_question');
+    const videoFilePathInput = document.getElementById('video_file_path');
+    const colorSwatches = document.querySelectorAll('.color-swatch');
+    const hiddenColorInput = document.getElementById('background_color');
 
-    document.getElementById('text_content').required = isText;
-    document.getElementById('image_file').required = !isText;
+    function toggleForm(type) {
+        textGroup.style.display = type === 'text' ? 'block' : 'none';
+        imageGroup.style.display = type === 'image' ? 'block' : 'none';
+        captionGroup.style.display = type === 'image' ? 'block' : 'none';
+        voiceGroup.style.display = type === 'voice' ? 'block' : 'none';
+        pollGroup.style.display = type === 'poll' ? 'block' : 'none';
+        videoGroup.style.display = type === 'video' ? 'block' : 'none';
+
+        textContent.required = type === 'text';
+        imageFile.required = type === 'image';
+        voiceFilePathInput.required = type === 'voice';
+        pollQuestionInput.required = type === 'poll';
+        videoFilePathInput.required = type === 'video';
+    }
+
+    statusTypeSelect.addEventListener('change', function() {
+        toggleForm(this.value);
+    });
+
+    // Color picker logic
+    const defaultSwatch = document.querySelector('.color-swatch[data-color="#FFFFFF"]');
+    if(defaultSwatch) defaultSwatch.classList.add('selected');
+
+    colorSwatches.forEach(swatch => {
+        swatch.addEventListener('click', function() {
+            const color = this.dataset.color;
+            hiddenColorInput.value = color;
+            textContent.style.backgroundColor = color;
+
+            // Also change text color for better contrast on dark backgrounds
+            const isDark = ['#F44336', '#E91E63', '#9C27B0', '#795548'].includes(color.toUpperCase());
+            textContent.style.color = isDark ? 'white' : 'black';
+
+            colorSwatches.forEach(s => s.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
+
+    // Initial state
+    toggleForm(statusTypeSelect.value);
+
+    // --- Voice Recording Logic ---
+    const recordBtn = document.getElementById('record-voice-btn');
+    const recordStatus = document.getElementById('voice-record-status');
+    const playback = document.getElementById('voice-playback');
+    let mediaRecorder;
+    let chunks = [];
+
+    recordBtn.addEventListener('click', async () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            recordBtn.textContent = 'Record Voice';
+            recordStatus.textContent = 'Recording stopped. You can preview or re-record.';
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            chunks = [];
+
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { 'type' : 'audio/webm' });
+                const audioURL = window.URL.createObjectURL(blob);
+                playback.src = audioURL;
+                playback.style.display = 'block';
+
+                // Upload the blob
+                const formData = new FormData();
+                formData.append('voice_file', blob, 'status-voice.webm');
+
+                fetch("{{ url_for('main.upload_status_voice') }}", {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        voiceFilePathInput.value = data.filepath;
+                        recordStatus.textContent = 'Upload complete!';
+                    } else {
+                        recordStatus.textContent = 'Upload failed: ' + data.message;
+                    }
+                });
+            };
+
+            mediaRecorder.start();
+            recordBtn.textContent = 'Stop Recording';
+            recordStatus.textContent = 'Recording...';
+            playback.style.display = 'none';
+
+        } catch (err) {
+            recordStatus.textContent = 'Error: Could not access microphone.';
+            console.error('Mic error:', err);
+        }
+    });
+
+    // --- Video Recording Logic ---
+    const recordVideoBtn = document.getElementById('record-video-btn');
+    const videoRecordStatus = document.getElementById('video-record-status');
+    const videoPreview = document.getElementById('video-preview');
+    let videoMediaRecorder;
+    let videoChunks = [];
+    let videoStream;
+
+    recordVideoBtn.addEventListener('click', async () => {
+        if (videoMediaRecorder && videoMediaRecorder.state === 'recording') {
+            videoMediaRecorder.stop();
+            if(videoStream) videoStream.getTracks().forEach(track => track.stop());
+            recordVideoBtn.textContent = 'Record Video';
+            videoRecordStatus.textContent = 'Recording stopped.';
+            return;
+        }
+
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            videoPreview.srcObject = videoStream;
+            videoPreview.style.display = 'block';
+            videoPreview.controls = false;
+            videoPreview.play();
+
+            videoMediaRecorder = new MediaRecorder(videoStream);
+            videoChunks = [];
+
+            videoMediaRecorder.ondataavailable = e => videoChunks.push(e.data);
+
+            videoMediaRecorder.onstop = () => {
+                const blob = new Blob(videoChunks, { 'type' : 'video/webm' });
+                const videoURL = window.URL.createObjectURL(blob);
+                videoPreview.srcObject = null;
+                videoPreview.src = videoURL;
+                videoPreview.controls = true;
+
+                const formData = new FormData();
+                formData.append('video_file', blob, 'status-video.webm');
+
+                fetch("{{ url_for('main.upload_status_video') }}", {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        videoFilePathInput.value = data.filepath;
+                        videoRecordStatus.textContent = 'Upload complete!';
+                    } else {
+                        videoRecordStatus.textContent = 'Upload failed: ' + data.message;
+                    }
+                });
+            };
+
+            videoMediaRecorder.start();
+            recordVideoBtn.textContent = 'Stop Recording';
+            videoRecordStatus.textContent = 'Recording... (max 30 seconds)';
+
+            // Stop recording after 30 seconds
+            setTimeout(() => {
+                if (videoMediaRecorder && videoMediaRecorder.state === 'recording') {
+                    videoMediaRecorder.stop();
+                    if(videoStream) videoStream.getTracks().forEach(track => track.stop());
+                    recordVideoBtn.textContent = 'Record Video';
+                }
+            }, 30000);
+
+        } catch (err) {
+            videoRecordStatus.textContent = 'Error: Could not access camera/microphone.';
+            console.error('Camera/Mic error:', err);
+        }
+    });
 });
 </script>
 {% endblock %}
