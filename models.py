@@ -571,3 +571,14 @@ class SupportTicket(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref='support_tickets')
+
+class MutedStatusUser(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    muter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    muted_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    muter = db.relationship('User', foreign_keys=[muter_id], backref='muted_status_users')
+    muted = db.relationship('User', foreign_keys=[muted_id], backref='status_muted_by')
+
+    __table_args__ = (db.UniqueConstraint('muter_id', 'muted_id', name='_muter_muted_uc'),)

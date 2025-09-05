@@ -5,7 +5,7 @@ import random
 import secrets
 import os
 from werkzeug.utils import secure_filename
-from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket
+from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser
 from extensions import db
 from utils import save_chat_file, save_status_file, get_or_create_platform_setting
 from datetime import timedelta
@@ -1659,10 +1659,17 @@ def seed_db():
 @main.route('/status')
 @login_required
 def status():
-    # Only Admins and Instructors can post statuses
-    can_post_status = current_user.role in ['admin', 'instructor']
+    # Check permission to post
+    can_post = False
+    if current_user.role == 'admin':
+        can_post = True
+    elif current_user.role == 'instructor':
+        setting = get_or_create_platform_setting('instructor_status_posting_enabled', 'true')
+        can_post = setting.value == 'true'
+    elif current_user.role == 'student':
+        setting = get_or_create_platform_setting('student_status_posting_enabled', 'false')
+        can_post = setting.value == 'true'
 
-    # Get active statuses from the last 24 hours
     now = datetime.utcnow()
 
     # My active statuses
@@ -1671,35 +1678,62 @@ def status():
         Status.expires_at > now
     ).order_by(Status.created_at.desc()).all()
 
-    # Recent updates from others (Admins and Instructors only)
-    recent_updates_query = Status.query.join(User).filter(
-        User.role.in_(['admin', 'instructor']),
+    # --- Categorization Logic ---
+    muted_user_ids = {m.muted_id for m in current_user.muted_status_users}
+
+    # Get all active statuses from other users
+    all_updates = Status.query.filter(
         Status.user_id != current_user.id,
         Status.expires_at > now
-    ).order_by(User.id, Status.created_at.desc())
+    ).order_by(Status.user_id, Status.created_at.desc()).all()
 
-    recent_updates_by_user = {}
-    for s in recent_updates_query:
-        if s.user_id not in recent_updates_by_user:
-            recent_updates_by_user[s.user_id] = {
-                'user': s.user,
-                'statuses': [],
-                'all_viewed': True # Assume all are viewed until we find one that is not
-            }
-        recent_updates_by_user[s.user_id]['statuses'].append(s)
+    # Group statuses by user
+    updates_by_user = {}
+    for s in all_updates:
+        if s.user_id not in updates_by_user:
+            updates_by_user[s.user_id] = {'user': s.user, 'statuses': [], 'all_viewed': True, 'last_viewed': None}
+        updates_by_user[s.user_id]['statuses'].append(s)
 
-    # Check which statuses have been viewed
-    for user_id, data in recent_updates_by_user.items():
-        for s in data['statuses']:
-            is_viewed = StatusView.query.filter_by(status_id=s.id, user_id=current_user.id).first()
-            if not is_viewed:
-                data['all_viewed'] = False
-                break
+    # Determine 'all_viewed' and find last view time for each user group
+    from sqlalchemy import func
+    for user_id, data in updates_by_user.items():
+        status_ids = [s.id for s in data['statuses']]
+        viewed_statuses_count = db.session.query(func.count(StatusView.id)).filter(
+            StatusView.status_id.in_(status_ids),
+            StatusView.user_id == current_user.id
+        ).scalar()
+
+        data['all_viewed'] = (viewed_statuses_count == len(status_ids))
+
+        if data['all_viewed']:
+            last_view = db.session.query(func.max(StatusView.viewed_at)).filter(
+                StatusView.status_id.in_(status_ids),
+                StatusView.user_id == current_user.id
+            ).scalar()
+            data['last_viewed'] = last_view
+
+    # Categorize into unviewed, viewed, and muted
+    unviewed_updates = []
+    viewed_updates = []
+    muted_updates = []
+
+    for user_id, data in updates_by_user.items():
+        if user_id in muted_user_ids:
+            muted_updates.append(data)
+        elif data['all_viewed']:
+            viewed_updates.append(data)
+        else:
+            unviewed_updates.append(data)
+
+    # Sort viewed updates by the most recently viewed
+    viewed_updates.sort(key=lambda x: x['last_viewed'], reverse=True)
 
     return render_template('status.html',
                            my_statuses=my_statuses,
-                           recent_updates=recent_updates_by_user.values(),
-                           can_post_status=can_post_status)
+                           unviewed_updates=unviewed_updates,
+                           viewed_updates=viewed_updates,
+                           muted_updates=muted_updates,
+                           can_post_status=can_post)
 
 @main.route('/status/view/<int:user_id>')
 @login_required
@@ -1708,6 +1742,12 @@ def view_user_status(user_id):
     # The data will be fetched by JavaScript.
     user = User.query.get_or_404(user_id)
     return render_template('chat/view_status.html', view_user=user)
+
+@main.route('/status/view/me')
+@login_required
+def view_my_status():
+    # Re-use the same template, but for the current user
+    return render_template('chat/view_status.html', view_user=current_user)
 
 @main.route('/status/data/<int:user_id>')
 @login_required
@@ -2062,6 +2102,28 @@ def clear_all_chats():
     except Exception as e:
         db.session.rollback()
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/status/user/<int:user_id>/toggle_mute', methods=['POST'])
+@login_required
+def toggle_mute_status(user_id):
+    if user_id == current_user.id:
+        return jsonify({'status': 'error', 'message': 'Cannot mute yourself'}), 400
+
+    existing_mute = MutedStatusUser.query.filter_by(
+        muter_id=current_user.id,
+        muted_id=user_id
+    ).first()
+
+    if existing_mute:
+        db.session.delete(existing_mute)
+        new_status = 'unmuted'
+    else:
+        new_mute = MutedStatusUser(muter_id=current_user.id, muted_id=user_id)
+        db.session.add(new_mute)
+        new_status = 'muted'
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'mute_status': new_status})
 
 @main.route('/api/chats/delete_all', methods=['POST'])
 @login_required
