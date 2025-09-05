@@ -4,7 +4,8 @@ from extensions import db
 from datetime import datetime
 from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, Community, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote, CallHistory, BlockedUser, ChatClearTimestamp, Status
 from utils import filter_profanity, is_contact, get_or_create_private_room
-from flask import request
+from flask import request, url_for
+from push_notifications import send_push_notification
 
 # In-memory stores for call state. In a multi-server setup, this would need to be moved to a shared store like Redis.
 user_sids = {} # {user_id: sid}
@@ -196,6 +197,24 @@ def register_chat_events(socketio):
             }
 
             emit('message', msg_data, to=room_id)
+
+            # Send push notifications to other members of the room
+            notification_title = f"New message from {current_user.name}"
+            notification_body = new_message.content or "Sent a file"
+            notification_data = {
+                "click_action": url_for('main.chat_room', room_id=room.id, _external=True)
+            }
+
+            for member in room.members:
+                if member.user_id != current_user.id:
+                    # Add check for user's notification preferences here in the future
+                    send_push_notification(
+                        user_id=member.user_id,
+                        title=notification_title,
+                        body=notification_body,
+                        data=notification_data
+                    )
+
         except Exception as e:
             print(f"Error handling message: {e}")
             emit('error', {'msg': 'An unexpected error occurred. Please try again.'})

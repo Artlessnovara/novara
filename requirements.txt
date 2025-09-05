@@ -7,3 +7,4 @@ WeasyPrint
 bleach
 beautifulsoup4
 Flask-Migrate
+firebase-admin

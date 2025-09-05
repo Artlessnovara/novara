@@ -599,3 +599,11 @@ class LinkPreview(db.Model):
     image_url = db.Column(db.String(2048), nullable=True)
 
     status = db.relationship('Status', backref=db.backref('link_preview', uselist=False, cascade="all, delete-orphan"))
+
+class FCMToken(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    token = db.Column(db.String(255), unique=True, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='fcm_tokens')

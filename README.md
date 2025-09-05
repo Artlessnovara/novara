@@ -72,6 +72,36 @@ To get started, you'll need an admin account to approve instructors and courses.
 4.  Log in as the admin to approve the newly created courses.
 5.  Log in as the student to enroll in courses and access content.
 
+### Push Notifications Setup (Firebase)
+
+To enable web push notifications, you need to set up a Firebase project.
+
+1.  **Create a Firebase Project:**
+    *   Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
+
+2.  **Configure the Backend (Service Account):**
+    *   In your Firebase project settings, go to the "Service accounts" tab.
+    *   Click "Generate new private key" to download a JSON file with your service account credentials.
+    *   Set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to the absolute path of this downloaded JSON file. For example:
+        ```bash
+        export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/serviceAccountKey.json"
+        ```
+    *   The application backend will use this to send notifications.
+
+3.  **Configure the Frontend (Web App):**
+    *   In your Firebase project, add a new "Web App".
+    *   Firebase will provide you with a `firebaseConfig` object.
+    *   Open the file `static/js/firebase-init.js` and replace the placeholder `firebaseConfig` object with the one from your project.
+    *   Do the same for the service worker file at `static/firebase-messaging-sw.js`.
+
+4.  **Get VAPID Key:**
+    *   In your Firebase project settings, go to the "Cloud Messaging" tab.
+    *   Under "Web configuration", you will find a "Web Push certificates" section.
+    *   Copy the "Key pair" value (it's a long string).
+    *   Open `static/js/firebase-init.js` and replace the placeholder `'YOUR_VAPID_KEY_FROM_FIREBASE_SETTINGS'` with this key.
+
+Once these steps are completed, the application will be able to request permission from users to send push notifications for new messages.
+
 ## Running the Tests
 
 To run the automated tests for the application, run the following command from the root directory:
