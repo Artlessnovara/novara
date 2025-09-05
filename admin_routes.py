@@ -439,6 +439,33 @@ def toggle_calling(user_id):
     flash(f"Calling permissions for {user.name} have been {'enabled' if user.can_make_calls else 'disabled'}.", "success")
     return redirect(url_for('admin.manage_permissions'))
 
+import secrets
+
+@admin_bp.route('/chat/room/<int:room_id>/generate_invite', methods=['POST'])
+@login_required
+def generate_invite_link(room_id):
+    if current_user.role != 'admin':
+        abort(403)
+    room = ChatRoom.query.get_or_404(room_id)
+    # Generate a new token, ensuring it's unique
+    while True:
+        token = secrets.token_urlsafe(16)
+        if not ChatRoom.query.filter_by(join_token=token).first():
+            break
+    room.join_token = token
+    db.session.commit()
+    return jsonify({'token': room.join_token})
+
+@admin_bp.route('/chat/room/<int:room_id>/revoke_invite', methods=['POST'])
+@login_required
+def revoke_invite_link(room_id):
+    if current_user.role != 'admin':
+        abort(403)
+    room = ChatRoom.query.get_or_404(room_id)
+    room.join_token = None
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
 @admin_bp.route('/categories', methods=['GET'])
 def manage_categories():
     categories = Category.query.all()

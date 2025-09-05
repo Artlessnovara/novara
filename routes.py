@@ -496,6 +496,42 @@ from sqlalchemy import or_
 from sqlalchemy.orm import aliased
 import re
 
+def get_or_create_private_room(user1_id, user2_id):
+    """Finds an existing private room or creates a new one."""
+    member1 = aliased(ChatRoomMember)
+    member2 = aliased(ChatRoomMember)
+
+    room = db.session.query(ChatRoom).join(member1, member1.chat_room_id == ChatRoom.id)\
+        .join(member2, member2.chat_room_id == ChatRoom.id)\
+        .filter(
+            ChatRoom.room_type == 'private',
+            or_(
+                (member1.user_id == user1_id, member2.user_id == user2_id),
+                (member1.user_id == user2_id, member2.user_id == user1_id)
+            )
+        ).first()
+
+    if room:
+        return room
+
+    # If no room exists, create one
+    user1 = User.query.get_or_404(user1_id)
+    user2 = User.query.get_or_404(user2_id)
+    new_room = ChatRoom(
+        name=f"Private Chat between {user1.name} and {user2.name}",
+        room_type='private',
+        created_by_id=user1_id
+    )
+    db.session.add(new_room)
+    db.session.flush()
+
+    member1_obj = ChatRoomMember(chat_room_id=new_room.id, user_id=user1_id)
+    member2_obj = ChatRoomMember(chat_room_id=new_room.id, user_id=user2_id)
+    db.session.add_all([member1_obj, member2_obj])
+    db.session.commit()
+
+    return new_room
+
 @main.route('/chat/create_private/<int:other_user_id>', methods=['POST'])
 @login_required
 def create_private_chat(other_user_id):
@@ -503,42 +539,26 @@ def create_private_chat(other_user_id):
         flash("You cannot start a chat with yourself.", "warning")
         return redirect(request.referrer or url_for('main.home'))
 
-    # Check if a private room already exists between these two users
-    user1_id = current_user.id
-    user2_id = other_user_id
+    room = get_or_create_private_room(current_user.id, other_user_id)
+    return redirect(url_for('main.chat_room', room_id=room.id))
 
-    # Alias ChatRoomMember to join it twice
-    member1 = aliased(ChatRoomMember)
-    member2 = aliased(ChatRoomMember)
+@main.route('/chat/initiate_call/<int:other_user_id>/<string:call_type>', methods=['POST'])
+@login_required
+def initiate_call_from_profile(other_user_id, call_type):
+    if current_user.id == other_user_id:
+        abort(403)
 
-    existing_room = db.session.query(ChatRoom).join(member1, member1.chat_room_id == ChatRoom.id)\
-        .join(member2, member2.chat_room_id == ChatRoom.id)\
-        .filter(
-            ChatRoom.room_type == 'private',
-            member1.user_id == user1_id,
-            member2.user_id == user2_id
-        ).first()
+    room = get_or_create_private_room(current_user.id, other_user_id)
+    return redirect(url_for('main.chat_room', room_id=room.id, action='redial', call_type=call_type, callee_id=other_user_id))
 
-    if existing_room:
-        return redirect(url_for('main.chat_room', room_id=existing_room.id))
+@main.route('/chat/user_info/<int:other_user_id>')
+@login_required
+def user_chat_info(other_user_id):
+    if current_user.id == other_user_id:
+        return redirect(url_for('main.profile')) # Redirect to own profile page
 
-    # If no room exists, create one
-    other_user = User.query.get_or_404(other_user_id)
-    new_room = ChatRoom(
-        name=f"Private Chat between {current_user.name} and {other_user.name}",
-        room_type='private',
-        created_by_id=current_user.id
-    )
-    db.session.add(new_room)
-    db.session.flush() # Flush to get the new_room.id
-
-    # Add both users as members
-    member_self = ChatRoomMember(chat_room_id=new_room.id, user_id=current_user.id)
-    member_other = ChatRoomMember(chat_room_id=new_room.id, user_id=other_user_id)
-    db.session.add_all([member_self, member_other])
-    db.session.commit()
-
-    return redirect(url_for('main.chat_room', room_id=new_room.id))
+    room = get_or_create_private_room(current_user.id, other_user_id)
+    return redirect(url_for('main.chat_room_info', room_id=room.id))
 
 
 @main.route('/library')

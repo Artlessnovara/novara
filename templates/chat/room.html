@@ -1348,44 +1348,6 @@ document.addEventListener('DOMContentLoaded', function() {
         messageArea.scrollTop = messageArea.scrollHeight;
     });
 
-    socket.on('new_poll', function(data) {
-        if (data.room_id !== {{ chat_info.id|tojson }}) {
-            return;
-        }
-
-        const messageArea = document.querySelector('.message-area');
-        const pollWrapper = document.createElement('div');
-        pollWrapper.classList.add('message-bubble-wrapper');
-        pollWrapper.classList.add(data.user_id === {{ current_user_id }} ? 'sender' : 'receiver');
-        pollWrapper.setAttribute('id', `poll-${data.poll_id}`);
-
-        let optionsHtml = '';
-        data.options.forEach(option => {
-            optionsHtml += `
-                <div class="poll-option" data-option-id="${option.id}">
-                    <span class="poll-option-text">${option.text}</span>
-                    <span class="poll-option-votes">0 votes</span>
-                </div>
-            `;
-        });
-
-        const pollBubble = `
-            <div class="message-bubble">
-                <div class="poll-container">
-                    <p class="poll-question">${data.question}</p>
-                    <div class="poll-options">
-                        ${optionsHtml}
-                    </div>
-                </div>
-                <span class="message-timestamp">${new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-            </div>
-        `;
-
-        pollWrapper.innerHTML = pollBubble;
-        messageArea.appendChild(pollWrapper);
-        messageArea.scrollTop = messageArea.scrollHeight;
-    });
-
     // Handle poll voting by event delegation
     document.querySelector('.message-area').addEventListener('click', function(event) {
         const pollOption = event.target.closest('.poll-option');
