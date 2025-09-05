@@ -101,6 +101,9 @@
 </div>
 
 <div id="active-call-container" class="call-container hidden">
+    <div id="voice-call-avatar-container" class="hidden">
+        <img id="active-call-avatar" src="" class="caller-avatar" alt="Active Call Avatar">
+    </div>
     <video id="remote-video" class="call-video" autoplay playsinline></video>
     <video id="local-video" class="call-video" autoplay playsinline muted></video>
     <div class="active-call-ui">
@@ -745,8 +748,11 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     };
 
-    const startCall = async (callType) => {
-        const calleeId = parseInt(voiceCallBtn.dataset.calleeId, 10);
+    const startCall = async (callType, calleeId) => {
+        if (!calleeId) {
+            console.error("Callee ID is missing, cannot start call.");
+            return;
+        }
         isCaller = true;
         callData = { callee_id: calleeId, call_type: callType };
 
@@ -770,8 +776,27 @@ document.addEventListener('DOMContentLoaded', function() {
         activeCallContainer.classList.remove('hidden');
     };
 
-    voiceCallBtn?.addEventListener('click', () => startCall('voice'));
-    videoCallBtn?.addEventListener('click', () => startCall('video'));
+    voiceCallBtn?.addEventListener('click', () => {
+        const calleeId = parseInt(voiceCallBtn.dataset.calleeId, 10);
+        startCall('voice', calleeId);
+    });
+    videoCallBtn?.addEventListener('click', () => {
+        const calleeId = parseInt(videoCallBtn.dataset.calleeId, 10);
+        startCall('video', calleeId);
+    });
+
+    // Check for redial action from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'redial') {
+        const callType = urlParams.get('call_type');
+        const calleeId = parseInt(urlParams.get('callee_id'), 10);
+        if (callType && calleeId) {
+            // Use a short timeout to ensure the page and socket are fully ready
+            setTimeout(() => {
+                startCall(callType, calleeId);
+            }, 500);
+        }
+    }
 
     socket.on('call_started', async (data) => {
         if (isCaller) {
@@ -795,6 +820,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentCallId = data.call_id;
             document.getElementById('incoming-caller-name').innerText = data.caller_name;
             document.getElementById('incoming-call-type').innerText = `Incoming ${data.call_type} call...`;
+            document.getElementById('incoming-caller-avatar').src = `/static/profile_pics/${data.caller_profile_pic}`;
             incomingCallContainer.classList.remove('hidden');
         }
     });
@@ -805,6 +831,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    const setupActiveCallUI = (userInfo, callType) => {
+        document.getElementById('active-caller-name').innerText = userInfo.name;
+
+        const avatarContainer = document.getElementById('voice-call-avatar-container');
+        const remoteVideo = document.getElementById('remote-video');
+        const toggleCameraBtn = document.getElementById('toggle-camera-btn');
+
+        if (callType === 'voice') {
+            document.getElementById('active-call-avatar').src = `/static/profile_pics/${userInfo.profile_pic}`;
+            avatarContainer.classList.remove('hidden');
+            remoteVideo.classList.add('hidden');
+            toggleCameraBtn.classList.add('hidden');
+        } else {
+            avatarContainer.classList.add('hidden');
+            remoteVideo.classList.remove('hidden');
+            toggleCameraBtn.classList.remove('hidden');
+        }
+        activeCallContainer.classList.remove('hidden');
+    };
+
+    // --- In-call Controls ---
+    const muteMicBtn = document.getElementById('mute-mic-btn');
+    const toggleCameraBtn = document.getElementById('toggle-camera-btn');
+
+    muteMicBtn.addEventListener('click', () => {
+        if (!localStream) return;
+        localStream.getAudioTracks().forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        muteMicBtn.classList.toggle('active');
+        muteMicBtn.innerHTML = muteMicBtn.classList.contains('active') ? '<i class="fa-solid fa-microphone-slash"></i>' : '<i class="fa-solid fa-microphone"></i>';
+    });
+
+    toggleCameraBtn.addEventListener('click', () => {
+        if (!localStream) return;
+        localStream.getVideoTracks().forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        toggleCameraBtn.classList.toggle('active');
+        toggleCameraBtn.innerHTML = toggleCameraBtn.classList.contains('active') ? '<i class="fa-solid fa-video-slash"></i>' : '<i class="fa-solid fa-video"></i>';
+    });
+
     document.getElementById('accept-call-btn').addEventListener('click', async () => {
         if (!receivedOffer) {
             console.error("Offer not received, cannot accept call.");
@@ -812,7 +880,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         isCaller = false;
         incomingCallContainer.classList.add('hidden');
-        activeCallContainer.classList.remove('hidden');
+        setupActiveCallUI({ name: callData.caller_name, profile_pic: callData.caller_profile_pic }, callData.call_type);
 
         setupPeerConnection();
 
@@ -838,6 +906,8 @@ document.addEventListener('DOMContentLoaded', function() {
     socket.on('answer_received', async (data) => {
         if (isCaller) {
             await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            // Now the caller has the callee's info
+            setupActiveCallUI(data.callee_info, callData.call_type);
         }
     });
 
