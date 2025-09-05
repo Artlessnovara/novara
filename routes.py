@@ -493,7 +493,53 @@ def submit_payment_proof(course_id):
     return redirect(url_for('main.course_detail', course_id=course.id))
 
 from sqlalchemy import or_
+from sqlalchemy.orm import aliased
 import re
+
+@main.route('/chat/create_private/<int:other_user_id>', methods=['POST'])
+@login_required
+def create_private_chat(other_user_id):
+    if current_user.id == other_user_id:
+        flash("You cannot start a chat with yourself.", "warning")
+        return redirect(request.referrer or url_for('main.home'))
+
+    # Check if a private room already exists between these two users
+    user1_id = current_user.id
+    user2_id = other_user_id
+
+    # Alias ChatRoomMember to join it twice
+    member1 = aliased(ChatRoomMember)
+    member2 = aliased(ChatRoomMember)
+
+    existing_room = db.session.query(ChatRoom).join(member1, member1.chat_room_id == ChatRoom.id)\
+        .join(member2, member2.chat_room_id == ChatRoom.id)\
+        .filter(
+            ChatRoom.room_type == 'private',
+            member1.user_id == user1_id,
+            member2.user_id == user2_id
+        ).first()
+
+    if existing_room:
+        return redirect(url_for('main.chat_room', room_id=existing_room.id))
+
+    # If no room exists, create one
+    other_user = User.query.get_or_404(other_user_id)
+    new_room = ChatRoom(
+        name=f"Private Chat between {current_user.name} and {other_user.name}",
+        room_type='private',
+        created_by_id=current_user.id
+    )
+    db.session.add(new_room)
+    db.session.flush() # Flush to get the new_room.id
+
+    # Add both users as members
+    member_self = ChatRoomMember(chat_room_id=new_room.id, user_id=current_user.id)
+    member_other = ChatRoomMember(chat_room_id=new_room.id, user_id=other_user_id)
+    db.session.add_all([member_self, member_other])
+    db.session.commit()
+
+    return redirect(url_for('main.chat_room', room_id=new_room.id))
+
 
 @main.route('/library')
 def library():
@@ -959,6 +1005,12 @@ def chat_room_info(room_id):
     if not (is_member or is_public or is_admin):
         abort(403)
 
+    other_user = None
+    if room.room_type == 'private':
+        other_member = ChatRoomMember.query.filter(ChatRoomMember.chat_room_id == room.id, ChatRoomMember.user_id != current_user.id).first()
+        if other_member:
+            other_user = other_member.user
+
     # Fetch recent media
     media_messages = ChatMessage.query.filter(
         ChatMessage.room_id == room_id,
@@ -994,6 +1046,7 @@ def chat_room_info(room_id):
 
     return render_template('chat_info.html',
                            room=room,
+                           other_user=other_user,
                            media_messages=media_messages,
                            user_role_in_room=user_role_in_room,
                            is_muted=is_muted,

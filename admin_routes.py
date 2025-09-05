@@ -407,6 +407,38 @@ def delete_course(course_id):
     flash(f'Course "{course.title}" has been deleted.', 'success')
     return redirect(url_for('admin.manage_courses'))
 
+@admin_bp.route('/manage_permissions')
+@login_required
+def manage_permissions():
+    if current_user.role != 'admin':
+        abort(403)
+
+    page = request.args.get('page', 1, type=int)
+    users = User.query.filter(User.role != 'admin').order_by(User.name).paginate(page=page, per_page=20)
+    return render_template('admin/manage_permissions.html', users=users)
+
+@admin_bp.route('/user/<int:user_id>/toggle_messaging', methods=['POST'])
+@login_required
+def toggle_messaging(user_id):
+    if current_user.role != 'admin':
+        abort(403)
+    user = User.query.get_or_404(user_id)
+    user.can_send_messages = not user.can_send_messages
+    db.session.commit()
+    flash(f"Messaging permissions for {user.name} have been {'enabled' if user.can_send_messages else 'disabled'}.", "success")
+    return redirect(url_for('admin.manage_permissions'))
+
+@admin_bp.route('/user/<int:user_id>/toggle_calling', methods=['POST'])
+@login_required
+def toggle_calling(user_id):
+    if current_user.role != 'admin':
+        abort(403)
+    user = User.query.get_or_404(user_id)
+    user.can_make_calls = not user.can_make_calls
+    db.session.commit()
+    flash(f"Calling permissions for {user.name} have been {'enabled' if user.can_make_calls else 'disabled'}.", "success")
+    return redirect(url_for('admin.manage_permissions'))
+
 @admin_bp.route('/categories', methods=['GET'])
 def manage_categories():
     categories = Category.query.all()

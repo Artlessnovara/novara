@@ -17,6 +17,14 @@
                 </div>
                 <h1 class="student-name">{{ user.name }}</h1>
                 <p class="student-role">{{ user.role | capitalize }}</p>
+
+                {% if user.id != current_user.id %}
+                <div class="profile-actions">
+                    <form action="{{ url_for('main.create_private_chat', other_user_id=user.id) }}" method="POST">
+                        <button type="submit" class="btn-primary">Message</button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
             <div class="glassy-card-container profile-section">
                 <h3>About Me</h3>

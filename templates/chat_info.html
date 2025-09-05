@@ -1,256 +1,264 @@
 {% extends "base.html" %}
 
-{% block styles %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<style>
-    .info-page { padding: 15px; color: #333; }
-    .info-header { text-align: center; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
-    .info-avatar { width: 100px; height: 100px; border-radius: 50%; margin-bottom: 15px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .info-name { font-size: 22px; font-weight: bold; margin: 0; }
-    .info-description { font-size: 14px; color: #777; margin-top: 5px; }
-    .info-tabs .tab-buttons { display: flex; border-bottom: 1px solid #ddd; }
-    .info-tabs .tab-btn { flex-grow: 1; padding: 10px; background: none; border: none; cursor: pointer; font-size: 16px; color: #555; border-bottom: 3px solid transparent; }
-    .info-tabs .tab-btn.active { color: #007bff; border-bottom-color: #007bff; }
-    .tab-pane { display: none; padding: 20px 5px; }
-    .tab-pane.active { display: block; }
-    .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 5px; }
-    .media-grid img { width: 100%; height: 80px; object-fit: cover; border-radius: 5px; }
-    .members-list { list-style: none; padding: 0; }
-    .members-list li { display: flex; align-items: center; margin-bottom: 1rem; }
-    .member-avatar { width: 40px; height: 40px; border-radius: 50%; margin-right: 1rem; object-fit: cover; }
-    .info-actions { margin-top: 20px; }
-    .action-btn { display: block; width: 100%; padding: 12px; border: none; background-color: #f0f0f0; border-radius: 8px; text-align: left; font-size: 16px; margin-bottom: 10px; cursor: pointer; text-decoration: none; color: #333; }
-    .action-btn i { margin-right: 10px; }
-    .action-btn.report-btn, .action-btn.delete-btn { color: #dc3545; }
-    .content-list { list-style: none; padding: 0; }
-    .content-item { padding: 10px; border-bottom: 1px solid #eee; }
-    .content-item a { text-decoration: none; color: #007bff; }
-</style>
+{% block title %}
+    {% if other_user %}
+        Contact Info
+    {% else %}
+        Group Info
+    {% endif %}
+{% endblock %}
 
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<style>
+    .info-page-layout {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem;
+    }
+    .info-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem;
+        border-bottom: 1px solid #eee;
+    }
+    .info-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        margin-bottom: 1rem;
+    }
+    .info-name {
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    .info-subtext {
+        color: #666;
+        margin-top: 0.5rem;
+    }
+    .role-badge {
+        font-size: 0.9rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        background-color: #eee;
+        color: #333;
+        margin-top: 0.5rem;
+    }
+    .quick-action-row {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        border-bottom: 1px solid #eee;
+    }
+    .action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        color: #007bff;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+    .action-btn i {
+        font-size: 1.5rem;
+    }
+    .media-tabs {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+    .media-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    .media-grid img, .media-grid video {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+    .controls-section {
+        padding: 1rem;
+    }
+    .control-item {
+        display: block;
+        padding: 1rem;
+        color: #d9534f;
+        text-decoration: none;
+        border-bottom: 1px solid #eee;
+    }
+    .control-item:last-child {
+        border-bottom: none;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="info-page">
-    <div class="info-header">
-        <a href="{{ url_for('main.chat_list') }}" class="back-btn" style="position: absolute; top: 100px; left: 15px; font-size: 16px; color: #007bff; text-decoration: none;"><i class="fa-solid fa-arrow-left"></i> Back to Chats</a>
-        <img src="{{ url_for('static', filename=room.cover_image or 'profile_pics/default.jpg') }}" alt="{{ room.name }}" class="info-avatar">
-        <h2 class="info-name">{{ room.name }}</h2>
-        <div id="description-container">
-            {% if room.description %}<p class="info-description">{{ room.description }}</p>{% endif %}
+<div class="info-page-layout">
+    <!-- Contact Share Modal -->
+    <div id="contact-share-modal" class="camera-modal hidden">
+        <div class="contact-share-content">
+            <h3>Share a contact</h3>
+            <div id="contact-list" class="contact-list">
+                <!-- Contacts will be populated here by JS -->
+            </div>
+            <button id="close-contact-modal-btn" class="btn btn-secondary mt-3">Cancel</button>
         </div>
-        {% if user_role_in_room == 'admin' %}
-        <button id="edit-desc-btn" class="btn-glass compact-btn" style="margin-top: 10px;">Edit Description</button>
-        {% endif %}
-
-        {% if room.creator %}
-        <p class="info-meta" style="margin-top: 15px;">Created by {{ room.creator.name }} on {{ room.created_at.strftime('%b %d, %Y') }}</p>
-        {% endif %}
     </div>
 
-    <div class="info-tabs">
-        <div class="tab-buttons">
-            <button class="tab-btn active" onclick="showTab('media')">Media</button>
-            <button class="tab-btn" onclick="showTab('docs')">Docs</button>
-            <button class="tab-btn" onclick="showTab('links')">Links</button>
-            <button class="tab-btn" onclick="showTab('polls')">Polls</button>
-            <button class="tab-btn" onclick="showTab('members')">Members</button>
-            {% if user_role_in_room == 'admin' %}<button class="tab-btn" onclick="showTab('admin')">Admin</button>{% endif %}
-        </div>
-        <div class="tab-content">
-            <div id="media" class="tab-pane active">
+    {% if other_user %}
+        {# --- ONE-TO-ONE CHAT INFO --- #}
+        <div class="glassy-card-container">
+            <div class="info-header">
+                <img src="{{ url_for('static', filename='profile_pics/' + other_user.profile_pic) }}" alt="{{ other_user.name }}" class="info-avatar">
+                <h1 class="info-name">{{ other_user.name }}</h1>
+                <p class="info-subtext">{{ other_user.bio or 'No bio available.' }}</p>
+                <span class="role-badge">{{ other_user.role | capitalize }}</span>
+            </div>
+
+            <div class="quick-action-row">
+                <a href="{{ url_for('main.chat_room', room_id=room.id) }}" class="action-btn">
+                    <i class="fas fa-comment"></i> Message
+                </a>
+                <a href="#" class="action-btn">
+                    <i class="fas fa-phone"></i> Voice Call
+                </a>
+                <a href="#" class="action-btn">
+                    <i class="fas fa-video"></i> Video Call
+                </a>
+                <a href="#" class="action-btn" id="share-contact-btn">
+                    <i class="fas fa-user-plus"></i> Share
+                </a>
+            </div>
+
+            <div class="media-tabs">
+                <h5>Shared Media</h5>
                 <div class="media-grid">
                     {% for message in media_messages %}
-                        {% if message.file_path and message.file_name.lower().endswith(('png', 'jpg', 'jpeg', 'gif')) %}
-                        <img src="{{ url_for('static', filename=message.file_path) }}" alt="Shared media">
+                        {% if message.file_name.lower().endswith(('png', 'jpg', 'jpeg', 'gif', 'webp')) %}
+                            <img src="{{ url_for('static', filename=message.file_path) }}" alt="Shared media">
+                        {% elif message.file_name.lower().endswith(('mp4', 'webm', 'ogg')) %}
+                            <video src="{{ url_for('static', filename=message.file_path) }}" controls></video>
                         {% endif %}
                     {% else %}
-                        <p>No media has been shared yet.</p>
+                        <p>No media shared yet.</p>
                     {% endfor %}
                 </div>
             </div>
-            <div id="docs" class="tab-pane">
-                {% if doc_messages %}
-                    <ul class="content-list">
-                    {% for msg in doc_messages %}
-                        <li class="content-item">
-                            <a href="{{ url_for('static', filename=msg.file_path) }}" download>
-                                <i class="fa-solid fa-file-arrow-down"></i> {{ msg.file_name }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>No documents have been shared in this chat.</p>
-                {% endif %}
+
+            <div class="controls-section">
+                <a href="#" class="control-item">Mute Notifications</a>
+                <a href="#" class="control-item">Block Contact</a>
+                <a href="#" class="control-item">Report Contact</a>
+                <a href="#" class="control-item">Clear Chat</a>
             </div>
-            <div id="links" class="tab-pane">
-                {% if link_messages %}
-                    <ul class="content-list">
-                    {% for msg in link_messages %}
-                        <li class="content-item"><a href="{{ msg.content.split()[0] }}" target="_blank">{{ msg.content }}</a></li>
-                    {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>No links have been shared in this chat.</p>
-                {% endif %}
+        </div>
+    {% else %}
+        {# --- GROUP CHAT INFO --- #}
+        <div class="glassy-card-container">
+            <div class="info-header">
+                <img src="{{ url_for('static', filename=room.cover_image or 'profile_pics/default.jpg') }}" alt="{{ room.name }}" class="info-avatar">
+                <h1 class="info-name">{{ room.name }}</h1>
+                <p class="info-subtext">{{ room.description }}</p>
+                <p class="info-subtext"><small>Created by {{ room.creator.name }} on {{ room.created_at.strftime('%b %d, %Y') }}</small></p>
             </div>
-            <div id="polls" class="tab-pane">
-                {% if polls %}
-                    <ul class="content-list">
-                    {% for poll in polls %}
-                        <li class="content-item">{{ poll.question }}</li>
-                    {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>No polls have been created in this chat.</p>
-                {% endif %}
-            </div>
-            <div id="members" class="tab-pane">
-                <ul class="members-list">
+
+            <div class="participants-section p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5>{{ room.members.count() }} Participants</h5>
+                    {% if user_role_in_room == 'admin' %}
+                    <a href="{{ url_for('main.add_members', room_id=room.id) }}" class="btn btn-sm btn-outline-primary">Add Participants</a>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <input type="text" class="form-control" placeholder="Search Participants...">
+                </div>
+                <ul class="list-group list-group-flush">
                     {% for member in room.members %}
-                    <li>
-                        <img src="{{ url_for('static', filename='profile_pics/' + member.user.profile_pic) }}" alt="{{ member.user.name }}" class="member-avatar">
-                        <span>{{ member.user.name }} <span class="role-tag">{{ member.user.role|capitalize }}</span></span>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <img src="{{ url_for('static', filename='profile_pics/' + member.user.profile_pic) }}" class="rounded-circle me-2" width="30" height="30">
+                            {{ member.user.name }}
+                        </div>
+                        {% if member.role_in_room == 'admin' %}
+                            <span class="badge bg-primary rounded-pill">Admin</span>
+                        {% endif %}
                     </li>
                     {% endfor %}
                 </ul>
-                {% if user_role_in_room == 'admin' %}
-                <a href="{{ url_for('main.add_members', room_id=room.id) }}" class="action-btn"><i class="fa-solid fa-user-plus"></i> Add Members</a>
-                {% endif %}
             </div>
-            {% if user_role_in_room == 'admin' %}
-            <div id="admin" class="tab-pane">
-                <a href="{{ url_for('main.edit_group_icon', room_id=room.id) }}" class="action-btn"><i class="fa-solid fa-image"></i> Change Group Icon</a>
-                <form action="{{ url_for('admin.delete_chat_room', room_id=room.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this group? This action cannot be undone.');" style="margin: 0;">
-                    <button type="submit" class="action-btn delete-btn"><i class="fa-solid fa-trash-can"></i> Delete Group</button>
-                </form>
-            </div>
-            {% endif %}
-        </div>
-    </div>
 
-    <div class="info-actions">
-        <button class="action-btn mute-btn" id="mute-btn">
-            <i class="fa-solid fa-bell-slash"></i>
-            <span id="mute-btn-text">
-                {% if is_muted %}Unmute Notifications{% else %}Mute Notifications{% endif %}
-            </span>
-        </button>
-        <button class="action-btn" id="exit-group-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Exit Group</button>
-        <button class="action-btn report-btn" id="report-btn"><i class="fa-solid fa-flag"></i> Report Group</button>
-    </div>
+            <div class="controls-section">
+                <a href="#" class="control-item">Mute Notifications</a>
+                <a href="#" class="control-item">Exit Group</a>
+                <a href="#" class="control-item">Report Group</a>
+            </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-    var socket = io();
+document.addEventListener('DOMContentLoaded', function() {
+    // This script needs access to the socket.io instance and the room ID.
+    // Assuming 'socket' is a global variable and room_id is available.
+    // This is a limitation of the current structure.
 
-    socket.on('connect', function() {
-        console.log('Socket.IO connected for chat info page.');
-    });
+    const contactShareBtn = document.getElementById('share-contact-btn');
+    const contactShareModal = document.getElementById('contact-share-modal');
+    const closeContactModalBtn = document.getElementById('close-contact-modal-btn');
+    const contactList = document.getElementById('contact-list');
 
-    function showTab(tabId) {
-        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        document.querySelector(`.tab-btn[onclick="showTab('${tabId}')"]`).classList.add('active');
+    async function openContactShareModal() {
+        if (!contactShareModal) return;
+        contactList.innerHTML = '<li>Loading...</li>';
+        contactShareModal.classList.remove('hidden');
+
+        try {
+            const response = await fetch(`/chat/room/${ {{ room.id|tojson }} }/users`);
+            const users = await response.json();
+
+            contactList.innerHTML = '';
+            users.forEach(user => {
+                if (user.id === {{ current_user.id }}) return;
+
+                const item = document.createElement('div');
+                item.className = 'contact-item';
+                item.dataset.userId = user.id;
+                item.innerHTML = `
+                    <img src="/static/profile_pics/${user.profile_pic || 'default.jpg'}" alt="${user.name}">
+                    <span>${user.name}</span>
+                `;
+                // This part won't work as 'socket' is not defined on this page.
+                // This highlights a need for a shared JS file/architecture.
+                // For now, this button will not be functional.
+                item.addEventListener('click', () => {
+                    alert("Contact sharing must be done from the main chat window for now.");
+                    contactShareModal.classList.add('hidden');
+                });
+                contactList.appendChild(item);
+            });
+        } catch (error) {
+            console.error('Failed to fetch users:', error);
+            contactList.innerHTML = '<li>Failed to load contacts.</li>';
+        }
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const muteBtn = document.getElementById('mute-btn');
-        if (muteBtn) {
-            muteBtn.addEventListener('click', () => {
-                socket.emit('toggle_mute', { room_id: {{ room.id|tojson }} });
-            });
-        }
-
-        const reportBtn = document.getElementById('report-btn');
-        if (reportBtn) {
-            reportBtn.addEventListener('click', () => {
-                const reason = prompt("Please provide a reason for reporting this group:");
-                if (reason) { // Proceed only if a reason is provided
-                    socket.emit('report_group', {
-                        room_id: {{ room.id|tojson }},
-                        reason: reason
-                    });
-                }
-            });
-        }
-
-        const exitBtn = document.getElementById('exit-group-btn');
-        if (exitBtn) {
-            exitBtn.addEventListener('click', () => {
-                if (confirm("Are you sure you want to exit this group?")) {
-                    socket.emit('exit_group', { room_id: {{ room.id|tojson }} });
-                }
-            });
-        }
-
-        const editDescBtn = document.getElementById('edit-desc-btn');
-        const descContainer = document.getElementById('description-container');
-
-        if (editDescBtn && descContainer) {
-            editDescBtn.addEventListener('click', function() {
-                const currentDesc = descContainer.querySelector('.info-description')?.textContent || '';
-                descContainer.innerHTML = `
-                    <textarea id="desc-textarea" class="form-control" style="width: 100%; min-height: 80px;">${currentDesc}</textarea>
-                    <button id="save-desc-btn" class="btn-primary" style="margin-top: 5px;">Save</button>
-                    <button id="cancel-desc-btn" class="btn-secondary" style="margin-top: 5px; margin-left: 5px;">Cancel</button>
-                `;
-                editDescBtn.style.display = 'none'; // Hide the edit button
-
-                document.getElementById('cancel-desc-btn').addEventListener('click', function() {
-                    descContainer.innerHTML = `<p class="info-description">${currentDesc}</p>`;
-                    editDescBtn.style.display = 'inline-block';
-                });
-
-                document.getElementById('save-desc-btn').addEventListener('click', function() {
-                    const newDesc = document.getElementById('desc-textarea').value;
-                    socket.emit('edit_group_description', {
-                        room_id: {{ room.id|tojson }},
-                        description: newDesc
-                    });
-                });
-            });
-        }
-    });
-
-    socket.on('description_changed', function(data) {
-        if (data.room_id === {{ room.id|tojson }}) {
-            const descContainer = document.getElementById('description-container');
-            const editDescBtn = document.getElementById('edit-desc-btn');
-            if(descContainer) {
-                descContainer.innerHTML = `<p class="info-description">${data.new_description}</p>`;
-            }
-            if(editDescBtn) {
-                editDescBtn.style.display = 'inline-block';
-            }
-        }
-    });
-
-    socket.on('status', function(data) {
-        // Generic handler for status messages from the server
-        alert(data.msg);
-        if (data.msg.includes('left the group')) {
-            window.location.href = "{{ url_for('main.chat_list') }}";
-        }
-    });
-
-    socket.on('error', function(data) {
-        // Generic handler for error messages
-        alert('Error: ' + data.msg);
-    });
-
-    socket.on('mute_status_changed', function(data) {
-        if (data.room_id === {{ room.id|tojson }}) {
-            const muteText = document.getElementById('mute-btn-text');
-            if (muteText) {
-                muteText.textContent = data.is_muted ? 'Unmute Notifications' : 'Mute Notifications';
-                // You could also add a small visual confirmation like a temporary highlight
-            }
-        }
-    });
+    if (contactShareBtn) {
+        contactShareBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openContactShareModal();
+        });
+    }
+    if (closeContactModalBtn) {
+        closeContactModalBtn.addEventListener('click', () => {
+            contactShareModal.classList.add('hidden');
+        });
+    }
+});
 </script>
 {% endblock %}

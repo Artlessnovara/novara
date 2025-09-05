@@ -11,7 +11,7 @@
             <span class="conversation-name">{{ chat_info.name }}</span>
         </div>
         <div class="header-actions">
-            {% if current_user.role in ['admin', 'instructor'] %}
+            {% if current_user.role in ['admin', 'instructor'] and current_user.can_make_calls %}
                 {% if chat_info.room_type == 'private' and chat_info.other_user_id %}
                     {# One-to-one call buttons #}
                     <button id="voice-call-btn" data-callee-id="{{ chat_info.other_user_id }}" class="icon-btn call-btn"><i class="fa-solid fa-phone"></i></button>
@@ -881,27 +881,34 @@ document.addEventListener('DOMContentLoaded', function() {
     const joinCallBanner = document.getElementById('join-call-banner');
     const joinCallBtn = document.getElementById('join-call-btn');
 
+    // State variables
     let peerConnections = {}; // Use a dictionary for multiple connections {userId: pc}
     let localStream;
     let currentCallId = null;
-    let oneToOneCallData = {}; // For 1-on-1 call state, e.g., receivedOffer
+    let callData = {}; // Generic call data store
 
     const servers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
-    // --- Core Functions ---
+    // --- Helper Functions ---
     async function getMedia(callType) {
-        if (localStream) return; // Don't get stream if we already have one
+        if (localStream) {
+            // Ensure existing tracks are stopped before getting a new stream
+            localStream.getTracks().forEach(track => track.stop());
+        }
         try {
             localStream = await navigator.mediaDevices.getUserMedia({ video: callType === 'video', audio: true });
             document.getElementById('local-video').srcObject = localStream;
         } catch (err) {
             console.error("Error getting user media:", err);
             alert("Could not access camera/microphone.");
+            localStream = null; // Ensure stream is null on error
         }
     }
 
     function createPeerConnection(otherUserId, isOneToOne) {
-        if (peerConnections[otherUserId]) return peerConnections[otherUserId];
+        if (peerConnections[otherUserId]) {
+            peerConnections[otherUserId].close();
+        }
 
         const pc = new RTCPeerConnection(servers);
         peerConnections[otherUserId] = pc;
@@ -913,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     candidate: event.candidate,
                     to_user_id: otherUserId,
                     from_user_id: {{ current_user.id }},
-                    room_id: {{ chat_info.id|tojson }} // Pass room_id for 1-on-1 for now
+                    room_id: {{ chat_info.id|tojson }}
                 });
             }
         };
@@ -936,12 +943,56 @@ document.addEventListener('DOMContentLoaded', function() {
         return pc;
     }
 
+    function setupActiveCallUI(userInfo, callType) {
+        document.getElementById('active-caller-name').innerText = userInfo.name;
+        const avatarContainer = document.getElementById('voice-call-avatar-container');
+        const remoteVideoContainer = document.getElementById('remote-videos-container');
+        const toggleCameraBtn = document.getElementById('toggle-camera-btn');
+
+        if (callType === 'voice') {
+            document.getElementById('active-call-avatar').src = `/static/profile_pics/${userInfo.profile_pic}`;
+            avatarContainer.classList.remove('hidden');
+            remoteVideoContainer.classList.add('hidden');
+            toggleCameraBtn.classList.add('hidden');
+        } else {
+            avatarContainer.classList.add('hidden');
+            remoteVideoContainer.classList.remove('hidden');
+            toggleCameraBtn.classList.remove('hidden');
+        }
+        activeCallContainer.classList.remove('hidden');
+    }
+
+    function endCall(reason = 'ended') {
+        Object.values(peerConnections).forEach(pc => pc.close());
+        peerConnections = {};
+
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+
+        activeCallContainer.classList.add('hidden');
+        incomingCallContainer.classList.add('hidden');
+        joinCallBanner.classList.add('hidden');
+
+        if (currentCallId) {
+            socket.emit('end_call', {
+                call_id: currentCallId,
+                room_id: {{ chat_info.id|tojson }},
+                reason: reason
+            });
+        }
+        currentCallId = null;
+        callData = {};
+    }
+
     // --- Call Initiation ---
     async function startCall(callType, calleeId) {
         await getMedia(callType);
         if (!localStream) return;
 
-        activeCallContainer.classList.remove('hidden');
+        callData = { isCaller: true, call_type: callType, callee_id: calleeId };
+        setupActiveCallUI({ name: 'Calling...' }, callType);
 
         socket.emit('start_call', {
             room_id: {{ chat_info.id|tojson }},
@@ -961,10 +1012,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- One-to-One Call Handlers ---
     socket.on('call_started', async (data) => {
-        const calleeId = {{ chat_info.other_user_id|tojson }};
-        if (calleeId) { // This event is for the 1-on-1 caller
+        if (callData.isCaller && callData.callee_id) {
             currentCallId = data.call_id;
-            const pc = createPeerConnection(calleeId, true);
+            const pc = createPeerConnection(callData.callee_id, true);
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             socket.emit('offer', { offer: offer, call_id: currentCallId, room_id: {{ chat_info.id|tojson }} });
@@ -973,9 +1023,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     socket.on('incoming_call', (data) => {
         if (Object.keys(peerConnections).length > 0 || !incomingCallContainer.classList.contains('hidden')) return;
-
         if (data.callee_id === {{ current_user.id }}) {
-            oneToOneCallData = data;
+            callData = { ...data, isCaller: false };
             currentCallId = data.call_id;
             document.getElementById('incoming-caller-name').innerText = data.caller_name;
             document.getElementById('incoming-call-type').innerText = `Incoming ${data.call_type} call...`;
@@ -985,22 +1034,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     socket.on('offer_received', (data) => {
-        if (oneToOneCallData.caller_id === data.caller_id) {
-            oneToOneCallData.offer = data.offer;
+        if (!callData.isCaller && callData.caller_id === data.caller_id) {
+            callData.offer = data.offer;
         }
     });
 
     document.getElementById('accept-call-btn').addEventListener('click', async () => {
-        if (!oneToOneCallData.offer) return;
-
-        await getMedia(oneToOneCallData.call_type);
+        if (!callData.offer) return;
+        await getMedia(callData.call_type);
         if (!localStream) return;
 
         incomingCallContainer.classList.add('hidden');
-        setupActiveCallUI({ name: oneToOneCallData.caller_name, profile_pic: oneToOneCallData.caller_profile_pic }, oneToOneCallData.call_type);
+        setupActiveCallUI({ name: callData.caller_name, profile_pic: callData.caller_profile_pic }, callData.call_type);
 
-        const pc = createPeerConnection(oneToOneCallData.caller_id, true);
-        await pc.setRemoteDescription(new RTCSessionDescription(oneToOneCallData.offer));
+        const pc = createPeerConnection(callData.caller_id, true);
+        await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
@@ -1011,17 +1059,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const pc = peerConnections[data.callee_id];
         if (pc) {
             await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-            setupActiveCallUI(data.callee_info, oneToOneCallData.call_type);
+            setupActiveCallUI(data.callee_info, callData.call_type);
         }
     });
 
     socket.on('ice_candidate_received', (data) => {
-        // This needs to be adapted for group calls to find the right peer connection
-        const pc = Object.values(peerConnections)[0]; // Simplified for 1-on-1
+        const pc = peerConnections[data.from_id];
         if (pc) {
             pc.addIceCandidate(new RTCIceCandidate(data.candidate));
         }
     });
+
+    // --- Universal Call Controls & End ---
+    document.getElementById('decline-call-btn').addEventListener('click', () => endCall('declined'));
+    document.getElementById('end-active-call-btn').addEventListener('click', () => endCall('ended'));
+    socket.on('call_ended', () => endCall());
 
     // --- Group Call Handlers ---
     socket.on('group_call_started', (data) => {
