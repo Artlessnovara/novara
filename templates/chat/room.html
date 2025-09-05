@@ -11,12 +11,24 @@
             <span class="conversation-name">{{ chat_info.name }}</span>
         </div>
         <div class="header-actions">
-            {% if chat_info.room_type == 'private' and current_user.role in ['admin', 'instructor'] and chat_info.other_user_id %}
-                <button id="voice-call-btn" data-callee-id="{{ chat_info.other_user_id }}" class="icon-btn call-btn"><i class="fa-solid fa-phone"></i></button>
-                <button id="video-call-btn" data-callee-id="{{ chat_info.other_user_id }}" class="icon-btn call-btn"><i class="fa-solid fa-video"></i></button>
+            {% if current_user.role in ['admin', 'instructor'] %}
+                {% if chat_info.room_type == 'private' and chat_info.other_user_id %}
+                    {# One-to-one call buttons #}
+                    <button id="voice-call-btn" data-callee-id="{{ chat_info.other_user_id }}" class="icon-btn call-btn"><i class="fa-solid fa-phone"></i></button>
+                    <button id="video-call-btn" data-callee-id="{{ chat_info.other_user_id }}" class="icon-btn call-btn"><i class="fa-solid fa-video"></i></button>
+                {% elif chat_info.room_type != 'private' and chat_info.room_type != 'course' %}
+                    {# Group call buttons #}
+                    <button id="voice-call-btn" class="icon-btn call-btn"><i class="fa-solid fa-phone"></i></button>
+                    <button id="video-call-btn" class="icon-btn call-btn"><i class="fa-solid fa-video"></i></button>
+                {% endif %}
             {% endif %}
             <a href="#" class="info-btn"><i class="fa-solid fa-circle-info"></i></a>
         </div>
+    </div>
+
+    <div id="join-call-banner" class="join-call-banner hidden">
+        <span>A call is in progress.</span>
+        <button id="join-call-btn" class="btn btn-sm btn-success">Join</button>
     </div>
 
     <div class="message-area">
@@ -424,6 +436,18 @@
     .call-control-btn.end-call {
         background-color: #d9534f;
     }
+    .join-call-banner {
+        padding: 10px 15px;
+        background-color: #e6f7ff;
+        border-bottom: 1px solid #91d5ff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+    }
+    .join-call-banner.hidden {
+        display: none;
+    }
 </style>
 {% endblock %}
 
@@ -711,7 +735,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
-    // --- WebRTC Call Logic ---
+    // --- WebRTC & Call State Management ---
     const voiceCallBtn = document.getElementById('voice-call-btn');
     const videoCallBtn = document.getElementById('video-call-btn');
     const incomingCallContainer = document.getElementById('incoming-call-container');
@@ -749,14 +773,16 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const startCall = async (callType, calleeId) => {
-        if (!calleeId) {
-            console.error("Callee ID is missing, cannot start call.");
-            return;
+        // This function now handles both one-to-one and group calls.
+        // For group calls, calleeId will be undefined.
+        if (calleeId) { // One-to-one call
+            isCaller = true;
+            callData = { callee_id: calleeId, call_type: callType };
+        } else { // Group call
+            isCaller = true; // The starter is the first participant
         }
-        isCaller = true;
-        callData = { callee_id: calleeId, call_type: callType };
 
-        setupPeerConnection();
+        setupPeerConnection(); // This now needs to be adapted for group calls or separated
 
         localStream = await navigator.mediaDevices.getUserMedia({
             video: callType === 'video',
@@ -769,7 +795,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         socket.emit('start_call', {
             room_id: {{ chat_info.id|tojson }},
-            callee_id: calleeId,
+            callee_id: calleeId, // undefined for group calls
             call_type: callType
         });
 
@@ -777,11 +803,11 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     voiceCallBtn?.addEventListener('click', () => {
-        const calleeId = parseInt(voiceCallBtn.dataset.calleeId, 10);
+        const calleeId = voiceCallBtn.hasAttribute('data-callee-id') ? parseInt(voiceCallBtn.dataset.calleeId, 10) : undefined;
         startCall('voice', calleeId);
     });
     videoCallBtn?.addEventListener('click', () => {
-        const calleeId = parseInt(videoCallBtn.dataset.calleeId, 10);
+        const calleeId = videoCallBtn.hasAttribute('data-callee-id') ? parseInt(videoCallBtn.dataset.calleeId, 10) : undefined;
         startCall('video', calleeId);
     });
 
@@ -955,6 +981,33 @@ document.addEventListener('DOMContentLoaded', function() {
         receivedOffer = null;
         callData = null;
     });
+
+    // --- Group Call Handlers ---
+    const joinCallBanner = document.getElementById('join-call-banner');
+    const joinCallBtn = document.getElementById('join-call-btn');
+    let activeGroupCallId = null;
+
+    socket.on('group_call_started', (data) => {
+        // Don't show banner if this user started the call
+        if (data.starter_name !== "{{ current_user.name }}") {
+            activeGroupCallId = data.call_id;
+            joinCallBanner.classList.remove('hidden');
+        }
+    });
+
+    joinCallBtn.addEventListener('click', () => {
+        joinCallBanner.classList.add('hidden');
+        // This will be built out in the next step
+        console.log(`Joining group call with ID: ${activeGroupCallId}`);
+        // socket.emit('join_group_call', { call_id: activeGroupCallId });
+    });
+
+    // When a call ends (1-on-1 or group), hide the banner
+    socket.on('call_ended', () => {
+        joinCallBanner.classList.add('hidden');
+        activeGroupCallId = null;
+    });
+
 
     // Placeholder logic for remaining buttons
     const placeholderBtns = [

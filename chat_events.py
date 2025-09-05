@@ -4,8 +4,36 @@ from extensions import db
 from datetime import datetime
 from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, Community, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote, CallHistory
 from utils import filter_profanity
+from flask import request
+
+# In-memory stores for call state. In a multi-server setup, this would need to be moved to a shared store like Redis.
+user_sids = {} # {user_id: sid}
+active_calls = {} # {call_id: {user_id: sid, ...}}
 
 def register_chat_events(socketio):
+
+    @socketio.on('connect')
+    def on_connect():
+        if current_user.is_authenticated:
+            user_sids[current_user.id] = request.sid
+
+    @socketio.on('disconnect')
+    def on_disconnect():
+        if current_user.is_authenticated and current_user.id in user_sids:
+            # Also remove user from any active calls they are in
+            for call_id, participants in list(active_calls.items()):
+                if current_user.id in participants:
+                    del participants[current_user.id]
+                    # If call is now empty, remove it
+                    if not participants:
+                        del active_calls[call_id]
+                    else:
+                        # Notify remaining participants that a user has left
+                        for user_id in participants:
+                            emit('participant_left', {'user_id': current_user.id}, to=user_sids.get(user_id))
+
+            del user_sids[current_user.id]
+
 
     def is_user_authorized_for_room(user, room):
         if user.role == 'admin':
@@ -577,27 +605,27 @@ def register_chat_events(socketio):
 
     @socketio.on('start_call')
     def start_call(data):
-        if not current_user.is_authenticated:
-            return
+        if not current_user.is_authenticated: return
 
         room_id = data.get('room_id')
-        callee_id = data.get('callee_id')
         call_type = data.get('call_type')
+        callee_id = data.get('callee_id') # Will be null for group calls
 
-        # Permission Check: Only Admins and Instructors can initiate calls
         if current_user.role not in ['admin', 'instructor']:
-            emit('call_error', {'message': 'You do not have permission to start calls.'})
-            return
+            return emit('call_error', {'message': 'You do not have permission to start calls.'})
 
         room = ChatRoom.query.get(room_id)
         if not room or not is_user_authorized_for_room(current_user, room):
-            emit('call_error', {'message': 'Cannot start call in this room.'})
-            return
+            return emit('call_error', {'message': 'Cannot start call in this room.'})
 
-        # Create a record in call history
+        # Check for an existing active call in the room
+        existing_active_call = CallHistory.query.filter_by(room_id=room_id, is_active=True).first()
+        if existing_active_call:
+            return emit('call_error', {'message': 'There is already an active call in this room.'})
+
         new_call = CallHistory(
             caller_id=current_user.id,
-            callee_id=callee_id,
+            callee_id=callee_id, # Will be None for group calls
             room_id=room_id,
             call_type=call_type,
             status='initiated'
@@ -605,18 +633,23 @@ def register_chat_events(socketio):
         db.session.add(new_call)
         db.session.commit()
 
-        # Notify the original caller that the call has been logged and has an ID
-        emit('call_started', {'call_id': new_call.id})
-
-        # Notify the callee
-        emit('incoming_call', {
-            'caller_id': current_user.id,
-            'caller_name': current_user.name,
-            'caller_profile_pic': current_user.profile_pic,
-            'call_type': call_type,
-            'room_id': room_id,
-            'call_id': new_call.id
-        }, to=room_id) # Emitting to room, client will filter
+        if callee_id: # One-to-one call
+            emit('call_started', {'call_id': new_call.id})
+            emit('incoming_call', {
+                'caller_id': current_user.id,
+                'caller_name': current_user.name,
+                'caller_profile_pic': current_user.profile_pic,
+                'call_type': call_type,
+                'room_id': room_id,
+                'call_id': new_call.id
+            }, to=room_id)
+        else: # Group call
+            emit('group_call_started', {
+                'starter_name': current_user.name,
+                'call_type': call_type,
+                'room_id': room_id,
+                'call_id': new_call.id
+            }, to=room_id)
 
     @socketio.on('offer')
     def handle_offer(data):
@@ -663,11 +696,85 @@ def register_chat_events(socketio):
 
         call = CallHistory.query.get(call_id)
         if call:
-            call.status = reason
-            call.ended_at = datetime.utcnow()
-            if call.answered_at:
-                duration = call.ended_at - call.answered_at
-                call.duration = int(duration.total_seconds())
+            # For now, any end_call marks the call as inactive.
+            # A more robust solution would track participants.
+            call.is_active = False
+
+            # Only set status and duration if it's the first time the call is ending.
+            if not call.ended_at:
+                call.status = reason
+                call.ended_at = datetime.utcnow()
+                if call.answered_at:
+                    duration = call.ended_at - call.answered_at
+                    call.duration = int(duration.total_seconds())
+
             db.session.commit()
 
+        # Notify all clients in the room that the call has ended
         emit('call_ended', {'call_id': call_id}, to=data['room_id'])
+
+    # --- Group Call Signaling ---
+    @socketio.on('join_group_call')
+    def on_join_group_call(data):
+        if not current_user.is_authenticated: return
+        call_id = data['call_id']
+
+        # Get existing participants
+        if call_id in active_calls:
+            existing_participants = active_calls[call_id]
+            emit('existing_participants', {'participants': list(existing_participants.keys())})
+
+            # Notify existing participants of the new user
+            for user_id, sid in existing_participants.items():
+                emit('new_participant', {'user_id': current_user.id}, to=sid)
+        else:
+            # This is the first person in the call
+            active_calls[call_id] = {}
+            emit('existing_participants', {'participants': []})
+
+        # Add new user to the call
+        active_calls[call_id][current_user.id] = request.sid
+
+    @socketio.on('leave_group_call')
+    def on_leave_group_call(data):
+        if not current_user.is_authenticated: return
+        call_id = data['call_id']
+        if call_id in active_calls and current_user.id in active_calls[call_id]:
+            del active_calls[call_id][current_user.id]
+            # If call is now empty, remove it
+            if not active_calls[call_id]:
+                del active_calls[call_id]
+            else:
+                # Notify remaining participants
+                for user_id, sid in active_calls[call_id].items():
+                    emit('participant_left', {'user_id': current_user.id}, to=sid)
+
+    @socketio.on('webrtc_offer')
+    def handle_webrtc_offer(data):
+        if not current_user.is_authenticated: return
+        to_sid = user_sids.get(data['to_user_id'])
+        if to_sid:
+            emit('webrtc_offer_received', {
+                'from_user_id': current_user.id,
+                'offer': data['offer']
+            }, to=to_sid)
+
+    @socketio.on('webrtc_answer')
+    def handle_webrtc_answer(data):
+        if not current_user.is_authenticated: return
+        to_sid = user_sids.get(data['to_user_id'])
+        if to_sid:
+            emit('webrtc_answer_received', {
+                'from_user_id': current_user.id,
+                'answer': data['answer']
+            }, to=to_sid)
+
+    @socketio.on('webrtc_ice_candidate')
+    def handle_webrtc_ice_candidate(data):
+        if not current_user.is_authenticated: return
+        to_sid = user_sids.get(data['to_user_id'])
+        if to_sid:
+            emit('webrtc_ice_candidate_received', {
+                'from_user_id': current_user.id,
+                'candidate': data['candidate']
+            }, to=to_sid)
