@@ -35,6 +35,11 @@ class User(UserMixin, db.Model):
     message_notifications_enabled = db.Column(db.Boolean, default=True)
     group_notifications_enabled = db.Column(db.Boolean, default=True)
 
+    # Privacy Settings
+    privacy_last_seen = db.Column(db.String(50), default='everyone', nullable=False)
+    privacy_profile_pic = db.Column(db.String(50), default='everyone', nullable=False)
+    privacy_about = db.Column(db.String(50), default='everyone', nullable=False)
+
     courses_taught = db.relationship('Course', backref='instructor', lazy='dynamic')
     enrollments = db.relationship('Enrollment', back_populates='student', lazy='dynamic')
     comments = db.relationship('Comment', backref='author', lazy='dynamic')
@@ -386,6 +391,8 @@ class ChatMessage(db.Model):
     forwarded_from = db.relationship('User', foreign_keys=[forwarded_from_id], back_populates='forwarded_messages')
     reactions = db.relationship('MessageReaction', backref='message', lazy='dynamic', cascade="all, delete-orphan")
     poll = db.relationship('Poll', back_populates='message', uselist=False, cascade="all, delete-orphan")
+    replied_to_status_id = db.Column(db.Integer, db.ForeignKey('status.id'), nullable=True)
+    replied_to_status = db.relationship('Status', backref='replies')
 
 class MutedUser(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -582,3 +589,13 @@ class MutedStatusUser(db.Model):
     muted = db.relationship('User', foreign_keys=[muted_id], backref='status_muted_by')
 
     __table_args__ = (db.UniqueConstraint('muter_id', 'muted_id', name='_muter_muted_uc'),)
+
+class LinkPreview(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    status_id = db.Column(db.Integer, db.ForeignKey('status.id'), nullable=False, unique=True)
+    url = db.Column(db.String(2048), nullable=False)
+    title = db.Column(db.String(255), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    image_url = db.Column(db.String(2048), nullable=True)
+
+    status = db.relationship('Status', backref=db.backref('link_preview', uselist=False, cascade="all, delete-orphan"))

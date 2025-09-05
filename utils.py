@@ -1,6 +1,10 @@
 import os
 from werkzeug.utils import secure_filename
 from flask import current_app
+from models import PlatformSetting, ChatRoom, ChatRoomMember, User
+from extensions import db
+from sqlalchemy import or_
+from sqlalchemy.orm import aliased
 
 def save_chat_file(file):
     """
@@ -125,9 +129,6 @@ def save_status_file(file):
 
     return os.path.join('status_files', new_filename)
 
-from models import PlatformSetting
-from extensions import db
-
 def get_or_create_platform_setting(key, default_value):
     """Gets a platform setting or creates it with a default value if it doesn't exist."""
     setting = PlatformSetting.query.filter_by(key=key).first()
@@ -136,3 +137,59 @@ def get_or_create_platform_setting(key, default_value):
         db.session.add(setting)
         db.session.commit()
     return setting
+
+def is_contact(user1_id, user2_id):
+    """Checks if two users share a private chat room."""
+    if user1_id == user2_id:
+        return True # A user is always their own contact
+
+    member1 = aliased(ChatRoomMember)
+    member2 = aliased(ChatRoomMember)
+
+    room = db.session.query(ChatRoom).join(member1, member1.chat_room_id == ChatRoom.id)\
+        .join(member2, member2.chat_room_id == ChatRoom.id)\
+        .filter(
+            ChatRoom.room_type == 'private',
+            or_(
+                (member1.user_id == user1_id, member2.user_id == user2_id),
+                (member1.user_id == user2_id, member2.user_id == user1_id)
+            )
+        ).first()
+
+    return room is not None
+
+def get_or_create_private_room(user1_id, user2_id):
+    """Finds an existing private room or creates a new one."""
+    member1 = aliased(ChatRoomMember)
+    member2 = aliased(ChatRoomMember)
+
+    room = db.session.query(ChatRoom).join(member1, member1.chat_room_id == ChatRoom.id)\
+        .join(member2, member2.chat_room_id == ChatRoom.id)\
+        .filter(
+            ChatRoom.room_type == 'private',
+            or_(
+                (member1.user_id == user1_id, member2.user_id == user2_id),
+                (member1.user_id == user2_id, member2.user_id == user1_id)
+            )
+        ).first()
+
+    if room:
+        return room
+
+    # If no room exists, create one
+    user1 = User.query.get_or_404(user1_id)
+    user2 = User.query.get_or_404(user2_id)
+    new_room = ChatRoom(
+        name=f"Private Chat between {user1.name} and {user2.name}",
+        room_type='private',
+        created_by_id=user1_id
+    )
+    db.session.add(new_room)
+    db.session.flush()
+
+    member1_obj = ChatRoomMember(chat_room_id=new_room.id, user_id=user1_id)
+    member2_obj = ChatRoomMember(chat_room_id=new_room.id, user_id=user2_id)
+    db.session.add_all([member1_obj, member2_obj])
+    db.session.commit()
+
+    return new_room

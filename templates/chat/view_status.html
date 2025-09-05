@@ -4,6 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Status</title>
+    <style>
+        .quiz-container { background-color: white; color: black; padding: 1.5rem; border-radius: 12px; width: 90%; max-width: 400px; }
+        .quiz-question { font-weight: 600; margin-bottom: 1rem; }
+        .quiz-option { border: 1px solid #ddd; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; cursor: pointer; }
+        .quiz-option.correct { background-color: #d4edda; border-color: #c3e6cb; }
+        .quiz-option.incorrect { background-color: #f8d7da; border-color: #f5c6cb; }
+        .link-preview-card {
+            background-color: #f7f7f7;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 1rem;
+            max-width: 400px;
+            text-decoration: none;
+            color: black;
+            display: block;
+        }
+        .link-preview-image {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        .link-preview-info {
+            padding: 1rem;
+        }
+        .link-preview-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0 0 0.5rem 0;
+        }
+        .link-preview-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -151,6 +187,32 @@
         .poll-option-text { font-weight: 500; }
         .poll-option-votes { float: right; }
         .mute-btn { background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; }
+        .status-reply-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            padding: 0.5rem 1rem;
+            background-color: rgba(0,0,0,0.3);
+        }
+        #status-reply-input {
+            flex-grow: 1;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 20px;
+        }
+        #send-reply-btn {
+            background: var(--primary-color);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -170,11 +232,17 @@
         <div class="status-content">
             <!-- Status content (image or text) will be injected here -->
         </div>
+        <div id="link-preview-container"></div>
 
         <div class="status-caption" style="display: none;"></div>
 
         <div class="nav-arrow left" id="prev-status"><i class="fa-solid fa-chevron-left"></i></div>
         <div class="nav-arrow right" id="next-status"><i class="fa-solid fa-chevron-right"></i></div>
+
+        <div class="status-reply-bar">
+            <input type="text" id="status-reply-input" placeholder="Reply...">
+            <button id="send-reply-btn"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
     </div>
 
     <script>
@@ -184,10 +252,13 @@
         const userInfoName = document.querySelector('.user-name');
         const userInfoAvatar = document.querySelector('.user-avatar');
         const statusContentContainer = document.querySelector('.status-content');
+        const linkPreviewContainer = document.getElementById('link-preview-container');
         const statusCaption = document.querySelector('.status-caption');
         const prevBtn = document.getElementById('prev-status');
         const nextBtn = document.getElementById('next-status');
         const muteBtn = document.getElementById('mute-user-btn');
+        const replyInput = document.getElementById('status-reply-input');
+        const sendReplyBtn = document.getElementById('send-reply-btn');
 
         let statuses = [];
         let currentUserIndex = 0;
@@ -236,6 +307,7 @@
             // Reset styles
             viewer.style.backgroundColor = '#111b21';
             statusContentContainer.innerHTML = '';
+            linkPreviewContainer.innerHTML = '';
 
             // Update content based on type
             if (status.content_type === 'text') {
@@ -269,13 +341,43 @@
                         <div class="poll-options">${optionsHtml}</div>
                     </div>
                 `;
+            } else if (status.content_type === 'quiz' && status.poll) {
+                let optionsHtml = '';
+                status.poll.options.forEach(opt => {
+                    optionsHtml += `
+                        <div class="quiz-option" data-option-id="${opt.id}">
+                            <span class="quiz-option-text">${opt.text}</span>
+                        </div>
+                    `;
+                });
+                statusContentContainer.innerHTML = `
+                    <div class="quiz-container">
+                        <p class="quiz-question">${status.poll.question}</p>
+                        <div class="quiz-options">${optionsHtml}</div>
+                    </div>
+                `;
             }
 
             if (status.caption) {
-                statusCaption.textContent = status.caption;
+                statusCaption.innerHTML = status.caption; // Use innerHTML to render links
                 statusCaption.style.display = 'block';
             } else {
                 statusCaption.style.display = 'none';
+            }
+
+            // Render link preview
+            if (status.link_preview) {
+                const preview = status.link_preview;
+                let previewHTML = `
+                    <a href="${preview.url}" target="_blank" class="link-preview-card">
+                        ${preview.image_url ? `<img src="${preview.image_url}" class="link-preview-image">` : ''}
+                        <div class="link-preview-info">
+                            <h4 class="link-preview-title">${preview.title}</h4>
+                            <p class="link-preview-description">${preview.description || ''}</p>
+                        </div>
+                    </a>
+                `;
+                linkPreviewContainer.innerHTML = previewHTML;
             }
 
             // Update progress bars
@@ -328,6 +430,23 @@
         muteBtn.addEventListener('click', () => {
             const userId = {{ view_user.id }};
             fetch(`/api/status/user/${userId}/toggle_mute`, { method: 'POST' })
+        statusContentContainer.addEventListener('click', function(event) {
+            const quizOption = event.target.closest('.quiz-option');
+            if (quizOption) {
+                const currentStatus = statuses[currentUserIndex];
+                const correctIndex = parseInt(currentStatus.caption, 10);
+                const options = Array.from(quizOption.parentElement.children);
+                const selectedIndex = options.indexOf(quizOption);
+
+                options.forEach((opt, index) => {
+                    if (index === correctIndex) {
+                        opt.classList.add('correct');
+                    } else {
+                        opt.classList.add('incorrect');
+                    }
+                });
+            }
+        });
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
@@ -337,6 +456,23 @@
                     alert('An error occurred.');
                 }
             });
+        });
+
+        sendReplyBtn.addEventListener('click', () => {
+            const content = replyInput.value;
+            if (content.trim() === '' || statuses.length === 0) return;
+
+            const currentStatus = statuses[currentUserIndex];
+
+            socket.emit('status_reply', {
+                'content': content,
+                'status_id': currentStatus.id,
+                'status_author_id': {{ view_user.id }}
+            });
+
+            replyInput.value = '';
+            // Maybe provide some feedback to the user
+            alert('Reply sent!');
         });
 
         init();

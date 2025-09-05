@@ -1,0 +1,71 @@
+{% extends "settings/settings_layout.html" %}
+{% set back_url = url_for('main.settings') %}
+
+{% block settings_title %}Privacy{% endblock %}
+
+{% block settings_content %}
+<div class="privacy-options">
+    <div class="privacy-item">
+        <h4>Who can see my Last Seen</h4>
+        <div class="radio-group">
+            <label><input type="radio" name="last_seen" value="everyone" {% if current_user.privacy_last_seen == 'everyone' %}checked{% endif %}> Everyone</label>
+            <label><input type="radio" name="last_seen" value="contacts" {% if current_user.privacy_last_seen == 'contacts' %}checked{% endif %}> My Contacts</label>
+            <label><input type="radio" name="last_seen" value="nobody" {% if current_user.privacy_last_seen == 'nobody' %}checked{% endif %}> Nobody</label>
+        </div>
+    </div>
+    <div class="privacy-item">
+        <h4>Who can see my Profile Picture</h4>
+        <div class="radio-group">
+            <label><input type="radio" name="profile_pic" value="everyone" {% if current_user.privacy_profile_pic == 'everyone' %}checked{% endif %}> Everyone</label>
+            <label><input type="radio" name="profile_pic" value="contacts" {% if current_user.privacy_profile_pic == 'contacts' %}checked{% endif %}> My Contacts</label>
+            <label><input type="radio" name="profile_pic" value="nobody" {% if current_user.privacy_profile_pic == 'nobody' %}checked{% endif %}> Nobody</label>
+        </div>
+    </div>
+    <div class="privacy-item">
+        <h4>Who can see my About info</h4>
+        <div class="radio-group">
+            <label><input type="radio" name="about" value="everyone" {% if current_user.privacy_about == 'everyone' %}checked{% endif %}> Everyone</label>
+            <label><input type="radio" name="about" value="contacts" {% if current_user.privacy_about == 'contacts' %}checked{% endif %}> My Contacts</label>
+            <label><input type="radio" name="about" value="nobody" {% if current_user.privacy_about == 'nobody' %}checked{% endif %}> Nobody</label>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function savePrivacyPreference(key, value) {
+        fetch("{{ url_for('main.set_user_preference') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [key]: value })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status !== 'success') {
+                alert('Failed to save privacy setting.');
+            }
+        });
+    }
+
+    document.querySelectorAll('input[name="last_seen"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            savePrivacyPreference('privacy_last_seen', this.value);
+        });
+    });
+
+    document.querySelectorAll('input[name="profile_pic"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            savePrivacyPreference('privacy_profile_pic', this.value);
+        });
+    });
+
+    document.querySelectorAll('input[name="about"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            savePrivacyPreference('privacy_about', this.value);
+        });
+    });
+});
+</script>
+{% endblock %}

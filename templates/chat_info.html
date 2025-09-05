@@ -158,6 +158,7 @@
                     {% if is_blocked %}Unblock Contact{% else %}Block Contact{% endif %}
                 </a>
                 <a href="#" id="clear-chat-btn" class="control-item text-danger">Clear Chat</a>
+                <a href="{{ url_for('main.export_chat', room_id=room.id) }}" class="control-item">Export Chat</a>
                 <a href="#" class="control-item">Report Contact</a>
             </div>
         </div>
@@ -218,6 +219,7 @@
 
             <div class="controls-section">
                 <a href="#" class="control-item">Mute Notifications</a>
+                <a href="{{ url_for('main.export_chat', room_id=room.id) }}" class="control-item">Export Chat</a>
                 <a href="#" id="clear-chat-btn" class="control-item text-danger">Clear Chat</a>
                 <a href="#" class="control-item">Exit Group</a>
                 <a href="#" class="control-item">Report Group</a>

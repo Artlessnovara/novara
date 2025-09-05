@@ -51,7 +51,18 @@
         {% for message in messages %}
         <div class="message-bubble-wrapper {% if message.user_id == current_user.id %}sender{% else %}receiver{% endif %}" data-message-id="{{ message.id }}" data-is-read="{{ 'true' if message.read_at else 'false' }}">
             <div class="message-bubble">
-                {% if message.is_forwarded %}
+                {% if message.replied_to_status %}
+                    <div class="status-reply-preview">
+                        <p class="status-reply-header">Reply to Status</p>
+                        <div class="status-reply-content">
+                            {% if message.replied_to_status.content_type == 'image' %}
+                                <img src="{{ url_for('static', filename=message.replied_to_status.content) }}" class="status-thumbnail">
+                            {% else %}
+                                {{ message.replied_to_status.content|truncate(50) }}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% elif message.is_forwarded %}
                 <p class="forwarded-indicator"><i class="fa-solid fa-share"></i> Forwarded</p>
                 {% endif %}
                 {% if message.file_path %}
@@ -656,6 +667,27 @@
     }
     #forward-chat-list input[type="checkbox"] {
         margin-right: 10px;
+    }
+    .status-reply-preview {
+        background-color: rgba(0,0,0,0.05);
+        padding: 8px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        border-left: 3px solid var(--primary-color);
+    }
+    .status-reply-header {
+        font-weight: 600;
+        font-size: 0.9em;
+        margin: 0 0 4px 0;
+    }
+    .status-reply-content {
+        font-size: 0.9em;
+        opacity: 0.8;
+    }
+    .status-thumbnail {
+        max-width: 50px;
+        max-height: 50px;
+        border-radius: 4px;
     }
 </style>
 {% endblock %}
