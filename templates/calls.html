@@ -7,41 +7,48 @@
     <h2>Call History</h2>
     <div class="list-group">
         {% for call in call_history %}
-            {% set other_user = call.callee if call.caller_id == current_user.id else call.caller %}
-            <a href="{{ url_for('main.chat_room', room_id=call.room_id, action='redial', call_type=call.call_type, callee_id=other_user.id) }}" class="list-group-item list-group-item-action">
-                <div class="d-flex align-items-center">
-                    <img src="{{ url_for('static', filename='profile_pics/' + other_user.profile_pic) }}" class="rounded-circle me-3" width="50" height="50" alt="{{ other_user.name }}">
-                    <div class="flex-grow-1">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">{{ other_user.name }}</h5>
-                            <small>{{ call.started_at.strftime('%b %d, %Y %I:%M %p') }}</small>
-                        </div>
-                        <p class="mb-1">
-                            {% if call.caller_id == current_user.id %}
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Outgoing
-                            {% else %}
-                                {% if call.status == 'missed' or call.status == 'declined' %}
-                                    <i class="fa-solid fa-phone-slash text-danger"></i> Missed
+            {% if call.callee_id %}
+                {# One-to-One Call #}
+                {% set other_user = call.callee if call.caller_id == current_user.id else call.caller %}
+                <a href="{{ url_for('main.chat_room', room_id=call.room_id, action='redial', call_type=call.call_type, callee_id=other_user.id) }}" class="list-group-item list-group-item-action">
+                    <div class="d-flex align-items-center">
+                        <img src="{{ url_for('static', filename='profile_pics/' + other_user.profile_pic) }}" class="rounded-circle me-3" width="50" height="50" alt="{{ other_user.name }}">
+                        <div class="flex-grow-1">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ other_user.name }}</h5>
+                                <small>{{ call.started_at.strftime('%b %d, %Y %I:%M %p') }}</small>
+                            </div>
+                            <p class="mb-1">
+                                {% if call.caller_id == current_user.id %}
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Outgoing
                                 {% else %}
                                     <i class="fa-solid fa-arrow-down-left"></i> Incoming
                                 {% endif %}
-                            {% endif %}
-
-                            {% if call.call_type == 'video' %}
-                                <i class="fa-solid fa-video ms-2"></i>
-                            {% else %}
-                                <i class="fa-solid fa-phone ms-2"></i>
-                            {% endif %}
-                        </p>
-                        <small>
-                            Status: {{ call.status.capitalize() }}
-                            {% if call.duration %}
-                                - Duration: {{ (call.duration // 60) }}m {{ (call.duration % 60) }}s
-                            {% endif %}
-                        </small>
+                                {% if call.call_type == 'video' %}<i class="fa-solid fa-video ms-2"></i>{% else %}<i class="fa-solid fa-phone ms-2"></i>{% endif %}
+                            </p>
+                            <small>Status: {{ call.status.capitalize() }}</small>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
+            {% else %}
+                {# Group Call #}
+                <a href="{{ url_for('main.chat_room', room_id=call.room_id) }}" class="list-group-item list-group-item-action">
+                    <div class="d-flex align-items-center">
+                        <img src="{{ url_for('static', filename=call.room.cover_image or 'profile_pics/default.jpg') }}" class="rounded-circle me-3" width="50" height="50" alt="{{ call.room.name }}">
+                        <div class="flex-grow-1">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ call.room.name }}</h5>
+                                <small>{{ call.started_at.strftime('%b %d, %Y %I:%M %p') }}</small>
+                            </div>
+                            <p class="mb-1">
+                                <i class="fa-solid fa-users"></i> Group Call
+                                {% if call.call_type == 'video' %}<i class="fa-solid fa-video ms-2"></i>{% else %}<i class="fa-solid fa-phone ms-2"></i>{% endif %}
+                            </p>
+                            <small>Status: {{ call.status.capitalize() }}</small>
+                        </div>
+                    </div>
+                </a>
+            {% endif %}
         {% else %}
             <p class="text-center mt-3">Your call history is empty.</p>
         {% endfor %}
