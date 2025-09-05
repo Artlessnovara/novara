@@ -280,7 +280,29 @@ def register_chat_events(socketio):
         if member_to_remove:
             db.session.delete(member_to_remove)
             db.session.commit()
-            emit('member_removed', {'user_id': user_id, 'room_id': room_id}, to=message.room_id)
+            emit('member_removed', {'user_id': user_id, 'room_id': room_id}, to=room_id)
+
+    @socketio.on('exit_group')
+    def exit_group(data):
+        if not current_user.is_authenticated:
+            return
+
+        room_id = data.get('room_id')
+        if not room_id:
+            return
+
+        membership = ChatRoomMember.query.filter_by(
+            user_id=current_user.id,
+            chat_room_id=room_id
+        ).first()
+
+        if membership:
+            db.session.delete(membership)
+            db.session.commit()
+            emit('status', {'msg': f"You have left the group. You will be redirected."})
+            # The client should handle redirecting the user
+        else:
+            emit('error', {'msg': 'You are not a member of this group.'})
 
 
     @socketio.on('react_to_message')

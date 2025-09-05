@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}View Chat: {{ room.name }}{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>View Private Chat: {{ room.name }}</h1>
+        <a href="{{ url_for('admin.monitor_private_chats') }}" class="btn-primary-hollow">&larr; Back to List</a>
+    </div>
+
+    <div class="chat-history-container" style="background: #fff; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        {% for message in messages %}
+            <div class="message-item" style="margin-bottom: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 1rem;">
+                <div class="message-meta" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <strong style="color: #333;">{{ message.author.name }}</strong>
+                    <span style="font-size: 0.85rem; color: #888;">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                </div>
+                <div class="message-content-admin" style="color: #555;">
+                    {% if message.file_path %}
+                        <p><em>Shared a file: <a href="{{ url_for('static', filename=message.file_path) }}" download>{{ message.file_name }}</a></em></p>
+                    {% else %}
+                        <p style="margin: 0;">{{ message.content }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <p>No messages in this chat yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
