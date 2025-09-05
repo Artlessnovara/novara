@@ -20,6 +20,8 @@
                 {% if message.file_path %}
                     {% if message.file_name.lower().endswith(('png', 'jpg', 'jpeg', 'gif', 'webp')) %}
                         <img src="/static/{{ message.file_path }}" alt="{{ message.file_name }}" class="message-image">
+                    {% elif message.file_name.lower().endswith(('mp4', 'webm', 'ogg')) %}
+                        <video src="/static/{{ message.file_path }}" controls class="message-video"></video>
                     {% else %}
                         <a href="/static/{{ message.file_path }}" class="message-file" download>
                             <i class="fa-solid fa-file-arrow-down"></i> {{ message.file_name }}
@@ -108,7 +110,8 @@
         color: #007bff;
         text-align: center;
     }
-    .message-image {
+    .message-image,
+    .message-video {
         max-width: 100%;
         border-radius: 8px;
         margin-bottom: 5px;
@@ -120,6 +123,60 @@
         border-radius: 8px;
         text-decoration: none;
         color: inherit;
+    }
+    .poll-container {
+        width: 100%;
+    }
+    .poll-question {
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .poll-option {
+        background-color: #f0f2f5;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-bottom: 5px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background-color 0.2s;
+    }
+    .poll-option:hover {
+        background-color: #e4e6eb;
+    }
+    .receiver .poll-option {
+        background-color: #ffffff;
+    }
+    .receiver .poll-option:hover {
+        background-color: #f7f7f7;
+    }
+    .poll-option-text {
+        flex-grow: 1;
+    }
+    .poll-option-votes {
+        font-size: 0.8em;
+        color: #65676b;
+        margin-left: 10px;
+        z-index: 2; /* Ensure text is above progress bar */
+    }
+    .poll-option {
+        position: relative; /* Needed for progress bar positioning */
+        overflow: hidden;
+    }
+    .poll-option-progress {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        background-color: #d2e6ff;
+        z-index: 1;
+        transition: width 0.3s ease;
+        opacity: 0.7;
+    }
+    .receiver .poll-option-progress {
+        background-color: #cceeff;
     }
 </style>
 {% endblock %}
@@ -277,6 +334,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.file_path) {
             if (data.file_name.toLowerCase().match(/\.(png|jpg|jpeg|gif|webp)$/)) {
                 fileHtml = `<img src="/static/${data.file_path}" alt="${data.file_name}" class="message-image">`;
+            } else if (data.file_name.toLowerCase().match(/\.(mp4|webm|ogg)$/)) {
+                fileHtml = `<video src="/static/${data.file_path}" controls class="message-video"></video>`;
             } else {
                 fileHtml = `<a href="/static/${data.file_path}" class="message-file" download>
                                 <i class="fa-solid fa-file-arrow-down"></i> ${data.file_name}
@@ -296,6 +355,84 @@ document.addEventListener('DOMContentLoaded', function() {
         messageBubbleWrapper.innerHTML = messageBubble;
         messageArea.appendChild(messageBubbleWrapper);
         messageArea.scrollTop = messageArea.scrollHeight;
+    });
+
+    socket.on('new_poll', function(data) {
+        if (data.room_id !== {{ chat_info.id|tojson }}) {
+            return;
+        }
+
+        const messageArea = document.querySelector('.message-area');
+        const pollWrapper = document.createElement('div');
+        pollWrapper.classList.add('message-bubble-wrapper');
+        pollWrapper.classList.add(data.user_id === {{ current_user_id }} ? 'sender' : 'receiver');
+        pollWrapper.setAttribute('id', `poll-${data.poll_id}`);
+
+        let optionsHtml = '';
+        data.options.forEach(option => {
+            optionsHtml += `
+                <div class="poll-option" data-option-id="${option.id}">
+                    <span class="poll-option-text">${option.text}</span>
+                    <span class="poll-option-votes">0 votes</span>
+                </div>
+            `;
+        });
+
+        const pollBubble = `
+            <div class="message-bubble">
+                <div class="poll-container">
+                    <p class="poll-question">${data.question}</p>
+                    <div class="poll-options">
+                        ${optionsHtml}
+                    </div>
+                </div>
+                <span class="message-timestamp">${new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>
+        `;
+
+        pollWrapper.innerHTML = pollBubble;
+        messageArea.appendChild(pollWrapper);
+        messageArea.scrollTop = messageArea.scrollHeight;
+    });
+
+    // Handle poll voting by event delegation
+    document.querySelector('.message-area').addEventListener('click', function(event) {
+        const pollOption = event.target.closest('.poll-option');
+        if (pollOption) {
+            const optionId = pollOption.dataset.optionId;
+            if (optionId) {
+                socket.emit('poll_vote', { 'option_id': parseInt(optionId, 10) });
+            }
+        }
+    });
+
+    socket.on('poll_update', function(data) {
+        if (data.room_id !== {{ chat_info.id|tojson }}) {
+            return;
+        }
+
+        const pollElem = document.getElementById(`poll-${data.poll_id}`);
+        if (!pollElem) return;
+
+        let totalVotes = 0;
+        data.options.forEach(opt => totalVotes += opt.votes);
+
+        data.options.forEach(option => {
+            const optionElem = pollElem.querySelector(`.poll-option[data-option-id="${option.id}"]`);
+            if (optionElem) {
+                const voteSpan = optionElem.querySelector('.poll-option-votes');
+                const percentage = totalVotes > 0 ? ((option.votes / totalVotes) * 100).toFixed(0) : 0;
+                voteSpan.textContent = `${option.votes} votes (${percentage}%)`;
+
+                // Optional: Add a visual indicator for the vote percentage
+                const progressBar = optionElem.querySelector('.poll-option-progress') || document.createElement('div');
+                progressBar.className = 'poll-option-progress';
+                progressBar.style.width = `${percentage}%`;
+                if (!optionElem.querySelector('.poll-option-progress')) {
+                    optionElem.insertAdjacentElement('afterbegin', progressBar);
+                }
+            }
+        });
     });
 });
 </script>
