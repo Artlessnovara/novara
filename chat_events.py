@@ -778,3 +778,79 @@ def register_chat_events(socketio):
                 'from_user_id': current_user.id,
                 'candidate': data['candidate']
             }, to=to_sid)
+
+    @socketio.on('send_contact')
+    def send_contact(data):
+        if not current_user.is_authenticated: return
+        room_id = data.get('room_id')
+        shared_user_id = data.get('shared_user_id')
+
+        room = ChatRoom.query.get(room_id)
+        shared_user = User.query.get(shared_user_id)
+
+        if not room or not shared_user or not is_user_authorized_for_room(current_user, room):
+            return
+
+        import json
+        contact_info = {
+            "type": "contact",
+            "user_id": shared_user.id,
+            "name": shared_user.name,
+            "profile_pic": shared_user.profile_pic
+        }
+
+        new_message = ChatMessage(
+            room_id=room.id,
+            user_id=current_user.id,
+            content=json.dumps(contact_info)
+        )
+        db.session.add(new_message)
+        room.last_message_timestamp = new_message.timestamp
+        db.session.commit()
+
+        msg_data = {
+            'user_name': current_user.name,
+            'user_id': current_user.id,
+            'content': new_message.content,
+            'timestamp': new_message.timestamp.isoformat() + "Z",
+            'room_id': room.id,
+            'message_id': new_message.id
+        }
+        emit('message', msg_data, to=room_id)
+
+    @socketio.on('send_location')
+    def send_location(data):
+        if not current_user.is_authenticated: return
+        room_id = data.get('room_id')
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+
+        room = ChatRoom.query.get(room_id)
+        if not room or not latitude or not longitude or not is_user_authorized_for_room(current_user, room):
+            return
+
+        import json
+        location_info = {
+            "type": "location",
+            "latitude": latitude,
+            "longitude": longitude
+        }
+
+        new_message = ChatMessage(
+            room_id=room.id,
+            user_id=current_user.id,
+            content=json.dumps(location_info)
+        )
+        db.session.add(new_message)
+        room.last_message_timestamp = new_message.timestamp
+        db.session.commit()
+
+        msg_data = {
+            'user_name': current_user.name,
+            'user_id': current_user.id,
+            'content': new_message.content,
+            'timestamp': new_message.timestamp.isoformat() + "Z",
+            'room_id': room.id,
+            'message_id': new_message.id
+        }
+        emit('message', msg_data, to=room_id)
