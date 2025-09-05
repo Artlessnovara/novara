@@ -1,0 +1,120 @@
+/* static/css/settings.css */
+
+.settings-page {
+    padding: 1rem;
+    padding-top: 60px; /* Space for fixed header if not using its own */
+    padding-bottom: 70px; /* Space for bottom nav */
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.settings-header .back-btn {
+    font-size: 1.2rem;
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+.settings-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.profile-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.profile-pic {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.profile-bio {
+    font-size: 0.9rem;
+    color: #8e8e93;
+}
+
+.settings-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 0;
+    text-decoration: none;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+}
+.settings-list .settings-item:last-child {
+    border-bottom: none;
+}
+
+
+.settings-icon-container {
+    width: 30px; /* Fixed width for alignment */
+    text-align: center;
+}
+
+.settings-icon-container i {
+    font-size: 1.1rem;
+    color: #8e8e93;
+}
+
+.settings-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-label {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.settings-sublabel {
+    font-size: 0.85rem;
+    color: #8e8e93;
+    margin-top: 2px;
+}
+
+/* Storage List */
+.storage-list p {
+    font-size: 0.9rem;
+    color: var(--secondary-text-color);
+    margin-bottom: 1rem;
+}
+
+.storage-list-header, .storage-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.storage-list-header {
+    font-weight: 600;
+}

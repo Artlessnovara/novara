@@ -2,6 +2,19 @@
 
 {% block chat_content %}
 <div class="conversation-page">
+    {% if current_user.is_authenticated and current_user.chat_wallpaper %}
+    <style>
+        .message-area {
+            {% if current_user.chat_wallpaper.startswith('#') %}
+                background-color: {{ current_user.chat_wallpaper }};
+            {% else %}
+                background-image: url('{{ url_for('static', filename=current_user.chat_wallpaper) }}');
+                background-size: cover;
+                background-position: center;
+            {% endif %}
+        }
+    </style>
+    {% endif %}
     <div class="conversation-header">
         <a href="#" class="back-btn"><i class="fa-solid fa-arrow-left"></i></a>
         <div class="conversation-info">

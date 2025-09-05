@@ -3,7 +3,9 @@ from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 import random
 import secrets
-from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp
+import os
+from werkzeug.utils import secure_filename
+from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket
 from extensions import db
 from utils import save_chat_file, save_status_file
 from datetime import timedelta
@@ -1466,6 +1468,114 @@ def pending_approval():
     return render_template('pending_approval.html')
 
 
+@main.route('/settings')
+@login_required
+def settings():
+    return render_template('settings/index.html')
+
+@main.route('/settings/theme')
+@login_required
+def theme_settings():
+    return render_template('settings/theme.html')
+
+@main.route('/settings/history')
+@login_required
+def history_settings():
+    return render_template('settings/history.html')
+
+@main.route('/settings/chats')
+@login_required
+def chats_settings():
+    return render_template('settings/chats.html')
+
+@main.route('/settings/wallpaper')
+@login_required
+def wallpaper_settings():
+    return render_template('settings/wallpaper.html')
+
+@main.route('/settings/help')
+@login_required
+def help_settings():
+    return render_template('settings/help.html')
+
+@main.route('/settings/help/contact', methods=['GET', 'POST'])
+@login_required
+def contact_support():
+    if request.method == 'POST':
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+        if subject and message:
+            new_ticket = SupportTicket(
+                user_id=current_user.id,
+                subject=subject,
+                message=message
+            )
+            db.session.add(new_ticket)
+            db.session.commit()
+            flash('Your support request has been submitted.', 'success')
+            return redirect(url_for('main.help_settings'))
+        else:
+            flash('Please fill out all fields.', 'danger')
+    return render_template('settings/contact.html')
+
+@main.route('/settings/help/terms')
+def terms():
+    return render_template('settings/terms.html')
+
+@main.route('/settings/storage')
+@login_required
+def storage_settings():
+    return render_template('settings/storage.html')
+
+@main.route('/settings/storage/manage')
+@login_required
+def manage_storage():
+    storage_data = []
+    memberships = ChatRoomMember.query.filter_by(user_id=current_user.id).all()
+
+    for membership in memberships:
+        room = membership.room
+        total_size = 0
+
+        # Find all messages with files in this room
+        file_messages = ChatMessage.query.filter(
+            ChatMessage.room_id == room.id,
+            ChatMessage.file_path.isnot(None)
+        ).all()
+
+        for message in file_messages:
+            try:
+                # Construct the full path to the file
+                # Assumes file_path is relative to the 'static' folder
+                full_path = os.path.join(current_app.root_path, 'static', message.file_path)
+                if os.path.exists(full_path):
+                    total_size += os.path.getsize(full_path)
+            except Exception as e:
+                print(f"Could not get size for file {message.file_path}: {e}")
+
+        if total_size > 0:
+            # Format size to MB
+            size_in_mb = total_size / (1024 * 1024)
+            storage_data.append({
+                'name': room.name,
+                'size': f"{size_in_mb:.2f} MB"
+            })
+
+    # Sort by size, largest first
+    storage_data.sort(key=lambda x: float(x['size'].split(' ')[0]), reverse=True)
+
+    return render_template('settings/manage_storage.html', storage_data=storage_data)
+
+@main.route('/settings/storage/network')
+@login_required
+def network_usage():
+    return render_template('settings/network_usage.html')
+
+@main.route('/settings/notifications')
+@login_required
+def notifications_settings():
+    return render_template('settings/notifications.html')
+
 @main.route('/faq')
 def faq():
     return render_template('faq.html')
@@ -1725,3 +1835,96 @@ def calls():
         or_(CallHistory.caller_id == current_user.id, CallHistory.callee_id == current_user.id)
     ).order_by(CallHistory.started_at.desc()).limit(100).all() # Limit to 100 for performance
     return render_template('calls.html', call_history=call_history)
+
+@main.route('/api/user/preference', methods=['POST'])
+@login_required
+def set_user_preference():
+    data = request.get_json()
+    if not data:
+        return jsonify({'status': 'error', 'message': 'Invalid request'}), 400
+
+    if 'theme' in data:
+        theme = data['theme']
+        if theme in ['light', 'dark']:
+            current_user.theme = theme
+        else:
+            return jsonify({'status': 'error', 'message': 'Invalid theme value'}), 400
+
+    if 'chat_wallpaper' in data:
+        # Here you might want to add validation to ensure the wallpaper is a valid file or value
+        current_user.chat_wallpaper = data['chat_wallpaper']
+
+    if 'message_notifications_enabled' in data:
+        current_user.message_notifications_enabled = bool(data['message_notifications_enabled'])
+
+    if 'group_notifications_enabled' in data:
+        current_user.group_notifications_enabled = bool(data['group_notifications_enabled'])
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Preferences updated'})
+
+def save_wallpaper(file):
+    filename = secure_filename(file.filename)
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+    filepath = os.path.join(current_app.root_path, 'static/wallpapers', new_filename)
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    file.save(filepath)
+    return os.path.join('wallpapers', new_filename)
+
+@main.route('/api/upload_wallpaper', methods=['POST'])
+@login_required
+def upload_wallpaper():
+    if 'wallpaper' not in request.files:
+        return jsonify({'status': 'error', 'message': 'No file part'}), 400
+    file = request.files['wallpaper']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'No selected file'}), 400
+
+    try:
+        filepath = save_wallpaper(file)
+        return jsonify({'status': 'success', 'filepath': filepath})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/chats/clear_all', methods=['POST'])
+@login_required
+def clear_all_chats():
+    try:
+        memberships = ChatRoomMember.query.filter_by(user_id=current_user.id).all()
+        room_ids = [m.chat_room_id for m in memberships]
+
+        for room_id in room_ids:
+            clear_record = ChatClearTimestamp.query.filter_by(
+                user_id=current_user.id,
+                room_id=room_id
+            ).first()
+
+            if clear_record:
+                clear_record.cleared_at = datetime.utcnow()
+            else:
+                clear_record = ChatClearTimestamp(
+                    user_id=current_user.id,
+                    room_id=room_id,
+                    cleared_at=datetime.utcnow()
+                )
+                db.session.add(clear_record)
+
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/chats/delete_all', methods=['POST'])
+@login_required
+def delete_all_messages():
+    try:
+        # This is a bulk delete operation, which is efficient.
+        ChatMessage.query.filter_by(user_id=current_user.id).delete(synchronize_session=False)
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500

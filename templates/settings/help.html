@@ -1,0 +1,23 @@
+{% extends "settings/settings_layout.html" %}
+
+{% block settings_title %}Help{% endblock %}
+
+{% block settings_content %}
+<div class="settings-list">
+    <a href="{{ url_for('main.faq') }}" class="settings-item">
+        <div class="settings-text">
+            <span class="settings-label">Help Center / FAQ</span>
+        </div>
+    </a>
+    <a href="{{ url_for('main.contact_support') }}" class="settings-item">
+        <div class="settings-text">
+            <span class="settings-label">Contact Us</span>
+        </div>
+    </a>
+    <a href="{{ url_for('main.terms') }}" class="settings-item">
+        <div class="settings-text">
+            <span class="settings-label">Terms and Privacy Policy</span>
+        </div>
+    </a>
+</div>
+{% endblock %}

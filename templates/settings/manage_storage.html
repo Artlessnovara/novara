@@ -1,0 +1,24 @@
+{% extends "settings/settings_layout.html" %}
+{% set back_url = url_for('main.storage_settings') %}
+
+{% block settings_title %}Manage Storage{% endblock %}
+
+{% block settings_content %}
+<div class="storage-list">
+    <p>This list shows the total size of media files for each of your chats.</p>
+    {% if storage_data %}
+        <div class="storage-list-header">
+            <span>Chat Name</span>
+            <span>Size</span>
+        </div>
+        {% for item in storage_data %}
+        <div class="storage-item">
+            <span>{{ item.name }}</span>
+            <span>{{ item.size }} MB</span>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>You have no media in any of your chats.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "settings/settings_layout.html" %}
+{% set back_url = url_for('main.chats_settings') %}
+
+{% block settings_title %}Theme{% endblock %}
+
+{% block settings_content %}
+<div class="theme-options">
+    <p>Choose a theme. The change will be applied across the app.</p>
+
+    <div class="radio-group">
+        <label>
+            <input type="radio" name="theme" value="light" {% if current_user.theme == 'light' %}checked{% endif %}>
+            Light
+        </label>
+        <label>
+            <input type="radio" name="theme" value="dark" {% if current_user.theme == 'dark' %}checked{% endif %}>
+            Dark
+        </label>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const themeRadios = document.querySelectorAll('input[name="theme"]');
+    const themeStylesheet = document.getElementById('theme-stylesheet');
+
+    themeRadios.forEach(radio => {
+        radio.addEventListener('change', function () {
+            const selectedTheme = this.value;
+
+            // 1. Update the stylesheet href for immediate visual change
+            const newHref = `{{ url_for('static', filename='css/themes/') }}${selectedTheme}.css`;
+            themeStylesheet.setAttribute('href', newHref);
+
+            // 2. Save preference to localStorage
+            localStorage.setItem('theme', selectedTheme);
+
+            // 3. Save preference to the server
+            fetch("{{ url_for('main.set_user_preference') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Include CSRF token if your app uses it
+                },
+                body: JSON.stringify({ theme: selectedTheme })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== 'success') {
+                    console.error('Failed to save theme preference:', data.message);
+                    // Optionally, revert the change or notify the user
+                }
+            })
+            .catch(error => {
+                console.error('Error saving theme preference:', error);
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

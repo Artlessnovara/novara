@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Theme stylesheet -->
+    <link id="theme-stylesheet" rel="stylesheet" href="{{ url_for('static', filename='css/themes/' + (current_user.theme if current_user.is_authenticated and current_user.theme else 'light') + '.css') }}">
 </head>
 <body>
     <div class="app-container">
@@ -25,6 +27,19 @@
             <div class="header-right">
                 <button class="icon-btn search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
                 <a href="{{ url_for('main.create_group') }}" class="icon-btn add-btn"><i class="fa-solid fa-plus"></i></a>
+                <div class="header-menu">
+                    <button class="icon-btn menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-ellipsis-v"></i></button>
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        <a href="{{ url_for('main.settings') }}">Settings</a>
+                        {% if current_user.role == 'admin' %}
+                            <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+                        {% elif current_user.role == 'instructor' %}
+                            <a href="{{ url_for('instructor.dashboard') }}">Dashboard</a>
+                        {% else %}
+                            <a href="{{ url_for('main.student_dashboard') }}">Dashboard</a>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -51,17 +66,27 @@
             </a>
         </nav>
     </div>
-    <script>
-        (function() {
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-mode');
-            }
-        })();
-    </script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='js/socket_handler.js') }}"></script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
     {% block chat_scripts %}{% endblock %}
+    <script>
+        function toggleMenu() {
+            document.getElementById("dropdownMenu").classList.toggle("show");
+        }
+
+        // Close the dropdown if the user clicks outside of it
+        window.onclick = function(event) {
+            if (!event.target.matches('.menu-btn') && !event.target.closest('.menu-btn')) {
+                var dropdowns = document.getElementsByClassName("dropdown-menu");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+    </script>
 </body>
 </html>

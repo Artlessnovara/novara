@@ -1,0 +1,23 @@
+{% extends "settings/settings_layout.html" %}
+
+{% block settings_title %}Chats{% endblock %}
+
+{% block settings_content %}
+<div class="settings-list">
+    <a href="{{ url_for('main.theme_settings') }}" class="settings-item">
+        <div class="settings-text">
+            <span class="settings-label">Theme</span>
+        </div>
+    </a>
+    <a href="{{ url_for('main.wallpaper_settings') }}" class="settings-item">
+        <div class="settings-text">
+            <span class="settings-label">Wallpaper</span>
+        </div>
+    </a>
+    <a href="{{ url_for('main.history_settings') }}" class="settings-item">
+        <div class="settings-text">
+            <span class="settings-label">Chat History</span>
+        </div>
+    </a>
+</div>
+{% endblock %}

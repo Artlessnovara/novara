@@ -1,0 +1,62 @@
+{% extends "settings/settings_layout.html" %}
+
+{% block settings_title %}Settings{% endblock %}
+
+{% block settings_content %}
+    <div class="settings-section profile-section">
+        <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic or 'default.jpg')) }}" alt="Profile Picture" class="profile-pic">
+        <div class="profile-info">
+            <span class="profile-name">{{ current_user.name }}</span>
+            <span class="profile-bio">{{ current_user.bio or 'No bio available.' }}</span>
+        </div>
+    </div>
+
+    <div class="settings-list">
+        <a href="#" class="settings-item">
+            <div class="settings-icon-container">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <div class="settings-text">
+                <span class="settings-label">Account</span>
+                <span class="settings-sublabel">Privacy, security, change number</span>
+            </div>
+        </a>
+        <a href="{{ url_for('main.chats_settings') }}" class="settings-item">
+            <div class="settings-icon-container">
+                <i class="fa-solid fa-comment-dots"></i>
+            </div>
+            <div class="settings-text">
+                <span class="settings-label">Chats</span>
+                <span class="settings-sublabel">Theme, wallpapers, chat history</span>
+            </div>
+        </a>
+        <a href="{{ url_for('main.notifications_settings') }}" class="settings-item">
+            <div class="settings-icon-container">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <div class="settings-text">
+                <span class="settings-label">Notifications</span>
+                <span class="settings-sublabel">Message, group & call tones</span>
+            </div>
+        </a>
+        <a href="{{ url_for('main.storage_settings') }}" class="settings-item">
+            <div class="settings-icon-container">
+                <i class="fa-solid fa-chart-pie"></i>
+            </div>
+            <div class="settings-text">
+                <span class="settings-label">Storage and data</span>
+                <span class="settings-sublabel">Network usage, auto-download</span>
+            </div>
+        </a>
+        <a href="{{ url_for('main.help_settings') }}" class="settings-item">
+            <div class="settings-icon-container">
+                <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <div class="settings-text">
+                <span class="settings-label">Help</span>
+                <span class="settings-sublabel">Help centre, contact us, privacy policy</span>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "settings/settings_layout.html" %}
+{% set back_url = url_for('main.chats_settings') %}
+
+{% block settings_title %}Chat History{% endblock %}
+
+{% block settings_content %}
+<div class="history-options">
+    <div class="history-item">
+        <button id="clear-all-chats" class="btn btn-danger">Clear All Chats</button>
+        <p class="description">This will clear messages from all of your chats. The chats will still be in your chat list.</p>
+    </div>
+    <div class="history-item">
+        <button id="delete-all-messages" class="btn btn-danger">Delete All Messages</button>
+        <p class="description">This will delete all of your messages from every chat. This action cannot be undone.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const clearAllBtn = document.getElementById('clear-all-chats');
+    const deleteAllBtn = document.getElementById('delete-all-messages');
+
+    clearAllBtn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear all chat messages? This will only hide them from your view.')) {
+            fetch("{{ url_for('main.clear_all_chats') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('All chats have been cleared.');
+                } else {
+                    alert('An error occurred: ' + data.message);
+                }
+            });
+        }
+    });
+
+    deleteAllBtn.addEventListener('click', function() {
+        if (confirm('Are you absolutely sure you want to delete all of your messages? This action cannot be undone.')) {
+            fetch("{{ url_for('main.delete_all_messages') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('All of your messages have been deleted.');
+                } else {
+                    alert('An error occurred: ' + data.message);
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
