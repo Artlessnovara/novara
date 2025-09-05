@@ -509,10 +509,11 @@ class PollVote(db.Model):
 class CallHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     caller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    callee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    callee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Nullable for group calls
     room_id = db.Column(db.Integer, db.ForeignKey('chat_room.id'), nullable=False)
     call_type = db.Column(db.String(50), nullable=False) # 'voice' or 'video'
     status = db.Column(db.String(50), nullable=False, default='initiated') # initiated, answered, missed, declined, ended
+    is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
     started_at = db.Column(db.DateTime, default=datetime.utcnow)
     answered_at = db.Column(db.DateTime, nullable=True)
     ended_at = db.Column(db.DateTime, nullable=True)
