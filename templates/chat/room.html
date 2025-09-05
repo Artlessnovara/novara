@@ -20,8 +20,10 @@
                 {% if message.file_path %}
                     {% if message.file_name.lower().endswith(('png', 'jpg', 'jpeg', 'gif', 'webp')) %}
                         <img src="/static/{{ message.file_path }}" alt="{{ message.file_name }}" class="message-image">
-                    {% elif message.file_name.lower().endswith(('mp4', 'webm', 'ogg')) %}
+                    {% elif message.file_name.lower().endswith(('mp4', 'webm', 'ogg')) and 'video' in message.file_name %}
                         <video src="/static/{{ message.file_path }}" controls class="message-video"></video>
+                    {% elif message.file_name.lower().endswith(('.mp3', '.wav', '.webm', '.ogg')) %}
+                        <audio src="/static/{{ message.file_path }}" controls class="message-audio"></audio>
                     {% else %}
                         <a href="/static/{{ message.file_path }}" class="message-file" download>
                             <i class="fa-solid fa-file-arrow-down"></i> {{ message.file_name }}
@@ -57,7 +59,97 @@
     </div>
 </div>
 
+<!-- Camera Modal -->
+<div id="camera-modal" class="camera-modal hidden">
+    <div class="camera-modal-content">
+        <video id="camera-preview" autoplay playsinline></video>
+        <div class="camera-controls">
+            <button id="capture-photo-btn" class="camera-control-btn"><i class="fa-solid fa-camera"></i></button>
+            <button id="record-video-btn" class="camera-control-btn"><i class="fa-solid fa-video"></i></button>
+            <button id="close-camera-btn" class="camera-control-btn close-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Voice Recorder Bar -->
+<div id="voice-recorder-bar" class="message-input-bar hidden">
+    <i class="fa-solid fa-trash-can icon-btn" id="cancel-voice-btn"></i>
+    <div class="voice-recording-info">
+        <i class="fa-solid fa-microphone-lines recording-indicator"></i>
+        <span id="voice-timer">00:00</span>
+    </div>
+    <button class="icon-btn send-btn" id="send-voice-btn"><i class="fa-solid fa-paper-plane"></i></button>
+</div>
+
+
 <style>
+    .voice-recording-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-grow: 1;
+        justify-content: center;
+    }
+    .recording-indicator {
+        color: #d9534f;
+        animation: pulse-red 1.5s infinite;
+    }
+    @keyframes pulse-red {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    .camera-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+    }
+    .camera-modal.hidden {
+        display: none;
+    }
+    .camera-modal-content {
+        background-color: #333;
+        padding: 15px;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    #camera-preview {
+        width: 100%;
+        max-width: 500px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+    .camera-controls {
+        display: flex;
+        gap: 20px;
+    }
+    .camera-control-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid white;
+        background-color: rgba(0,0,0,0.5);
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+    }
+    .camera-control-btn.recording {
+        background-color: red;
+    }
+    .camera-control-btn.close-btn {
+        background-color: #555;
+    }
+
     .media-menu {
         position: absolute;
         bottom: 70px; /* Adjust based on input bar height */
@@ -115,6 +207,10 @@
         max-width: 100%;
         border-radius: 8px;
         margin-bottom: 5px;
+    }
+    .message-audio {
+        width: 100%;
+        max-width: 300px;
     }
     .message-file {
         display: inline-block;
@@ -248,44 +344,46 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // File upload logic
+    // --- Refactored Upload Logic ---
+    function uploadFile(file, fileName) {
+        const formData = new FormData();
+        formData.append('file', file, fileName);
+
+        fetch('/chat/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Upload failed: ' + data.error);
+                return;
+            }
+            socket.emit('message', {
+                room_id: {{ chat_info.id|tojson }},
+                file_path: data.file_path,
+                file_name: data.file_name
+            });
+        })
+        .catch(error => {
+            console.error('Upload error:', error);
+            alert('An error occurred during upload.');
+        });
+    }
+
     function triggerFileUpload(accept) {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = accept;
         input.style.display = 'none';
-
-        input.addEventListener('change', function() {
-            const file = this.files[0];
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            fetch('/chat/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert('Upload failed: ' + data.error);
-                    return;
-                }
-                socket.emit('message', {
-                    room_id: {{ chat_info.id|tojson }},
-                    file_path: data.file_path,
-                    file_name: data.file_name
-                });
-            })
-            .catch(error => {
-                console.error('Upload error:', error);
-                alert('An error occurred during upload.');
-            });
-        });
+        input.onchange = () => {
+            if (input.files.length > 0) {
+                uploadFile(input.files[0], input.files[0].name);
+            }
+            document.body.removeChild(input);
+        };
         document.body.appendChild(input);
         input.click();
-        document.body.removeChild(input);
     }
 
     document.getElementById('media-gallery-btn')?.addEventListener('click', () => {
@@ -298,10 +396,173 @@ document.addEventListener('DOMContentLoaded', function() {
         if (mediaMenu) mediaMenu.classList.add('hidden');
     });
 
+    // --- Camera Feature Logic ---
+    const cameraModal = document.getElementById('camera-modal');
+    const cameraPreview = document.getElementById('camera-preview');
+    const closeCameraBtn = document.getElementById('close-camera-btn');
+    const capturePhotoBtn = document.getElementById('capture-photo-btn');
+    const recordVideoBtn = document.getElementById('record-video-btn');
+    let stream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            cameraPreview.srcObject = stream;
+            cameraModal.classList.remove('hidden');
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+            alert("Could not access the camera. Please check permissions.");
+        }
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        stream = null;
+        cameraPreview.srcObject = null;
+        cameraModal.classList.add('hidden');
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+        }
+        recordVideoBtn.classList.remove('recording');
+        recordVideoBtn.innerHTML = '<i class="fa-solid fa-video"></i>';
+
+    }
+
+    document.getElementById('media-camera-btn')?.addEventListener('click', () => {
+        if (mediaMenu) mediaMenu.classList.add('hidden');
+        startCamera();
+    });
+
+    closeCameraBtn.addEventListener('click', stopCamera);
+
+    capturePhotoBtn.addEventListener('click', () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = cameraPreview.videoWidth;
+        canvas.height = cameraPreview.videoHeight;
+        canvas.getContext('2d').drawImage(cameraPreview, 0, 0);
+        canvas.toBlob(blob => {
+            uploadFile(blob, `photo-${Date.now()}.jpg`);
+            stopCamera();
+        }, 'image/jpeg');
+    });
+
+    recordVideoBtn.addEventListener('click', () => {
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+            // Start recording
+            if (!stream) return;
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                uploadFile(blob, `video-${Date.now()}.webm`);
+                stopCamera();
+            };
+            mediaRecorder.start();
+            recordVideoBtn.classList.add('recording');
+            recordVideoBtn.innerHTML = '<i class="fa-solid fa-stop"></i>';
+
+        } else {
+            // Stop recording
+            mediaRecorder.stop();
+        }
+    });
+
+
+    // --- Voice Note Logic ---
+    const voiceRecordBtn = document.getElementById('media-voice-btn');
+    const messageInputBar = document.querySelector('.message-input-bar');
+    const voiceRecorderBar = document.getElementById('voice-recorder-bar');
+    const cancelVoiceBtn = document.getElementById('cancel-voice-btn');
+    const sendVoiceBtn = document.getElementById('send-voice-btn');
+    const voiceTimer = document.getElementById('voice-timer');
+
+    let voiceStream = null;
+    let voiceRecorder = null;
+    let voiceChunks = [];
+    let timerInterval = null;
+
+    function cleanupVoiceRecording() {
+        if (voiceStream) {
+            voiceStream.getTracks().forEach(track => track.stop());
+        }
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
+        voiceStream = null;
+        voiceRecorder = null;
+        voiceChunks = [];
+        timerInterval = null;
+        messageInputBar.classList.remove('hidden');
+        voiceRecorderBar.classList.add('hidden');
+    }
+
+    voiceRecordBtn?.addEventListener('click', async () => {
+        if (mediaMenu) mediaMenu.classList.add('hidden');
+
+        try {
+            voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+            messageInputBar.classList.add('hidden');
+            voiceRecorderBar.classList.remove('hidden');
+
+            voiceRecorder = new MediaRecorder(voiceStream, { mimeType: 'audio/webm' });
+            voiceChunks = [];
+
+            voiceRecorder.ondataavailable = event => {
+                voiceChunks.push(event.data);
+            };
+
+            voiceRecorder.onstop = () => {
+                if (voiceChunks.length > 0) {
+                    const blob = new Blob(voiceChunks, { type: 'audio/webm' });
+                    uploadFile(blob, `voice-note-${Date.now()}.webm`);
+                }
+                cleanupVoiceRecording();
+            };
+
+            voiceRecorder.start();
+            let seconds = 0;
+            timerInterval = setInterval(() => {
+                seconds++;
+                const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const secs = (seconds % 60).toString().padStart(2, '0');
+                voiceTimer.textContent = `${mins}:${secs}`;
+            }, 1000);
+
+        } catch (err) {
+            console.error("Error accessing microphone:", err);
+            alert("Could not access the microphone. Please check permissions.");
+            cleanupVoiceRecording();
+        }
+    });
+
+    sendVoiceBtn.addEventListener('click', () => {
+        if (voiceRecorder && voiceRecorder.state === 'recording') {
+            voiceRecorder.stop();
+        }
+    });
+
+    cancelVoiceBtn.addEventListener('click', () => {
+        if (voiceRecorder && voiceRecorder.state === 'recording') {
+            voiceChunks = []; // Discard chunks
+            voiceRecorder.stop();
+        } else {
+            cleanupVoiceRecording();
+        }
+    });
+
+
     // Placeholder logic for remaining buttons
     const placeholderBtns = [
-        {id: 'media-camera-btn', name: 'Camera'},
-        {id: 'media-voice-btn', name: 'Voice Note'},
         {id: 'media-contact-btn', name: 'Contact'},
     ];
     placeholderBtns.forEach(btnInfo => {
@@ -332,10 +593,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let fileHtml = '';
         if (data.file_path) {
-            if (data.file_name.toLowerCase().match(/\.(png|jpg|jpeg|gif|webp)$/)) {
+            const fileName = data.file_name.toLowerCase();
+            if (fileName.match(/\.(png|jpg|jpeg|gif|webp)$/)) {
                 fileHtml = `<img src="/static/${data.file_path}" alt="${data.file_name}" class="message-image">`;
-            } else if (data.file_name.toLowerCase().match(/\.(mp4|webm|ogg)$/)) {
+            } else if (fileName.match(/\.(mp4|webm|ogg)$/) && fileName.includes('video')) {
                 fileHtml = `<video src="/static/${data.file_path}" controls class="message-video"></video>`;
+            } else if (fileName.match(/\.(mp3|wav|webm|ogg)$/)) {
+                fileHtml = `<audio src="/static/${data.file_path}" controls class="message-audio"></audio>`;
             } else {
                 fileHtml = `<a href="/static/${data.file_path}" class="message-file" download>
                                 <i class="fa-solid fa-file-arrow-down"></i> ${data.file_name}
