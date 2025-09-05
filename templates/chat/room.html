@@ -1077,37 +1077,56 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Group Call Handlers ---
     socket.on('group_call_started', (data) => {
-        currentCallId = data.call_id;
-        joinCallBanner.classList.remove('hidden');
+        // Show banner for users who didn't start the call
+        if (Object.keys(peerConnections).length === 0) {
+            currentCallId = data.call_id;
+            joinCallBanner.classList.remove('hidden');
+        }
     });
 
     joinCallBtn.addEventListener('click', async () => {
         joinCallBanner.classList.add('hidden');
-        await getMedia('video'); // Assume group calls are video for now
+        await getMedia('video'); // Assume group calls are video
         if (!localStream) return;
-        activeCallContainer.classList.remove('hidden');
+
+        setupActiveCallUI({ name: 'Group Call' }, 'video');
         socket.emit('join_group_call', { call_id: currentCallId });
     });
 
     socket.on('existing_participants', (data) => {
-        data.participants.forEach(async (userId) => {
+        data.participants.forEach(userId => {
+            // For each existing user, create a PC and send them an offer
             const pc = createPeerConnection(userId, false);
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            socket.emit('webrtc_offer', { to_user_id: userId, from_user_id: {{ current_user.id }}, offer: offer });
+            pc.createOffer()
+                .then(offer => pc.setLocalDescription(offer))
+                .then(() => {
+                    socket.emit('webrtc_offer', {
+                        to_user_id: userId,
+                        from_user_id: {{ current_user.id }},
+                        offer: pc.localDescription
+                    });
+                })
+                .catch(err => console.error("Offer creation failed", err));
         });
     });
 
     socket.on('new_participant', (data) => {
+        // A new user has joined. We will receive an offer from them.
+        // We just need to create a PC for them in preparation.
         createPeerConnection(data.user_id, false);
     });
 
     socket.on('webrtc_offer_received', async (data) => {
-        const pc = createPeerConnection(data.from_user_id, false);
+        const fromUserId = data.from_user_id;
+        const pc = createPeerConnection(fromUserId, false);
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        socket.emit('webrtc_answer', { to_user_id: data.from_user_id, from_user_id: {{ current_user.id }}, answer: answer });
+        socket.emit('webrtc_answer', {
+            to_user_id: fromUserId,
+            from_user_id: {{ current_user.id }},
+            answer: pc.localDescription
+        });
     });
 
     socket.on('webrtc_answer_received', async (data) => {
