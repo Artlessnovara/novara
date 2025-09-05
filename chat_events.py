@@ -639,7 +639,11 @@ def register_chat_events(socketio):
 
         emit('answer_received', {
             'callee_id': current_user.id,
-            'answer': data['answer']
+            'answer': data['answer'],
+            'callee_info': {
+                'name': current_user.name,
+                'profile_pic': current_user.profile_pic
+            }
         }, to=data['room_id'])
 
     @socketio.on('ice_candidate')
