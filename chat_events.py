@@ -40,15 +40,9 @@ def register_chat_events(socketio):
             return True
 
         if room.room_type == 'private':
-            if user.role == 'student':
-                return False
-            # Ensure the other member is also not a student
-            members = room.members.all()
-            if len(members) == 2:
-                other_user = members[0].user if members[0].user_id != user.id else members[1].user
-                if other_user.role == 'student':
-                    return False
-            # Let explicit membership check handle the rest
+            # The restriction on students in private chats is removed.
+            # Now, any user can be in a private chat as long as they are a member.
+            pass
 
         if room.room_type == 'public' or room.room_type == 'community_channel':
             return True
@@ -97,6 +91,9 @@ def register_chat_events(socketio):
         try:
             if not current_user.is_authenticated:
                 return
+
+            if not current_user.can_send_messages:
+                return emit('error', {'msg': 'Your messaging privileges have been disabled by an administrator.'})
 
             room_id = data.get('room_id')
             content = data.get('content')
@@ -607,12 +604,12 @@ def register_chat_events(socketio):
     def start_call(data):
         if not current_user.is_authenticated: return
 
+        if not current_user.can_make_calls:
+            return emit('call_error', {'message': 'Your calling privileges have been disabled by an administrator.'})
+
         room_id = data.get('room_id')
         call_type = data.get('call_type')
         callee_id = data.get('callee_id') # Will be null for group calls
-
-        if current_user.role not in ['admin', 'instructor']:
-            return emit('call_error', {'message': 'You do not have permission to start calls.'})
 
         room = ChatRoom.query.get(room_id)
         if not room or not is_user_authorized_for_room(current_user, room):

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Manage User Permissions{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1 class="admin-header">Manage User Permissions</h1>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Messaging Status</th>
+                    <th>Calling Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users.items %}
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.role | capitalize }}</td>
+                    <td>
+                        {% if user.can_send_messages %}
+                            <span class="badge bg-success">Enabled</span>
+                        {% else %}
+                            <span class="badge bg-danger">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.can_make_calls %}
+                            <span class="badge bg-success">Enabled</span>
+                        {% else %}
+                            <span class="badge bg-danger">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form action="{{ url_for('admin.toggle_messaging', user_id=user.id) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-warning">Toggle Messages</button>
+                        </form>
+                        <form action="{{ url_for('admin.toggle_calling', user_id=user.id) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-info">Toggle Calls</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <nav>
+        <ul class="pagination">
+            {% for page_num in users.iter_pages() %}
+                {% if page_num %}
+                    {% if users.page == page_num %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('admin.manage_permissions', page=page_num) }}">{{ page_num }}</a></li>
+                    {% endif %}
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}
