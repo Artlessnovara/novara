@@ -2,8 +2,8 @@ from flask_socketio import emit, join_room, leave_room
 from flask_login import current_user
 from extensions import db
 from datetime import datetime
-from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, Community, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote, CallHistory, BlockedUser, ChatClearTimestamp
-from utils import filter_profanity
+from models import ChatRoom, ChatRoomMember, ChatMessage, User, Course, Community, MutedUser, MutedRoom, ReportedMessage, ReportedGroup, MessageReaction, UserLastRead, Poll, PollOption, PollVote, CallHistory, BlockedUser, ChatClearTimestamp, Status
+from utils import filter_profanity, is_contact, get_or_create_private_room
 from flask import request
 
 # In-memory stores for call state. In a multi-server setup, this would need to be moved to a shared store like Redis.
@@ -272,11 +272,26 @@ def register_chat_events(socketio):
             return
 
         is_online = user.id in user_sids
+        last_seen_data = None
+
+        # Privacy check for last_seen
+        can_see_last_seen = False
+        if user.privacy_last_seen == 'everyone':
+            can_see_last_seen = True
+        elif user.privacy_last_seen == 'contacts' and is_contact(current_user.id, user.id):
+            can_see_last_seen = True
+
+        if is_online:
+            # If user is online, everyone can see that.
+            can_see_last_seen = True
+
+        if can_see_last_seen and user.last_seen:
+            last_seen_data = user.last_seen.isoformat() + "Z"
 
         emit('user_status_response', {
             'user_id': user.id,
             'is_online': is_online,
-            'last_seen': user.last_seen.isoformat() + "Z" if user.last_seen else None
+            'last_seen': last_seen_data
         })
 
     @socketio.on('forward_message')
@@ -1015,6 +1030,53 @@ def register_chat_events(socketio):
         db.session.commit()
 
         emit('chat_cleared', {'room_id': room_id})
+
+    @socketio.on('status_reply')
+    def handle_status_reply(data):
+        if not current_user.is_authenticated:
+            return
+
+        content = data.get('content')
+        status_id = data.get('status_id')
+        status_author_id = data.get('status_author_id')
+
+        if not all([content, status_id, status_author_id]):
+            return
+
+        # Find or create the private chat room between the replier and the author
+        room = get_or_create_private_room(current_user.id, status_author_id)
+        if not room:
+            return # Should not happen
+
+        # Create the new chat message
+        new_message = ChatMessage(
+            room_id=room.id,
+            user_id=current_user.id,
+            content=content,
+            replied_to_status_id=status_id
+        )
+        db.session.add(new_message)
+        room.last_message_timestamp = datetime.utcnow()
+        db.session.commit()
+
+        # Emit the message to the private room
+        # This will require a bit of a change to the message data structure
+        # For now, let's just emit the standard message
+        # A proper implementation would include the status preview
+        msg_data = {
+            'user_name': new_message.author.name,
+            'user_id': new_message.user_id,
+            'user_profile_pic': new_message.author.profile_pic or 'default.jpg',
+            'content': new_message.content,
+            'timestamp': new_message.timestamp.isoformat() + "Z",
+            'room_id': room.id,
+            'message_id': new_message.id,
+            'is_pinned': new_message.is_pinned,
+            'reactions': [],
+            'replied_to_status_id': new_message.replied_to_status_id
+        }
+        emit('message', msg_data, to=room.id)
+
 
     @socketio.on('send_location')
     def send_location(data):

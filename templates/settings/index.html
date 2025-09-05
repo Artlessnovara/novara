@@ -12,13 +12,13 @@
     </div>
 
     <div class="settings-list">
-        <a href="#" class="settings-item">
+        <a href="{{ url_for('main.privacy_settings') }}" class="settings-item">
             <div class="settings-icon-container">
-                <i class="fa-solid fa-key"></i>
+                <i class="fa-solid fa-user-shield"></i>
             </div>
             <div class="settings-text">
-                <span class="settings-label">Account</span>
-                <span class="settings-sublabel">Privacy, security, change number</span>
+                <span class="settings-label">Privacy</span>
+                <span class="settings-sublabel">Control who sees your information</span>
             </div>
         </a>
         <a href="{{ url_for('main.chats_settings') }}" class="settings-item">

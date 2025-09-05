@@ -5,10 +5,14 @@ import random
 import secrets
 import os
 from werkzeug.utils import secure_filename
-from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser
+from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview
 from extensions import db
-from utils import save_chat_file, save_status_file, get_or_create_platform_setting
+from utils import save_chat_file, save_status_file, get_or_create_platform_setting, is_contact, get_or_create_private_room
 from datetime import timedelta
+import re
+from flask import url_for
+import requests
+from bs4 import BeautifulSoup
 
 main = Blueprint('main', __name__)
 
@@ -498,42 +502,6 @@ from sqlalchemy import or_
 from sqlalchemy.orm import aliased
 import re
 
-def get_or_create_private_room(user1_id, user2_id):
-    """Finds an existing private room or creates a new one."""
-    member1 = aliased(ChatRoomMember)
-    member2 = aliased(ChatRoomMember)
-
-    room = db.session.query(ChatRoom).join(member1, member1.chat_room_id == ChatRoom.id)\
-        .join(member2, member2.chat_room_id == ChatRoom.id)\
-        .filter(
-            ChatRoom.room_type == 'private',
-            or_(
-                (member1.user_id == user1_id, member2.user_id == user2_id),
-                (member1.user_id == user2_id, member2.user_id == user1_id)
-            )
-        ).first()
-
-    if room:
-        return room
-
-    # If no room exists, create one
-    user1 = User.query.get_or_404(user1_id)
-    user2 = User.query.get_or_404(user2_id)
-    new_room = ChatRoom(
-        name=f"Private Chat between {user1.name} and {user2.name}",
-        room_type='private',
-        created_by_id=user1_id
-    )
-    db.session.add(new_room)
-    db.session.flush()
-
-    member1_obj = ChatRoomMember(chat_room_id=new_room.id, user_id=user1_id)
-    member2_obj = ChatRoomMember(chat_room_id=new_room.id, user_id=user2_id)
-    db.session.add_all([member1_obj, member2_obj])
-    db.session.commit()
-
-    return new_room
-
 @main.route('/chat/create_private/<int:other_user_id>', methods=['POST'])
 @login_required
 def create_private_chat(other_user_id):
@@ -787,7 +755,14 @@ def view_user(user_id):
         flash("You cannot view this profile.", "warning")
         return redirect(url_for('main.home'))
 
-    return render_template('public_profile.html', user=user)
+    # Privacy checks
+    contact = is_contact(current_user.id, user.id)
+    show_profile_pic = (user.privacy_profile_pic == 'everyone') or \
+                       (user.privacy_profile_pic == 'contacts' and contact)
+    show_about = (user.privacy_about == 'everyone') or \
+                 (user.privacy_about == 'contacts' and contact)
+
+    return render_template('public_profile.html', user=user, show_profile_pic=show_profile_pic, show_about=show_about)
 
 @main.route("/profile/edit", methods=['POST'])
 @login_required
@@ -1571,6 +1546,11 @@ def manage_storage():
 def network_usage():
     return render_template('settings/network_usage.html')
 
+@main.route('/settings/privacy')
+@login_required
+def privacy_settings():
+    return render_template('settings/privacy.html')
+
 @main.route('/settings/notifications')
 @login_required
 def notifications_settings():
@@ -1768,7 +1748,8 @@ def get_user_status_data(user_id):
             'caption': s.caption,
             'background': s.background,
             'viewed': is_viewed,
-            'poll': None
+            'poll': None,
+            'link_preview': None
         }
         if s.content_type == 'poll' and s.poll:
             poll_data = {
@@ -1791,6 +1772,14 @@ def get_user_status_data(user_id):
                     'percentage': round(percentage)
                 })
             status_item['poll'] = poll_data
+
+        if s.link_preview:
+            status_item['link_preview'] = {
+                'url': s.link_preview.url,
+                'title': s.link_preview.title,
+                'description': s.link_preview.description,
+                'image_url': s.link_preview.image_url
+            }
 
         statuses_data.append(status_item)
 
@@ -1823,12 +1812,10 @@ def add_status():
         can_post = True
     elif current_user.role == 'instructor':
         setting = get_or_create_platform_setting('instructor_status_posting_enabled', 'true')
-        if setting.value == 'true':
-            can_post = True
+        can_post = setting.value == 'true'
     elif current_user.role == 'student':
         setting = get_or_create_platform_setting('student_status_posting_enabled', 'false')
-        if setting.value == 'true':
-            can_post = True
+        can_post = setting.value == 'true'
 
     if not can_post:
         flash("Posting Status is currently disabled for your role.", "warning")
@@ -1844,107 +1831,108 @@ def add_status():
                 flash("Text content cannot be empty.", "danger")
                 return redirect(url_for('main.add_status'))
 
-            new_status = Status(
-                user_id=current_user.id,
-                content_type='text',
-                content=content,
-                background=background
-            )
+            new_status = Status(user_id=current_user.id, content_type='text', content=content, background=background)
             db.session.add(new_status)
             db.session.commit()
+
+            url_match = re.search(r'https?://[^\s]+', content)
+            if url_match:
+                url = url_match.group(0)
+                try:
+                    response = requests.get(url, timeout=5)
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                    title = soup.find('meta', property='og:title')
+                    description = soup.find('meta', property='og:description')
+                    image = soup.find('meta', property='og:image')
+                    if title:
+                        preview = LinkPreview(status_id=new_status.id, url=url, title=title.get('content'), description=description.get('content') if description else None, image_url=image.get('content') if image else None)
+                        db.session.add(preview)
+                        db.session.commit()
+                except Exception as e:
+                    print(f"Could not fetch link preview for {url}: {e}")
+
             flash("Your status has been posted.", "success")
             return redirect(url_for('main.status'))
 
         elif status_type == 'image':
-            if 'image_file' not in request.files:
-                flash('No image file selected.', 'danger')
-                return redirect(url_for('main.add_status'))
-
-            file = request.files['image_file']
-        elif status_type == 'voice':
-            voice_path = request.form.get('voice_file_path')
-            if not voice_path:
-                flash('No voice recording submitted.', 'danger')
-                return redirect(url_for('main.add_status'))
-
-            new_status = Status(
-                user_id=current_user.id,
-                content_type='voice',
-                content=voice_path
-            )
-            db.session.add(new_status)
-            db.session.commit()
-            flash("Your voice status has been posted.", "success")
-            return redirect(url_for('main.status'))
-        elif status_type == 'poll':
-            question = request.form.get('poll_question')
-            options = request.form.getlist('poll_options')
-        elif status_type == 'video':
-            video_path = request.form.get('video_file_path')
-            if not video_path:
-                flash('No video recording submitted.', 'danger')
-                return redirect(url_for('main.add_status'))
-
-            new_status = Status(
-                user_id=current_user.id,
-                content_type='video',
-                content=video_path
-            )
-            db.session.add(new_status)
-            db.session.commit()
-            flash("Your video status has been posted.", "success")
-            return redirect(url_for('main.status'))
-            # Filter out empty options
-            options = [opt for opt in options if opt.strip()]
-
-            if not question or len(options) < 2:
-                flash('A poll requires a question and at least two options.', 'danger')
-                return redirect(url_for('main.add_status'))
-
-            # Create the status first
-            new_status = Status(
-                user_id=current_user.id,
-                content_type='poll',
-                content=question # Store question in content for easy display
-            )
-            db.session.add(new_status)
-            db.session.commit() # Commit to get the status ID
-
-            # Now create the poll linked to the status
-            new_poll = Poll(
-                question=question,
-                user_id=current_user.id,
-                status_id=new_status.id
-            )
-            db.session.add(new_poll)
-
-            # Add options
-            for option_text in options:
-                poll_option = PollOption(poll=new_poll, text=option_text)
-                db.session.add(poll_option)
-
-            db.session.commit()
-            flash('Your poll has been posted as a status.', 'success')
-            return redirect(url_for('main.status'))
-            if file.filename == '':
+            file = request.files.get('image_file')
+            if not file or file.filename == '':
                 flash('No image file selected.', 'danger')
                 return redirect(url_for('main.add_status'))
 
             saved_path = save_status_file(file)
             if not saved_path:
-                flash('Invalid file type or size. Allowed: png, jpg, jpeg. Max size: 5MB.', 'danger')
+                flash('Invalid file type or size.', 'danger')
                 return redirect(url_for('main.add_status'))
 
             caption = request.form.get('caption')
-            new_status = Status(
-                user_id=current_user.id,
-                content_type='image',
-                content=saved_path,
-                caption=caption
-            )
+            if caption:
+                def replace_mention(match):
+                    username = match.group(1)
+                    user = User.query.filter_by(name=username).first()
+                    if user:
+                        return f'<a href="{url_for("main.view_user", user_id=user.id)}">@{username}</a>'
+                    return match.group(0)
+                caption = re.sub(r'@(\w+)', replace_mention, caption)
+
+            new_status = Status(user_id=current_user.id, content_type='image', content=saved_path, caption=caption)
             db.session.add(new_status)
             db.session.commit()
             flash("Your image status has been posted.", "success")
+            return redirect(url_for('main.status'))
+
+        elif status_type == 'voice':
+            voice_path = request.form.get('voice_file_path')
+            if not voice_path:
+                flash('No voice recording submitted.', 'danger')
+                return redirect(url_for('main.add_status'))
+            new_status = Status(user_id=current_user.id, content_type='voice', content=voice_path)
+            db.session.add(new_status)
+            db.session.commit()
+            flash("Your voice status has been posted.", "success")
+            return redirect(url_for('main.status'))
+
+        elif status_type == 'video':
+            video_path = request.form.get('video_file_path')
+            if not video_path:
+                flash('No video recording submitted.', 'danger')
+                return redirect(url_for('main.add_status'))
+            new_status = Status(user_id=current_user.id, content_type='video', content=video_path)
+            db.session.add(new_status)
+            db.session.commit()
+            flash("Your video status has been posted.", "success")
+            return redirect(url_for('main.status'))
+
+        elif status_type == 'poll' or status_type == 'quiz':
+            question = request.form.get(f'{status_type}_question')
+            options = request.form.getlist(f'{status_type}_options')
+            options = [opt for opt in options if opt.strip()]
+
+            if not question or len(options) < 2:
+                flash(f'A {status_type} requires a question and at least two options.', 'danger')
+                return redirect(url_for('main.add_status'))
+
+            caption = None
+            if status_type == 'quiz':
+                correct_answer_index = request.form.get('correct_answer')
+                if not correct_answer_index:
+                    flash('A correct answer must be selected for a quiz.', 'danger')
+                    return redirect(url_for('main.add_status'))
+                caption = correct_answer_index
+
+            new_status = Status(user_id=current_user.id, content_type=status_type, content=question, caption=caption)
+            db.session.add(new_status)
+            db.session.commit()
+
+            new_poll = Poll(question=question, user_id=current_user.id, status_id=new_status.id)
+            db.session.add(new_poll)
+
+            for option_text in options:
+                poll_option = PollOption(poll=new_poll, text=option_text)
+                db.session.add(poll_option)
+
+            db.session.commit()
+            flash(f'Your {status_type} has been posted as a status.', 'success')
             return redirect(url_for('main.status'))
 
     return render_template('chat/add_status.html')
@@ -2008,6 +1996,14 @@ def set_user_preference():
 
     if 'group_notifications_enabled' in data:
         current_user.group_notifications_enabled = bool(data['group_notifications_enabled'])
+
+    # Privacy settings
+    if 'privacy_last_seen' in data and data['privacy_last_seen'] in ['everyone', 'contacts', 'nobody']:
+        current_user.privacy_last_seen = data['privacy_last_seen']
+    if 'privacy_profile_pic' in data and data['privacy_profile_pic'] in ['everyone', 'contacts', 'nobody']:
+        current_user.privacy_profile_pic = data['privacy_profile_pic']
+    if 'privacy_about' in data and data['privacy_about'] in ['everyone', 'contacts', 'nobody']:
+        current_user.privacy_about = data['privacy_about']
 
     db.session.commit()
     return jsonify({'status': 'success', 'message': 'Preferences updated'})
@@ -2102,6 +2098,35 @@ def clear_all_chats():
     except Exception as e:
         db.session.rollback()
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/chat/<int:room_id>/export')
+@login_required
+def export_chat(room_id):
+    room = ChatRoom.query.get_or_404(room_id)
+    # Basic authorization check
+    if not room.members.filter_by(user_id=current_user.id).first() and current_user.role != 'admin':
+        abort(403)
+
+    messages = room.messages.order_by(ChatMessage.timestamp.asc()).all()
+
+    export_content = f"Chat export for: {room.name}\n\n"
+    for msg in messages:
+        timestamp = msg.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        export_content += f"[{timestamp}] {msg.author.name}: {msg.content or 'File: ' + msg.file_name}\n"
+
+    from io import BytesIO
+    from flask import send_file
+
+    buffer = BytesIO()
+    buffer.write(export_content.encode('utf-8'))
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f'{room.name}_export.txt',
+        mimetype='text/plain'
+    )
 
 @main.route('/api/status/user/<int:user_id>/toggle_mute', methods=['POST'])
 @login_required

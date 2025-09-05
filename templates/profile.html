@@ -12,9 +12,15 @@
         <!-- Left Column -->
         <aside class="profile-left-column">
             <div class="glassy-card-container profile-header">
+                {% if show_profile_pic %}
                 <div class="profile-pic">
                     <img src="{{ url_for('static', filename='profile_pics/' + (user.profile_pic if user.profile_pic else 'default.jpg')) }}" alt="Profile Picture">
                 </div>
+                {% else %}
+                <div class="profile-pic">
+                    <img src="{{ url_for('static', filename='profile_pics/default.jpg') }}" alt="Profile Picture">
+                </div>
+                {% endif %}
                 <h1 class="student-name">{{ user.name }}</h1>
                 <p class="student-role">{{ user.role | capitalize }}</p>
 
@@ -34,7 +40,11 @@
             </div>
             <div class="glassy-card-container profile-section">
                 <h3>About Me</h3>
-                <p class="profile-bio {{ 'placeholder' if not user.bio }}">{{ user.bio or 'No bio provided. You can add one by editing your profile.' }}</p>
+                {% if show_about %}
+                <p class="profile-bio {{ 'placeholder' if not user.bio }}">{{ user.bio or 'No bio provided.' }}</p>
+                {% else %}
+                <p class="profile-bio placeholder">This user's about info is private.</p>
+                {% endif %}
             </div>
         </aside>
 
