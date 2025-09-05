@@ -100,8 +100,8 @@ def filter_profanity(text):
 
 def save_status_file(file):
     """Saves an image for a status update."""
-    allowed_extensions = {'png', 'jpg', 'jpeg'}
-    max_size = 5 * 1024 * 1024 # 5MB
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'webm', 'mp3', 'mp4', 'ogg'}
+    max_size = 10 * 1024 * 1024 # 10MB for audio/video
 
     filename = secure_filename(file.filename)
     if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
@@ -124,3 +124,15 @@ def save_status_file(file):
     file.save(filepath)
 
     return os.path.join('status_files', new_filename)
+
+from models import PlatformSetting
+from extensions import db
+
+def get_or_create_platform_setting(key, default_value):
+    """Gets a platform setting or creates it with a default value if it doesn't exist."""
+    setting = PlatformSetting.query.filter_by(key=key).first()
+    if not setting:
+        setting = PlatformSetting(key=key, value=default_value)
+        db.session.add(setting)
+        db.session.commit()
+    return setting

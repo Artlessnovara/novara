@@ -14,37 +14,96 @@
             </a>
             <div class="status-info">
                 <h3 class="status-name">My Status</h3>
-                <p class="status-time">
-                    {% if my_statuses %}
-                        {{ my_statuses|length }} updates
-                    {% else %}
-                        Tap to add status update
-                    {% endif %}
-                </p>
+                <p class="status-time">Tap to add status update</p>
             </div>
         </div>
+        {% if my_statuses %}
+        <div class="my-statuses-list">
+            <h4>Your active statuses:</h4>
+            {% for status in my_statuses %}
+            <a href="{{ url_for('main.view_user_status', user_id=current_user.id) }}" class="status-item-link">
+                <div class="status-item">
+                     <div class="status-info">
+                        <p class="status-time">
+                            {% if status.content_type == 'text' %}
+                                Text: {{ status.content|truncate(30) }}
+                            {% else %}
+                                {{ status.content_type|capitalize }} posted at {{ status.created_at.strftime('%H:%M') }}
+                            {% endif %}
+                        </p>
+                        <p class="seen-by"><i class="fa-solid fa-eye"></i> Seen by {{ status.views|length }}</p>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 
+    {% if unviewed_updates %}
     <div class="status-section">
         <h4 class="section-title">Recent Updates</h4>
-        {% for update in recent_updates %}
+        {% for update in unviewed_updates %}
         <a href="{{ url_for('main.view_user_status', user_id=update.user.id) }}" class="status-item-link">
             <div class="status-item">
                 <div class="status-avatar-wrapper">
-                    <div class="status-avatar {% if not update.all_viewed %}unviewed{% endif %}">
+                    <div class="status-avatar unviewed" style="--status-count: {{ update.statuses|length }};">
                         <img src="{{ url_for('static', filename='profile_pics/' + update.user.profile_pic) }}" alt="{{ update.user.name }}">
                     </div>
                 </div>
                 <div class="status-info">
                     <h3 class="status-name">{{ update.user.name }}</h3>
-                    <p class="status-time">{{ update.statuses|length }} updates</p>
+                    <p class="status-time">{{ update.statuses[0].created_at.strftime('%H:%M') }}</p>
                 </div>
             </div>
         </a>
-        {% else %}
-        <p class="no-updates">No recent updates from others.</p>
         {% endfor %}
     </div>
+    {% endif %}
+
+    {% if viewed_updates %}
+    <div class="status-section">
+        <h4 class="section-title">Viewed Updates</h4>
+        {% for update in viewed_updates %}
+        <a href="{{ url_for('main.view_user_status', user_id=update.user.id) }}" class="status-item-link">
+            <div class="status-item">
+                <div class="status-avatar-wrapper">
+                    <div class="status-avatar viewed" style="--status-count: {{ update.statuses|length }};">
+                        <img src="{{ url_for('static', filename='profile_pics/' + update.user.profile_pic) }}" alt="{{ update.user.name }}">
+                    </div>
+                </div>
+                <div class="status-info">
+                    <h3 class="status-name">{{ update.user.name }}</h3>
+                    <p class="status-time">{{ update.statuses[0].created_at.strftime('%H:%M') }}</p>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if muted_updates %}
+    <div class="status-section muted-section">
+        <h4 class="section-title collapsible">Muted Updates <i class="fa-solid fa-chevron-down"></i></h4>
+        <div class="collapsible-content">
+            {% for update in muted_updates %}
+            <a href="{{ url_for('main.view_user_status', user_id=update.user.id) }}" class="status-item-link">
+                <div class="status-item">
+                    <div class="status-avatar-wrapper">
+                    <div class="status-avatar viewed" style="--status-count: {{ update.statuses|length }};">
+                            <img src="{{ url_for('static', filename='profile_pics/' + update.user.profile_pic) }}" alt="{{ update.user.name }}">
+                        </div>
+                    </div>
+                    <div class="status-info">
+                        <h3 class="status-name">{{ update.user.name }}</h3>
+                        <p class="status-time">{{ update.statuses[0].created_at.strftime('%H:%M') }}</p>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <style>
@@ -124,5 +183,65 @@
     padding: 1rem;
     text-align: center;
 }
+.my-statuses-list {
+    margin-top: 1.5rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--border-color);
+}
+.my-statuses-list h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #54656f;
+}
+.seen-by {
+    font-size: 0.8rem;
+    color: var(--primary-color);
+    margin-top: 4px;
+}
+.seen-by i {
+    margin-right: 4px;
+}
+.status-avatar.unviewed {
+    background: conic-gradient(
+        var(--primary-color) 0deg calc(360deg / var(--status-count) - 5deg),
+        transparent calc(360deg / var(--status-count) - 5deg) calc(360deg / var(--status-count))
+    );
+}
+.status-avatar.viewed {
+    border-color: #8e8e93;
+}
+.muted-section .collapsible {
+    cursor: pointer;
+}
+.muted-section .collapsible i {
+    transition: transform 0.3s;
+}
+.muted-section .collapsible.active i {
+    transform: rotate(180deg);
+}
+.collapsible-content {
+    display: none;
+    padding-left: 1rem;
+    border-left: 1px solid var(--border-color);
+    margin-top: 1rem;
+}
 </style>
+{% endblock %}
+{% block chat_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const collapsible = document.querySelector('.collapsible');
+    if (collapsible) {
+        collapsible.addEventListener('click', function() {
+            this.classList.toggle('active');
+            const content = this.nextElementSibling;
+            if (content.style.display === 'block') {
+                content.style.display = 'none';
+            } else {
+                content.style.display = 'block';
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

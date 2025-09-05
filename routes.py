@@ -5,9 +5,9 @@ import random
 import secrets
 import os
 from werkzeug.utils import secure_filename
-from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket
+from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser
 from extensions import db
-from utils import save_chat_file, save_status_file
+from utils import save_chat_file, save_status_file, get_or_create_platform_setting
 from datetime import timedelta
 
 main = Blueprint('main', __name__)
@@ -1659,10 +1659,17 @@ def seed_db():
 @main.route('/status')
 @login_required
 def status():
-    # Only Admins and Instructors can post statuses
-    can_post_status = current_user.role in ['admin', 'instructor']
+    # Check permission to post
+    can_post = False
+    if current_user.role == 'admin':
+        can_post = True
+    elif current_user.role == 'instructor':
+        setting = get_or_create_platform_setting('instructor_status_posting_enabled', 'true')
+        can_post = setting.value == 'true'
+    elif current_user.role == 'student':
+        setting = get_or_create_platform_setting('student_status_posting_enabled', 'false')
+        can_post = setting.value == 'true'
 
-    # Get active statuses from the last 24 hours
     now = datetime.utcnow()
 
     # My active statuses
@@ -1671,35 +1678,62 @@ def status():
         Status.expires_at > now
     ).order_by(Status.created_at.desc()).all()
 
-    # Recent updates from others (Admins and Instructors only)
-    recent_updates_query = Status.query.join(User).filter(
-        User.role.in_(['admin', 'instructor']),
+    # --- Categorization Logic ---
+    muted_user_ids = {m.muted_id for m in current_user.muted_status_users}
+
+    # Get all active statuses from other users
+    all_updates = Status.query.filter(
         Status.user_id != current_user.id,
         Status.expires_at > now
-    ).order_by(User.id, Status.created_at.desc())
+    ).order_by(Status.user_id, Status.created_at.desc()).all()
 
-    recent_updates_by_user = {}
-    for s in recent_updates_query:
-        if s.user_id not in recent_updates_by_user:
-            recent_updates_by_user[s.user_id] = {
-                'user': s.user,
-                'statuses': [],
-                'all_viewed': True # Assume all are viewed until we find one that is not
-            }
-        recent_updates_by_user[s.user_id]['statuses'].append(s)
+    # Group statuses by user
+    updates_by_user = {}
+    for s in all_updates:
+        if s.user_id not in updates_by_user:
+            updates_by_user[s.user_id] = {'user': s.user, 'statuses': [], 'all_viewed': True, 'last_viewed': None}
+        updates_by_user[s.user_id]['statuses'].append(s)
 
-    # Check which statuses have been viewed
-    for user_id, data in recent_updates_by_user.items():
-        for s in data['statuses']:
-            is_viewed = StatusView.query.filter_by(status_id=s.id, user_id=current_user.id).first()
-            if not is_viewed:
-                data['all_viewed'] = False
-                break
+    # Determine 'all_viewed' and find last view time for each user group
+    from sqlalchemy import func
+    for user_id, data in updates_by_user.items():
+        status_ids = [s.id for s in data['statuses']]
+        viewed_statuses_count = db.session.query(func.count(StatusView.id)).filter(
+            StatusView.status_id.in_(status_ids),
+            StatusView.user_id == current_user.id
+        ).scalar()
+
+        data['all_viewed'] = (viewed_statuses_count == len(status_ids))
+
+        if data['all_viewed']:
+            last_view = db.session.query(func.max(StatusView.viewed_at)).filter(
+                StatusView.status_id.in_(status_ids),
+                StatusView.user_id == current_user.id
+            ).scalar()
+            data['last_viewed'] = last_view
+
+    # Categorize into unviewed, viewed, and muted
+    unviewed_updates = []
+    viewed_updates = []
+    muted_updates = []
+
+    for user_id, data in updates_by_user.items():
+        if user_id in muted_user_ids:
+            muted_updates.append(data)
+        elif data['all_viewed']:
+            viewed_updates.append(data)
+        else:
+            unviewed_updates.append(data)
+
+    # Sort viewed updates by the most recently viewed
+    viewed_updates.sort(key=lambda x: x['last_viewed'], reverse=True)
 
     return render_template('status.html',
                            my_statuses=my_statuses,
-                           recent_updates=recent_updates_by_user.values(),
-                           can_post_status=can_post_status)
+                           unviewed_updates=unviewed_updates,
+                           viewed_updates=viewed_updates,
+                           muted_updates=muted_updates,
+                           can_post_status=can_post)
 
 @main.route('/status/view/<int:user_id>')
 @login_required
@@ -1708,6 +1742,12 @@ def view_user_status(user_id):
     # The data will be fetched by JavaScript.
     user = User.query.get_or_404(user_id)
     return render_template('chat/view_status.html', view_user=user)
+
+@main.route('/status/view/me')
+@login_required
+def view_my_status():
+    # Re-use the same template, but for the current user
+    return render_template('chat/view_status.html', view_user=current_user)
 
 @main.route('/status/data/<int:user_id>')
 @login_required
@@ -1721,13 +1761,38 @@ def get_user_status_data(user_id):
     statuses_data = []
     for s in statuses:
         is_viewed = StatusView.query.filter_by(status_id=s.id, user_id=current_user.id).first() is not None
-        statuses_data.append({
+        status_item = {
             'id': s.id,
             'content_type': s.content_type,
             'content': s.content if s.content_type == 'text' else url_for('static', filename=s.content),
             'caption': s.caption,
-            'viewed': is_viewed
-        })
+            'background': s.background,
+            'viewed': is_viewed,
+            'poll': None
+        }
+        if s.content_type == 'poll' and s.poll:
+            poll_data = {
+                'id': s.poll.id,
+                'question': s.poll.question,
+                'options': []
+            }
+            total_votes = 0
+            # Calculate total votes first
+            for opt in s.poll.options:
+                total_votes += len(opt.votes)
+
+            for opt in s.poll.options:
+                vote_count = len(opt.votes)
+                percentage = (vote_count / total_votes * 100) if total_votes > 0 else 0
+                poll_data['options'].append({
+                    'id': opt.id,
+                    'text': opt.text,
+                    'votes': vote_count,
+                    'percentage': round(percentage)
+                })
+            status_item['poll'] = poll_data
+
+        statuses_data.append(status_item)
 
     user = User.query.get_or_404(user_id)
     return jsonify({
@@ -1752,8 +1817,21 @@ def mark_status_viewed(status_id):
 @main.route('/status/add', methods=['GET', 'POST'])
 @login_required
 def add_status():
-    if current_user.role not in ['admin', 'instructor']:
-        flash("You are not allowed to post a status.", "warning")
+    # Permission Check
+    can_post = False
+    if current_user.role == 'admin':
+        can_post = True
+    elif current_user.role == 'instructor':
+        setting = get_or_create_platform_setting('instructor_status_posting_enabled', 'true')
+        if setting.value == 'true':
+            can_post = True
+    elif current_user.role == 'student':
+        setting = get_or_create_platform_setting('student_status_posting_enabled', 'false')
+        if setting.value == 'true':
+            can_post = True
+
+    if not can_post:
+        flash("Posting Status is currently disabled for your role.", "warning")
         return redirect(url_for('main.status'))
 
     if request.method == 'POST':
@@ -1761,11 +1839,17 @@ def add_status():
 
         if status_type == 'text':
             content = request.form.get('text_content')
+            background = request.form.get('background_color')
             if not content:
                 flash("Text content cannot be empty.", "danger")
                 return redirect(url_for('main.add_status'))
 
-            new_status = Status(user_id=current_user.id, content_type='text', content=content)
+            new_status = Status(
+                user_id=current_user.id,
+                content_type='text',
+                content=content,
+                background=background
+            )
             db.session.add(new_status)
             db.session.commit()
             flash("Your status has been posted.", "success")
@@ -1777,6 +1861,71 @@ def add_status():
                 return redirect(url_for('main.add_status'))
 
             file = request.files['image_file']
+        elif status_type == 'voice':
+            voice_path = request.form.get('voice_file_path')
+            if not voice_path:
+                flash('No voice recording submitted.', 'danger')
+                return redirect(url_for('main.add_status'))
+
+            new_status = Status(
+                user_id=current_user.id,
+                content_type='voice',
+                content=voice_path
+            )
+            db.session.add(new_status)
+            db.session.commit()
+            flash("Your voice status has been posted.", "success")
+            return redirect(url_for('main.status'))
+        elif status_type == 'poll':
+            question = request.form.get('poll_question')
+            options = request.form.getlist('poll_options')
+        elif status_type == 'video':
+            video_path = request.form.get('video_file_path')
+            if not video_path:
+                flash('No video recording submitted.', 'danger')
+                return redirect(url_for('main.add_status'))
+
+            new_status = Status(
+                user_id=current_user.id,
+                content_type='video',
+                content=video_path
+            )
+            db.session.add(new_status)
+            db.session.commit()
+            flash("Your video status has been posted.", "success")
+            return redirect(url_for('main.status'))
+            # Filter out empty options
+            options = [opt for opt in options if opt.strip()]
+
+            if not question or len(options) < 2:
+                flash('A poll requires a question and at least two options.', 'danger')
+                return redirect(url_for('main.add_status'))
+
+            # Create the status first
+            new_status = Status(
+                user_id=current_user.id,
+                content_type='poll',
+                content=question # Store question in content for easy display
+            )
+            db.session.add(new_status)
+            db.session.commit() # Commit to get the status ID
+
+            # Now create the poll linked to the status
+            new_poll = Poll(
+                question=question,
+                user_id=current_user.id,
+                status_id=new_status.id
+            )
+            db.session.add(new_poll)
+
+            # Add options
+            for option_text in options:
+                poll_option = PollOption(poll=new_poll, text=option_text)
+                db.session.add(poll_option)
+
+            db.session.commit()
+            flash('Your poll has been posted as a status.', 'success')
+            return redirect(url_for('main.status'))
             if file.filename == '':
                 flash('No image file selected.', 'danger')
                 return redirect(url_for('main.add_status'))
@@ -1888,6 +2037,43 @@ def upload_wallpaper():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@main.route('/api/upload_status_voice', methods=['POST'])
+@login_required
+def upload_status_voice():
+    if 'voice_file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'No voice file part'}), 400
+    file = request.files['voice_file']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'No selected file'}), 400
+
+    try:
+        # We can reuse save_status_file, but need to ensure it allows audio
+        filepath = save_status_file(file)
+        if filepath:
+            return jsonify({'status': 'success', 'filepath': filepath})
+        else:
+            return jsonify({'status': 'error', 'message': 'Invalid file type'}), 400
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/upload_status_video', methods=['POST'])
+@login_required
+def upload_status_video():
+    if 'video_file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'No video file part'}), 400
+    file = request.files['video_file']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'No selected file'}), 400
+
+    try:
+        filepath = save_status_file(file)
+        if filepath:
+            return jsonify({'status': 'success', 'filepath': filepath})
+        else:
+            return jsonify({'status': 'error', 'message': 'Invalid file type'}), 400
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @main.route('/api/chats/clear_all', methods=['POST'])
 @login_required
 def clear_all_chats():
@@ -1916,6 +2102,28 @@ def clear_all_chats():
     except Exception as e:
         db.session.rollback()
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/api/status/user/<int:user_id>/toggle_mute', methods=['POST'])
+@login_required
+def toggle_mute_status(user_id):
+    if user_id == current_user.id:
+        return jsonify({'status': 'error', 'message': 'Cannot mute yourself'}), 400
+
+    existing_mute = MutedStatusUser.query.filter_by(
+        muter_id=current_user.id,
+        muted_id=user_id
+    ).first()
+
+    if existing_mute:
+        db.session.delete(existing_mute)
+        new_status = 'unmuted'
+    else:
+        new_mute = MutedStatusUser(muter_id=current_user.id, muted_id=user_id)
+        db.session.add(new_mute)
+        new_status = 'muted'
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'mute_status': new_status})
 
 @main.route('/api/chats/delete_all', methods=['POST'])
 @login_required
