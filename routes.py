@@ -3,7 +3,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 import random
 import secrets
-from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll
+from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp
 from extensions import db
 from utils import save_chat_file, save_status_file
 from datetime import timedelta
@@ -557,6 +557,13 @@ def user_chat_info(other_user_id):
     if current_user.id == other_user_id:
         return redirect(url_for('main.profile')) # Redirect to own profile page
 
+    # Block check before creating a room
+    is_blocked_by = BlockedUser.query.filter_by(blocker_id=other_user_id, blocked_id=current_user.id).first()
+    has_blocked = BlockedUser.query.filter_by(blocker_id=current_user.id, blocked_id=other_user_id).first()
+    if is_blocked_by or has_blocked:
+        flash("You cannot interact with this user.", "warning")
+        return redirect(request.referrer or url_for('main.chat_list'))
+
     room = get_or_create_private_room(current_user.id, other_user_id)
     return redirect(url_for('main.chat_room_info', room_id=room.id))
 
@@ -763,10 +770,21 @@ def profile():
 
     return render_template('profile.html', user=current_user, comments=recent_comments, certificates=certificates)
 
+from models import BlockedUser
+
 @main.route("/user/<int:user_id>")
 @login_required
 def view_user(user_id):
     user = User.query.get_or_404(user_id)
+
+    # Block check
+    is_blocked_by = BlockedUser.query.filter_by(blocker_id=user.id, blocked_id=current_user.id).first()
+    has_blocked = BlockedUser.query.filter_by(blocker_id=current_user.id, blocked_id=user.id).first()
+
+    if is_blocked_by or has_blocked:
+        flash("You cannot view this profile.", "warning")
+        return redirect(url_for('main.home'))
+
     return render_template('public_profile.html', user=user)
 
 @main.route("/profile/edit", methods=['POST'])
@@ -905,7 +923,14 @@ def add_members(room_id):
 
     # Exclude users who are already members
     existing_member_ids = [member.user_id for member in room.members]
-    users = User.query.filter(User.id.notin_(existing_member_ids)).all()
+
+    # Exclude users that the current user has blocked
+    blocked_user_ids = [b.blocked_id for b in current_user.blocking]
+
+    users = User.query.filter(
+        User.id.notin_(existing_member_ids + blocked_user_ids)
+    ).all()
+
     return render_template('add_members.html', room=room, users=users)
 
 @main.route('/chat/join/<token>')
@@ -1007,9 +1032,13 @@ def chat_room(room_id):
             chat_info['other_user_id'] = other_member.user_id
 
     # Fetch recent messages
-    # This part can be simplified. The template can handle rendering logic.
-    # We will fetch the full message objects instead.
-    recent_messages = room.messages.order_by(ChatMessage.timestamp.asc()).limit(50).all()
+    clear_record = ChatClearTimestamp.query.filter_by(user_id=current_user.id, room_id=room.id).first()
+
+    messages_query = room.messages
+    if clear_record:
+        messages_query = messages_query.filter(ChatMessage.timestamp >= clear_record.cleared_at)
+
+    recent_messages = messages_query.order_by(ChatMessage.timestamp.asc()).limit(50).all()
 
     return render_template('chat/room.html', chat_info=chat_info, messages=recent_messages, current_user_id=current_user.id)
 
@@ -1026,10 +1055,13 @@ def chat_room_info(room_id):
         abort(403)
 
     other_user = None
+    is_blocked = False
     if room.room_type == 'private':
         other_member = ChatRoomMember.query.filter(ChatRoomMember.chat_room_id == room.id, ChatRoomMember.user_id != current_user.id).first()
         if other_member:
             other_user = other_member.user
+            # Check block status
+            is_blocked = BlockedUser.query.filter_by(blocker_id=current_user.id, blocked_id=other_user.id).first() is not None
 
     # Fetch recent media
     media_messages = ChatMessage.query.filter(
@@ -1067,6 +1099,7 @@ def chat_room_info(room_id):
     return render_template('chat_info.html',
                            room=room,
                            other_user=other_user,
+                           is_blocked=is_blocked,
                            media_messages=media_messages,
                            user_role_in_room=user_role_in_room,
                            is_muted=is_muted,
@@ -1235,10 +1268,13 @@ def get_chat_history(room_id):
     # Authorization check could be more robust here
     room = ChatRoom.query.get_or_404(room_id)
 
-    messages = ChatMessage.query.filter_by(room_id=room_id)\
-        .order_by(ChatMessage.timestamp.desc())\
-        .limit(50)\
-        .all()
+    clear_record = ChatClearTimestamp.query.filter_by(user_id=current_user.id, room_id=room.id).first()
+
+    messages_query = ChatMessage.query.filter_by(room_id=room_id)
+    if clear_record:
+        messages_query = messages_query.filter(ChatMessage.timestamp >= clear_record.cleared_at)
+
+    messages = messages_query.order_by(ChatMessage.timestamp.desc()).limit(50).all()
 
     # Reverse the messages to be in chronological order
     messages.reverse()

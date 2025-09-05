@@ -150,10 +150,14 @@
             </div>
 
             <div class="controls-section">
-                <a href="#" class="control-item">Mute Notifications</a>
-                <a href="#" class="control-item">Block Contact</a>
+                <a href="#" id="mute-btn" class="control-item">
+                    {% if is_muted %}Unmute Notifications{% else %}Mute Notifications{% endif %}
+                </a>
+                <a href="#" id="block-btn" class="control-item">
+                    {% if is_blocked %}Unblock Contact{% else %}Block Contact{% endif %}
+                </a>
+                <a href="#" id="clear-chat-btn" class="control-item text-danger">Clear Chat</a>
                 <a href="#" class="control-item">Report Contact</a>
-                <a href="#" class="control-item">Clear Chat</a>
             </div>
         </div>
     {% else %}
@@ -213,6 +217,7 @@
 
             <div class="controls-section">
                 <a href="#" class="control-item">Mute Notifications</a>
+                <a href="#" id="clear-chat-btn" class="control-item text-danger">Clear Chat</a>
                 <a href="#" class="control-item">Exit Group</a>
                 <a href="#" class="control-item">Report Group</a>
             </div>
@@ -304,6 +309,49 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Mute Button Logic
+    const muteBtn = document.getElementById('mute-btn');
+    if (muteBtn) {
+        muteBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof socket !== 'undefined') {
+                socket.emit('toggle_mute', { room_id: {{ room.id|tojson }} });
+            } else {
+                alert("Connection error, cannot update mute status.");
+            }
+        });
+    }
+
+    if (typeof socket !== 'undefined') {
+        socket.on('mute_status_changed', (data) => {
+            if (data.room_id === {{ room.id|tojson }}) {
+                if (muteBtn) {
+                    muteBtn.textContent = data.is_muted ? 'Unmute Notifications' : 'Mute Notifications';
+                }
+            }
+        });
+
+        socket.on('user_block_status', (data) => {
+            if (data.blocked_user_id === {{ other_user.id|tojson }}) {
+                const blockBtn = document.getElementById('block-btn');
+                if (blockBtn) {
+                    blockBtn.textContent = data.is_blocked ? 'Unblock Contact' : 'Block Contact';
+                }
+                alert(`User has been ${data.is_blocked ? 'blocked' : 'unblocked'}.`);
+            }
+        });
+    }
+
+    const blockBtn = document.getElementById('block-btn');
+    if (blockBtn) {
+        blockBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof socket !== 'undefined' && {{ other_user.id|tojson }}) {
+                socket.emit('toggle_block_user', { blocked_user_id: {{ other_user.id|tojson }} });
+            }
+        });
+    }
+
     // --- Invite via Link Logic ---
     const inviteBtn = document.getElementById('invite-link-btn');
     const inviteContainer = document.getElementById('invite-link-container');
@@ -347,6 +395,32 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (err) {
                 console.error("Failed to revoke invite link", err);
                 alert("Could not revoke invite link.");
+            }
+        });
+    }
+
+    // --- Clear Chat Logic ---
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    if (clearChatBtn) {
+        clearChatBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const confirmed = confirm('Are you sure you want to clear all messages in this chat? This action cannot be undone.');
+            if (confirmed) {
+                if (typeof socket !== 'undefined') {
+                    socket.emit('clear_chat', { room_id: {{ room.id|tojson }} });
+                } else {
+                    alert("Connection error, cannot clear chat.");
+                }
+            }
+        });
+    }
+
+    if (typeof socket !== 'undefined') {
+        socket.on('chat_cleared', (data) => {
+            if (data.room_id === {{ room.id|tojson }}) {
+                alert('Chat has been cleared.');
+                // Redirect to the now-empty chat room
+                window.location.href = "{{ url_for('main.chat_room', room_id=room.id) }}";
             }
         });
     }
