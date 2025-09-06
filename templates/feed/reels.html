@@ -43,7 +43,7 @@
     <div class="reels-grid">
         {% for reel in reels %}
             <div class="reel-item">
-                <a href="#">
+                <a href="{{ url_for('feed.reels_viewer') }}">
                     <video src="{{ url_for('static', filename=reel.video_url) }}" muted onmouseover="this.play()" onmouseout="this.pause(); this.currentTime=0;"></video>
                     <div class="reel-info">
                         <p>{{ reel.caption|truncate(50) }}</p>

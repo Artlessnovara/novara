@@ -689,6 +689,17 @@ class Reel(db.Model):
     caption = db.Column(db.Text, nullable=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
+    likes = db.relationship('Like',
+                            primaryjoin="and_(Like.target_type=='reel', foreign(Like.target_id)==Reel.id)",
+                            lazy='dynamic',
+                            cascade="all, delete-orphan",
+                            overlaps="likes")
+    comments = db.relationship('GenericComment',
+                               primaryjoin="and_(GenericComment.target_type=='reel', foreign(GenericComment.target_id)==Reel.id)",
+                               lazy='dynamic',
+                               cascade="all, delete-orphan",
+                               overlaps="generic_comments")
+
 class CommunityMembership(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     community_id = db.Column(db.Integer, db.ForeignKey('community.id'), primary_key=True)
@@ -709,11 +720,13 @@ class Project(db.Model):
     likes = db.relationship('Like',
                             primaryjoin="and_(Like.target_type=='project', foreign(Like.target_id)==Project.id)",
                             lazy='dynamic',
-                            cascade="all, delete-orphan")
+                            cascade="all, delete-orphan",
+                            overlaps="likes")
     comments = db.relationship('GenericComment',
                                primaryjoin="and_(GenericComment.target_type=='project', foreign(GenericComment.target_id)==Project.id)",
                                lazy='dynamic',
-                               cascade="all, delete-orphan")
+                               cascade="all, delete-orphan",
+                               overlaps="generic_comments")
 
 class CreativeWork(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -727,11 +740,13 @@ class CreativeWork(db.Model):
     likes = db.relationship('Like',
                             primaryjoin="and_(Like.target_type=='creative_work', foreign(Like.target_id)==CreativeWork.id)",
                             lazy='dynamic',
-                            cascade="all, delete-orphan")
+                            cascade="all, delete-orphan",
+                            overlaps="likes")
     comments = db.relationship('GenericComment',
                                primaryjoin="and_(GenericComment.target_type=='creative_work', foreign(GenericComment.target_id)==CreativeWork.id)",
                                lazy='dynamic',
-                               cascade="all, delete-orphan")
+                               cascade="all, delete-orphan",
+                               overlaps="generic_comments")
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
