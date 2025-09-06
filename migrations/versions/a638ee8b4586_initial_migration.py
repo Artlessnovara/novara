@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: fb48a7f7b472
+Revision ID: a638ee8b4586
 Revises:
-Create Date: 2025-08-21 14:00:00.000000
+Create Date: 2025-09-06 12:23:00.825900
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'fb48a7f7b472'
+revision = 'a638ee8b4586'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -40,8 +40,18 @@ def upgrade():
     sa.Column('role', sa.String(length=50), nullable=False),
     sa.Column('approved', sa.Boolean(), nullable=True),
     sa.Column('is_banned', sa.Boolean(), nullable=True),
+    sa.Column('can_send_messages', sa.Boolean(), nullable=False),
+    sa.Column('can_make_calls', sa.Boolean(), nullable=False),
     sa.Column('profile_pic', sa.String(length=150), nullable=False),
     sa.Column('bio', sa.Text(), nullable=True),
+    sa.Column('last_seen', sa.DateTime(), nullable=True),
+    sa.Column('theme', sa.String(length=10), nullable=True),
+    sa.Column('chat_wallpaper', sa.String(length=255), nullable=True),
+    sa.Column('message_notifications_enabled', sa.Boolean(), nullable=True),
+    sa.Column('group_notifications_enabled', sa.Boolean(), nullable=True),
+    sa.Column('privacy_last_seen', sa.String(length=50), nullable=False),
+    sa.Column('privacy_profile_pic', sa.String(length=50), nullable=False),
+    sa.Column('privacy_about', sa.String(length=50), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )
@@ -55,6 +65,27 @@ def upgrade():
     sa.Column('timestamp', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['admin_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('blocked_user',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('blocker_id', sa.Integer(), nullable=False),
+    sa.Column('blocked_id', sa.Integer(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['blocked_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['blocker_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('blocker_id', 'blocked_id', name='_user_block_uc')
+    )
+    op.create_table('community',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=100), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('cover_image', sa.String(length=150), nullable=True),
+    sa.Column('created_by_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
     )
     op.create_table('course',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -74,6 +105,36 @@ def upgrade():
     sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
     sa.ForeignKeyConstraint(['instructor_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('creative_work',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(length=150), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('media_url', sa.String(length=255), nullable=False),
+    sa.Column('work_type', sa.String(length=50), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('creative_work', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_creative_work_timestamp'), ['timestamp'], unique=False)
+
+    op.create_table('fcm_token',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('token', sa.String(length=255), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('token')
+    )
+    op.create_table('follow',
+    sa.Column('follower_id', sa.Integer(), nullable=False),
+    sa.Column('followed_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['followed_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['follower_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('follower_id', 'followed_id')
     )
     op.create_table('group_request',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -101,6 +162,96 @@ def upgrade():
     sa.Column('download_count', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
     sa.ForeignKeyConstraint(['uploader_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('muted_status_user',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('muter_id', sa.Integer(), nullable=False),
+    sa.Column('muted_id', sa.Integer(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['muted_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['muter_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('muter_id', 'muted_id', name='_muter_muted_uc')
+    )
+    op.create_table('notification',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('actor_id', sa.Integer(), nullable=True),
+    sa.Column('type', sa.String(length=50), nullable=False),
+    sa.Column('object_type', sa.String(length=50), nullable=True),
+    sa.Column('object_id', sa.Integer(), nullable=True),
+    sa.Column('is_read', sa.Boolean(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['actor_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('notification', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_notification_timestamp'), ['timestamp'], unique=False)
+        batch_op.create_index(batch_op.f('ix_notification_user_id'), ['user_id'], unique=False)
+
+    op.create_table('post',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('content', sa.Text(), nullable=False),
+    sa.Column('media_type', sa.String(length=20), nullable=True),
+    sa.Column('media_url', sa.String(length=255), nullable=True),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.Column('privacy', sa.String(length=50), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('post', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_post_timestamp'), ['timestamp'], unique=False)
+
+    op.create_table('project',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(length=150), nullable=False),
+    sa.Column('description', sa.Text(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('project', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_project_timestamp'), ['timestamp'], unique=False)
+
+    op.create_table('reel',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('video_url', sa.String(length=255), nullable=False),
+    sa.Column('caption', sa.Text(), nullable=True),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('reel', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_reel_timestamp'), ['timestamp'], unique=False)
+
+    op.create_table('status',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('content_type', sa.String(length=50), nullable=False),
+    sa.Column('content', sa.String(length=255), nullable=False),
+    sa.Column('caption', sa.Text(), nullable=True),
+    sa.Column('background', sa.String(length=50), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('expires_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('status', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_status_expires_at'), ['expires_at'], unique=False)
+
+    op.create_table('support_ticket',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('subject', sa.String(length=255), nullable=False),
+    sa.Column('message', sa.Text(), nullable=False),
+    sa.Column('status', sa.String(length=50), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('certificate',
@@ -133,6 +284,7 @@ def upgrade():
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('room_type', sa.String(length=50), nullable=False),
     sa.Column('course_id', sa.Integer(), nullable=True),
+    sa.Column('community_id', sa.Integer(), nullable=True),
     sa.Column('created_by_id', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('is_locked', sa.Boolean(), nullable=False),
@@ -140,6 +292,7 @@ def upgrade():
     sa.Column('last_message_timestamp', sa.DateTime(), nullable=True),
     sa.Column('cover_image', sa.String(length=150), nullable=True),
     sa.Column('join_token', sa.String(length=100), nullable=True),
+    sa.ForeignKeyConstraint(['community_id'], ['community.id'], ),
     sa.ForeignKeyConstraint(['course_id'], ['course.id'], ),
     sa.ForeignKeyConstraint(['created_by_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id'),
@@ -163,6 +316,15 @@ def upgrade():
     with op.batch_alter_table('comment', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_comment_timestamp'), ['timestamp'], unique=False)
 
+    op.create_table('community_membership',
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('community_id', sa.Integer(), nullable=False),
+    sa.Column('role', sa.String(length=50), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['community_id'], ['community.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('user_id', 'community_id')
+    )
     op.create_table('enrollment',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
@@ -195,6 +357,7 @@ def upgrade():
     sa.Column('disable_copy_paste', sa.Boolean(), nullable=True),
     sa.Column('webcam_monitoring', sa.Boolean(), nullable=True),
     sa.Column('release_scores_immediately', sa.Boolean(), nullable=True),
+    sa.Column('is_published', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['course_id'], ['course.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -210,6 +373,17 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('link_preview',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('status_id', sa.Integer(), nullable=False),
+    sa.Column('url', sa.String(length=2048), nullable=False),
+    sa.Column('title', sa.String(length=255), nullable=True),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('image_url', sa.String(length=2048), nullable=True),
+    sa.ForeignKeyConstraint(['status_id'], ['status.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('status_id')
+    )
     op.create_table('module',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('course_id', sa.Integer(), nullable=False),
@@ -217,6 +391,26 @@ def upgrade():
     sa.Column('order', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['course_id'], ['course.id'], ),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('reported_post',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('post_id', sa.Integer(), nullable=False),
+    sa.Column('reported_by_id', sa.Integer(), nullable=False),
+    sa.Column('reason', sa.Text(), nullable=True),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['post_id'], ['post.id'], ),
+    sa.ForeignKeyConstraint(['reported_by_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('status_view',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('status_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('viewed_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['status_id'], ['status.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('status_id', 'user_id', name='_status_user_view_uc')
     )
     op.create_table('assignment',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -227,6 +421,36 @@ def upgrade():
     sa.Column('max_file_size', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['module_id'], ['module.id'], ),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('call_history',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('caller_id', sa.Integer(), nullable=False),
+    sa.Column('callee_id', sa.Integer(), nullable=True),
+    sa.Column('room_id', sa.Integer(), nullable=False),
+    sa.Column('call_type', sa.String(length=50), nullable=False),
+    sa.Column('status', sa.String(length=50), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('started_at', sa.DateTime(), nullable=True),
+    sa.Column('answered_at', sa.DateTime(), nullable=True),
+    sa.Column('ended_at', sa.DateTime(), nullable=True),
+    sa.Column('duration', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['callee_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['caller_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['room_id'], ['chat_room.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('call_history', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_call_history_is_active'), ['is_active'], unique=False)
+
+    op.create_table('chat_clear_timestamp',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('room_id', sa.Integer(), nullable=False),
+    sa.Column('cleared_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['room_id'], ['chat_room.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'room_id', name='_user_room_clear_uc')
     )
     op.create_table('chat_message',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -239,7 +463,13 @@ def upgrade():
     sa.Column('is_pinned', sa.Boolean(), nullable=True),
     sa.Column('is_edited', sa.Boolean(), nullable=True),
     sa.Column('replied_to_id', sa.Integer(), nullable=True),
+    sa.Column('read_at', sa.DateTime(), nullable=True),
+    sa.Column('is_forwarded', sa.Boolean(), nullable=True),
+    sa.Column('forwarded_from_id', sa.Integer(), nullable=True),
+    sa.Column('replied_to_status_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['forwarded_from_id'], ['user.id'], ),
     sa.ForeignKeyConstraint(['replied_to_id'], ['chat_message.id'], ),
+    sa.ForeignKeyConstraint(['replied_to_status_id'], ['status.id'], ),
     sa.ForeignKeyConstraint(['room_id'], ['chat_room.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -282,6 +512,16 @@ def upgrade():
     sa.ForeignKeyConstraint(['module_id'], ['module.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('muted_room',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('room_id', sa.Integer(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['room_id'], ['chat_room.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'room_id', name='_user_muted_room_uc')
+    )
     op.create_table('muted_user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -303,6 +543,16 @@ def upgrade():
     sa.Column('attempt_limit', sa.Integer(), nullable=True),
     sa.Column('pass_mark', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['module_id'], ['module.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('reported_group',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('room_id', sa.Integer(), nullable=False),
+    sa.Column('reported_by_id', sa.Integer(), nullable=False),
+    sa.Column('reason', sa.Text(), nullable=True),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['reported_by_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['room_id'], ['chat_room.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('user_last_read',
@@ -362,8 +612,10 @@ def upgrade():
     sa.Column('question', sa.String(length=255), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('message_id', sa.Integer(), nullable=True),
+    sa.Column('status_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['message_id'], ['chat_message.id'], ),
     sa.ForeignKeyConstraint(['room_id'], ['chat_room.id'], ),
+    sa.ForeignKeyConstraint(['status_id'], ['status.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -461,8 +713,10 @@ def downgrade():
     op.drop_table('exam_violation')
     op.drop_table('assignment_submission')
     op.drop_table('user_last_read')
+    op.drop_table('reported_group')
     op.drop_table('quiz')
     op.drop_table('muted_user')
+    op.drop_table('muted_room')
     op.drop_table('lesson')
     op.drop_table('exam_submission')
     op.drop_table('chat_room_member')
@@ -470,11 +724,20 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_chat_message_timestamp'))
 
     op.drop_table('chat_message')
+    op.drop_table('chat_clear_timestamp')
+    with op.batch_alter_table('call_history', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_call_history_is_active'))
+
+    op.drop_table('call_history')
     op.drop_table('assignment')
+    op.drop_table('status_view')
+    op.drop_table('reported_post')
     op.drop_table('module')
+    op.drop_table('link_preview')
     op.drop_table('library_purchase')
     op.drop_table('final_exam')
     op.drop_table('enrollment')
+    op.drop_table('community_membership')
     with op.batch_alter_table('comment', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_comment_timestamp'))
 
@@ -486,9 +749,40 @@ def downgrade():
     op.drop_table('chat_room')
     op.drop_table('certificate_request')
     op.drop_table('certificate')
+    op.drop_table('support_ticket')
+    with op.batch_alter_table('status', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_status_expires_at'))
+
+    op.drop_table('status')
+    with op.batch_alter_table('reel', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_reel_timestamp'))
+
+    op.drop_table('reel')
+    with op.batch_alter_table('project', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_project_timestamp'))
+
+    op.drop_table('project')
+    with op.batch_alter_table('post', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_post_timestamp'))
+
+    op.drop_table('post')
+    with op.batch_alter_table('notification', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_notification_user_id'))
+        batch_op.drop_index(batch_op.f('ix_notification_timestamp'))
+
+    op.drop_table('notification')
+    op.drop_table('muted_status_user')
     op.drop_table('library_material')
     op.drop_table('group_request')
+    op.drop_table('follow')
+    op.drop_table('fcm_token')
+    with op.batch_alter_table('creative_work', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_creative_work_timestamp'))
+
+    op.drop_table('creative_work')
     op.drop_table('course')
+    op.drop_table('community')
+    op.drop_table('blocked_user')
     op.drop_table('admin_log')
     op.drop_table('user')
     op.drop_table('platform_setting')
