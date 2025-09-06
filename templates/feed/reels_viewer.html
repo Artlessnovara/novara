@@ -1,0 +1,188 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Reels{% endblock %}
+
+{% block styles %}
+<style>
+    .reels-viewer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #000;
+        z-index: 1000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+    .reels-container {
+        width: 100%;
+        height: 100%;
+        max-width: 450px; /* Mobile-first aspect ratio */
+        max-height: 95vh;
+        position: relative;
+    }
+    .reel-slide {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: none;
+    }
+    .reel-slide.active {
+        display: block;
+    }
+    .reel-slide video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    .reel-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem;
+        color: white;
+        background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+    }
+    .reel-actions {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    .reel-actions .action-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    .reel-actions .action-btn span {
+        font-size: 0.8rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reels-viewer">
+    <div class="reels-container" id="reels-container">
+        <!-- Reels will be loaded here by JavaScript -->
+        <div id="loading-reels" style="color: white; text-align: center;">Loading Reels...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('reels-container');
+    let reelsData = [];
+    let currentIndex = 0;
+
+    async function initReels() {
+        const response = await fetch('/feed/api/reels');
+        reelsData = await response.json();
+
+        if (reelsData.length > 0) {
+            document.getElementById('loading-reels').style.display = 'none';
+            renderReels();
+            showReel(0);
+        } else {
+            document.getElementById('loading-reels').textContent = 'No reels to show.';
+        }
+    }
+
+    function renderReels() {
+        reelsData.forEach((reel, index) => {
+            const slide = document.createElement('div');
+            slide.classList.add('reel-slide');
+            slide.dataset.index = index;
+            slide.innerHTML = `
+                <video src="${reel.video_url}" loop></video>
+                <div class="reel-overlay">
+                    <h4><a href="/feed/profile/${reel.author.id}" style="color:white; text-decoration:none;">@${reel.author.name}</a></h4>
+                    <p>${reel.caption || ''}</p>
+                </div>
+                <div class="reel-actions">
+                    <button class="action-btn like-btn ${reel.liked_by_user ? 'active' : ''}" data-reel-id="${reel.id}">
+                        <i class="fas fa-heart"></i>
+                        <span class="likes-count">${reel.likes_count}</span>
+                    </button>
+                    <button class="action-btn comment-btn" data-reel-id="${reel.id}">
+                        <i class="fas fa-comment"></i>
+                        <span class="comments-count">${reel.comments_count}</span>
+                    </button>
+                </div>
+            `;
+            container.appendChild(slide);
+        });
+        addEventListeners();
+    }
+
+    function showReel(index) {
+        document.querySelectorAll('.reel-slide').forEach((slide, i) => {
+            const video = slide.querySelector('video');
+            if (i === index) {
+                slide.classList.add('active');
+                slide.style.display = 'block';
+                video.play();
+            } else {
+                slide.classList.remove('active');
+                slide.style.display = 'none';
+                video.pause();
+                video.currentTime = 0;
+            }
+        });
+        currentIndex = index;
+    }
+
+    function navigateReels(direction) {
+        let newIndex = currentIndex + direction;
+        if (newIndex >= 0 && newIndex < reelsData.length) {
+            showReel(newIndex);
+        }
+    }
+
+    function addEventListeners() {
+        // Keyboard navigation
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') {
+                navigateReels(1);
+            } else if (e.key === 'ArrowUp') {
+                navigateReels(-1);
+            }
+        });
+
+        // Like button listeners
+        document.querySelectorAll('.like-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const reelId = this.dataset.reelId;
+                const likesCountSpan = this.querySelector('.likes-count');
+
+                fetch(`/feed/api/reels/${reelId}/like`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        this.classList.toggle('active', data.liked_by_user);
+                        likesCountSpan.textContent = data.likes_count;
+                    }
+                });
+            });
+        });
+    }
+
+    initReels();
+});
+</script>
+{% endblock %}

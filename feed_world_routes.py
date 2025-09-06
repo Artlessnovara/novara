@@ -332,6 +332,12 @@ def reels():
     reels = Reel.query.order_by(Reel.timestamp.desc()).all()
     return render_template('feed/reels.html', reels=reels)
 
+@feed_bp.route('/reels/viewer')
+@login_required
+def reels_viewer():
+    """Displays the immersive Reels viewer page."""
+    return render_template('feed/reels_viewer.html')
+
 @feed_bp.route('/search')
 @login_required
 def search():
@@ -480,6 +486,56 @@ def add_comment(post_id):
     }
 
     return jsonify({'status': 'success', 'comment': comment_data}), 201
+
+# --- API Route for Reels ---
+
+@feed_bp.route('/api/reels')
+@login_required
+def get_reels():
+    """Fetches all reels for the viewer."""
+    reels = Reel.query.order_by(func.random()).all() # Random order for now
+
+    reels_data = [{
+        'id': reel.id,
+        'video_url': url_for('static', filename=reel.video_url),
+        'caption': reel.caption,
+        'author': {
+            'id': reel.author.id,
+            'name': reel.author.name,
+            'profile_pic': url_for('static', filename='profile_pics/' + reel.author.profile_pic)
+        },
+        'likes_count': reel.likes.count(),
+        'comments_count': reel.comments.count(),
+        'liked_by_user': current_user.id in reel.likes|map(attribute='user_id')|list
+    } for reel in reels]
+
+    return jsonify(reels_data)
+
+@feed_bp.route('/api/reels/<int:reel_id>/like', methods=['POST'])
+@login_required
+def like_reel(reel_id):
+    """Toggles a like on a reel."""
+    reel = Reel.query.get_or_404(reel_id)
+    like = Like.query.filter_by(user_id=current_user.id, target_type='reel', target_id=reel.id).first()
+
+    if like:
+        db.session.delete(like)
+        liked = False
+    else:
+        new_like = Like(user_id=current_user.id, target_type='reel', target_id=reel.id)
+        db.session.add(new_like)
+        liked = True
+
+    db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'likes_count': reel.likes.count(),
+        'liked_by_user': liked
+    })
+
+# Note: Commenting on reels is not implemented in this version, but the endpoint could be added here.
+
 
 # --- API Routes for Creative Work Likes and Comments ---
 
