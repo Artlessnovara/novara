@@ -1685,6 +1685,37 @@ document.addEventListener('DOMContentLoaded', function() {
         contextMenu.classList.add('hidden');
     });
 
+    // --- Send Message Logic ---
+    const sendBtn = document.querySelector('.send-btn');
+    const messageInputForSend = document.querySelector('.message-input');
+
+    function sendMessage() {
+        const content = messageInputForSend.value.trim();
+        if (content) {
+            // Stop typing indicator when message is sent
+            socket.emit('typing_stop', { room_id: {{ chat_info.id|tojson }} });
+
+            socket.emit('message', {
+                room_id: {{ chat_info.id|tojson }},
+                content: content
+            });
+            messageInputForSend.value = '';
+            messageInputForSend.style.height = 'auto'; // Reset height
+        }
+    }
+
+    if (sendBtn && messageInputForSend) {
+        sendBtn.addEventListener('click', sendMessage);
+
+        messageInputForSend.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+
+
     document.getElementById('forward-menu-item').addEventListener('click', async function() {
         if (!currentForwardMessageId) return;
 
