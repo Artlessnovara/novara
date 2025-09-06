@@ -5,7 +5,7 @@ import random
 import secrets
 import os
 from werkzeug.utils import secure_filename
-from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory
+from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory, Post
 from extensions import db
 from utils import save_chat_file, save_status_file, get_or_create_platform_setting, is_contact, get_or_create_private_room
 from datetime import timedelta
@@ -1594,6 +1594,11 @@ def seed_db():
     db.session.add_all([admin_user, instructor1, instructor2, student1])
     db.session.commit()
 
+    # Create a post for the feed
+    post1 = Post(content="This is a test post for the feed!", author=instructor1)
+    db.session.add(post1)
+    db.session.commit()
+
     # Create categories
     cat1 = Category(name='Web Development')
     cat2 = Category(name='Data Science')
@@ -1623,13 +1628,13 @@ def seed_db():
 
 
     # Add a comment
-    comment1 = Comment(course_id=c1.id, user_id=student1.id, body='This is a great course!')
+    comment1 = CourseComment(course_id=c1.id, user_id=student1.id, body='This is a great course!', rating=5)
     db.session.add(comment1)
     db.session.commit()
 
     # Add library materials
-    lib1 = LibraryMaterial(uploader_id=instructor1.id, title='Flask Cheatsheet', price_naira=500, file_path='flask_cheatsheet.pdf', approved=True)
-    lib2 = LibraryMaterial(uploader_id=instructor2.id, title='Data Science Intro', price_naira=1000, file_path='ds_intro.pdf', approved=False)
+    lib1 = LibraryMaterial(uploader_id=instructor1.id, category_id=cat1.id, title='Flask Cheatsheet', price_naira=500, file_path='flask_cheatsheet.pdf', approved=True)
+    lib2 = LibraryMaterial(uploader_id=instructor2.id, category_id=cat2.id, title='Data Science Intro', price_naira=1000, file_path='ds_intro.pdf', approved=False)
     db.session.add_all([lib1, lib2])
     db.session.commit()
 
