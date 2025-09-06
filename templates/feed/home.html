@@ -100,6 +100,32 @@
     .comment-content { background: var(--background-color-light); padding: 0.5rem 1rem; border-radius: 15px; }
     .comment-form { display: flex; gap: 10px; margin-top: 1rem; }
     .comment-input { flex-grow: 1; border: 1px solid var(--border-color-light); border-radius: 20px; padding: 8px 15px; }
+
+    .post-more-options { position: relative; }
+    .more-options-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: var(--card-bg-light);
+        border: 1px solid var(--border-color-light);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-md);
+        z-index: 10;
+        list-style: none;
+        padding: 0.5rem 0;
+        margin: 0;
+        min-width: 150px;
+    }
+    .more-options-menu a {
+        display: block;
+        padding: 0.5rem 1rem;
+        text-decoration: none;
+        color: var(--text-color-light);
+    }
+    .more-options-menu a:hover {
+        background-color: var(--hover-overlay-light);
+    }
 </style>
 {% endblock %}
 
@@ -125,8 +151,11 @@
                     </div>
                 </div>
                 <div class="post-more-options">
-                    <button class="icon-btn"><i class="fas fa-ellipsis-h"></i></button>
-                    <!-- Dropdown for report would go here -->
+                    <button class="icon-btn more-options-btn"><i class="fas fa-ellipsis-h"></i></button>
+                    <ul class="more-options-menu">
+                        <li><a href="{{ url_for('feed.report_post', post_id=post.id) }}">Report Post</a></li>
+                        <!-- Add other options like 'Edit' or 'Delete' here if needed -->
+                    </ul>
                 </div>
             </div>
 
@@ -189,6 +218,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const commentForm = postContainer.querySelector('.comment-form');
         const commentInput = postContainer.querySelector('.comment-input');
         const commentSubmitBtn = postContainer.querySelector('.comment-submit-btn');
+        const moreOptionsBtn = postContainer.querySelector('.more-options-btn');
+        const moreOptionsMenu = postContainer.querySelector('.more-options-menu');
+
+        // --- More Options Menu Logic ---
+        moreOptionsBtn.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent the window click listener from firing immediately
+            // Hide all other menus before showing this one
+            document.querySelectorAll('.more-options-menu').forEach(menu => {
+                if (menu !== moreOptionsMenu) {
+                    menu.style.display = 'none';
+                }
+            });
+            moreOptionsMenu.style.display = moreOptionsMenu.style.display === 'block' ? 'none' : 'block';
+        });
 
         // --- Like/Unlike Logic ---
         likeBtn.addEventListener('click', () => {
@@ -276,6 +319,13 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         commentsListEl.appendChild(commentEl);
     }
+
+    // --- Global Click Listener to Close Menus ---
+    window.addEventListener('click', () => {
+        document.querySelectorAll('.more-options-menu').forEach(menu => {
+            menu.style.display = 'none';
+        });
+    });
 });
 </script>
 {% endblock %}
