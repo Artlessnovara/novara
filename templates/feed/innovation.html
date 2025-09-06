@@ -4,20 +4,28 @@
 
 {% block styles %}
 <style>
-    .innovation-container { max-width: 1000px; margin: auto; }
-    .create-project-card { background: var(--card-bg-light); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); }
-    .create-project-card input, .create-project-card textarea { width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid var(--border-color-light); margin-top: 0.5rem; }
-    .create-project-card button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; margin-top: 1rem; }
-    .project-card { background: var(--card-bg-light); padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--shadow-sm); margin-bottom: 1.5rem; }
-    .project-card h3 { margin-top: 0; }
-    .project-card h3 a { text-decoration: none; color: var(--primary-text-light); }
-    .project-card h3 a:hover { color: var(--primary-color); }
+    .innovation-container { max-width: 900px; margin: auto; padding: 1rem; }
+    .create-project-section { background: var(--card-bg-light); border: 1px solid var(--border-color-light); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; }
+    .create-project-section input, .create-project-section textarea { width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid var(--border-color-light); margin-top: 0.5rem; }
+    .create-project-section button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; margin-top: 1rem; }
+
+    .project-list-item {
+        padding: 1.5rem 0;
+        border-bottom: 1px solid var(--border-color-light);
+    }
+    .project-list-item:last-child {
+        border-bottom: none;
+    }
+    .project-list-item h3 { margin-top: 0; }
+    .project-list-item h3 a { text-decoration: none; color: var(--primary-text-light); }
+    .project-list-item h3 a:hover { color: var(--primary-color); }
+    .project-meta { font-size: 0.9rem; color: var(--secondary-text-light); margin-bottom: 1rem; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="innovation-container">
-    <div class="create-project-card">
+    <div class="create-project-section">
         <h3>Share a New Project</h3>
         <form action="{{ url_for('feed.create_project') }}" method="POST">
             <div>
@@ -35,10 +43,14 @@
     <h2>Latest Projects</h2>
     <div class="projects-list">
         {% for project in projects %}
-            <div class="project-card">
+            <div class="project-list-item">
                 <h3><a href="{{ url_for('feed.view_project', project_id=project.id) }}">{{ project.title }}</a></h3>
-                <p>by {{ project.owner.name }} on {{ project.timestamp.strftime('%B %d, %Y') }}</p>
-                <p>{{ project.description|truncate(200) }}</p>
+                <div class="project-meta">by {{ project.owner.name }} on {{ project.timestamp.strftime('%B %d, %Y') }}</div>
+                <p>{{ project.description|truncate(250) }}</p>
+                <div>
+                    <span class="likes-count">{{ project.likes.count() }} Likes</span> -
+                    <span class="comments-count">{{ project.comments.count() }} Comments</span>
+                </div>
             </div>
         {% else %}
             <p>No projects yet. Be the first to share one!</p>
