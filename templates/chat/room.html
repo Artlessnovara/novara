@@ -38,7 +38,7 @@
                     <button id="video-call-btn" class="icon-btn call-btn"><i class="fa-solid fa-video"></i></button>
                 {% endif %}
             {% endif %}
-            <a href="#" class="info-btn"><i class="fa-solid fa-circle-info"></i></a>
+            <a href="{{ url_for('main.chat_room_info', room_id=chat_info.id) }}" class="info-btn"><i class="fa-solid fa-circle-info"></i></a>
         </div>
     </div>
 
