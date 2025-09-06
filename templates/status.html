@@ -31,7 +31,7 @@
                                 {{ status.content_type|capitalize }} posted at {{ status.created_at.strftime('%H:%M') }}
                             {% endif %}
                         </p>
-                        <p class="seen-by"><i class="fa-solid fa-eye"></i> Seen by {{ status.views|length }}</p>
+                        <p class="seen-by"><i class="fa-solid fa-eye"></i> Seen by {{ status.views.count() }}</p>
                     </div>
                 </div>
             </a>
