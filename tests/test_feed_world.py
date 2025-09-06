@@ -95,7 +95,10 @@ class FeedWorldTests(unittest.TestCase):
         db.session.add(post)
         db.session.commit()
 
-        response = self.client.get(f'/feed/report_post/{post.id}', follow_redirects=True)
+        response = self.client.post('/feed/report_post', data={
+            'post_id': post.id,
+            'reason': 'Spam'
+        }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Post has been reported.', response.data)
 

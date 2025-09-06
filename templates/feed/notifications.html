@@ -4,7 +4,16 @@
 
 {% block styles %}
 <style>
-    .notifications-container { max-width: 800px; margin: auto; }
+    .notifications-container { max-width: 800px; margin: auto; padding: 1rem; }
+    .notification-group h2 {
+        font-size: 1rem;
+        color: var(--secondary-text-light);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 1px solid var(--border-color-light);
+        padding-bottom: 0.5rem;
+        margin: 2rem 0 1rem;
+    }
     .notification-item {
         display: flex;
         align-items: center;
@@ -12,8 +21,8 @@
         padding: 1rem;
         border-bottom: 1px solid var(--border-color-light);
     }
-    .notification-item.unread {
-        background-color: #ecf3ff;
+    .notification-item:last-child {
+        border-bottom: none;
     }
     .notification-item a {
         text-decoration: none;
@@ -41,19 +50,28 @@
 <div class="notifications-container">
     <h1>Notifications</h1>
     <div class="notifications-list">
-        {% for notification in notifications %}
-            <div class="notification-item {% if not notification.is_read %}unread{% endif %}">
-                {% if notification.type == 'follow' %}
-                    <a href="{{ url_for('feed.profile', user_id=notification.actor_id) }}">
-                        <img src="{{ url_for('static', filename='profile_pics/' + notification.actor.profile_pic) }}" alt="{{ notification.actor.name }}">
-                        <strong>{{ notification.actor.name }}</strong> started following you.
-                    </a>
-                {% endif %}
-                <span class="timestamp">{{ notification.timestamp.strftime('%b %d at %I:%M %p') }}</span>
-            </div>
-        {% else %}
-            <p>You have no notifications.</p>
+        {% set has_notifications = false %}
+        {% for group_name, notifications_in_group in grouped_notifications.items() %}
+            {% if notifications_in_group %}
+                {% set has_notifications = true %}
+                <div class="notification-group">
+                    <h2>{{ group_name }}</h2>
+                    {% for notification in notifications_in_group %}
+                    <div class="notification-item">
+                        <a href="{{ url_for('feed.profile', user_id=notification.actor_id) }}">
+                            <img src="{{ url_for('static', filename='profile_pics/' + notification.actor.profile_pic) }}" alt="{{ notification.actor.name }}">
+                            <p>{{ notification.text }}</p>
+                        </a>
+                        <span class="timestamp">{{ notification.timestamp.strftime('%I:%M %p') if group_name == 'Today' else notification.timestamp.strftime('%b %d') }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         {% endfor %}
+
+        {% if not has_notifications %}
+            <p>You have no notifications.</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

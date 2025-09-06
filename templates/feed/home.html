@@ -126,6 +126,40 @@
     .more-options-menu a:hover {
         background-color: var(--hover-overlay-light);
     }
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1001;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 500px;
+        border-radius: var(--border-radius);
+    }
+    .modal-content h2 { margin-top: 0; }
+    .modal-content .form-group { margin-bottom: 1rem; }
+    .close-btn {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .close-btn:hover,
+    .close-btn:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
 </style>
 {% endblock %}
 
@@ -153,7 +187,7 @@
                 <div class="post-more-options">
                     <button class="icon-btn more-options-btn"><i class="fas fa-ellipsis-h"></i></button>
                     <ul class="more-options-menu">
-                        <li><a href="{{ url_for('feed.report_post', post_id=post.id) }}">Report Post</a></li>
+                        <li class="report-btn-li" data-post-id="{{ post.id }}"><button>Report Post</button></li>
                         <!-- Add other options like 'Edit' or 'Delete' here if needed -->
                     </ul>
                 </div>
@@ -201,6 +235,36 @@
         {% else %}
             <p style="text-align: center; padding: 2rem;">No posts yet. Be the first to share something!</p>
         {% endfor %}
+    </div>
+</div>
+
+<!-- Report Post Modal -->
+<div id="report-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Report Post</h2>
+        <p>Please select a reason for reporting this post:</p>
+        <form id="report-form" action="{{ url_for('feed.report_post') }}" method="POST">
+            <input type="hidden" id="report-post-id" name="post_id">
+            <div class="form-group">
+                <input type="radio" id="reason-spam" name="reason" value="Spam" required>
+                <label for="reason-spam">Spam</label>
+            </div>
+            <div class="form-group">
+                <input type="radio" id="reason-inappropriate" name="reason" value="Inappropriate Content">
+                <label for="reason-inappropriate">Inappropriate Content</label>
+            </div>
+            <div class="form-group">
+                <input type="radio" id="reason-harassment" name="reason" value="Harassment">
+                <label for="reason-harassment">Harassment</label>
+            </div>
+            <div class="form-group">
+                <input type="radio" id="reason-other-radio" name="reason" value="Other">
+                <label for="reason-other-radio">Other:</label>
+                <input type="text" id="reason-other-text" name="reason_other" class="form-control" placeholder="Please specify">
+            </div>
+            <button type="submit" class="btn-primary">Submit Report</button>
+        </form>
     </div>
 </div>
 {% endblock %}
@@ -320,11 +384,41 @@ document.addEventListener('DOMContentLoaded', function() {
         commentsListEl.appendChild(commentEl);
     }
 
-    // --- Global Click Listener to Close Menus ---
-    window.addEventListener('click', () => {
+    // --- Report Modal Logic ---
+    const reportModal = document.getElementById('report-modal');
+    const closeModalBtn = reportModal.querySelector('.close-btn');
+    const reportForm = document.getElementById('report-form');
+    const reportPostIdInput = document.getElementById('report-post-id');
+
+    document.querySelectorAll('.report-btn-li').forEach(item => {
+        item.addEventListener('click', function(event) {
+            event.stopPropagation(); // Prevent the menu from closing
+            const postId = this.dataset.postId;
+            reportPostIdInput.value = postId;
+            reportModal.style.display = 'block';
+        });
+    });
+
+    closeModalBtn.onclick = function() {
+        reportModal.style.display = 'none';
+    }
+
+    // --- Global Click Listener to Close Menus & Modals ---
+    window.addEventListener('click', (event) => {
+        // Close options menus
         document.querySelectorAll('.more-options-menu').forEach(menu => {
             menu.style.display = 'none';
         });
+
+        // Close report modal if clicking outside of it
+        if (event.target == reportModal) {
+            reportModal.style.display = 'none';
+        }
+    });
+
+    reportForm.addEventListener('submit', function(event) {
+        // The form will now submit to the backend.
+        // The page will reload, and the flash message will be displayed.
     });
 });
 </script>

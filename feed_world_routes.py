@@ -4,6 +4,7 @@ from models import Post, Like, GenericComment, Reel, Community, CommunityMembers
 from extensions import db
 from utils import save_post_media, save_community_cover_image
 from sqlalchemy.sql import func
+from datetime import datetime, date, timedelta
 
 feed_bp = Blueprint('feed', __name__, url_prefix='/feed')
 
@@ -317,13 +318,42 @@ def unfollow(user_id):
 @feed_bp.route('/notifications')
 @login_required
 def notifications():
-    """Display user notifications."""
-    notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).all()
-    # Mark notifications as read
-    for notification in notifications:
-        notification.is_read = True
+    """Display user notifications, grouped by date."""
+    user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).all()
+
+    grouped_notifications = {
+        "Today": [],
+        "Yesterday": [],
+        "Older": []
+    }
+
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+
+    for n in user_notifications:
+        # Generate descriptive text
+        if n.type == 'follow':
+            n.text = f"{n.actor.name} started following you."
+        elif n.type == 'like_post':
+            n.text = f"{n.actor.name} liked your post."
+        elif n.type == 'comment_post':
+            n.text = f"{n.actor.name} commented on your post."
+        else:
+            n.text = "You have a new notification."
+
+        # Group by date
+        if n.timestamp.date() == today:
+            grouped_notifications["Today"].append(n)
+        elif n.timestamp.date() == yesterday:
+            grouped_notifications["Yesterday"].append(n)
+        else:
+            grouped_notifications["Older"].append(n)
+
+        # Mark as read
+        n.is_read = True
+
     db.session.commit()
-    return render_template('feed/notifications.html', notifications=notifications)
+    return render_template('feed/notifications.html', grouped_notifications=grouped_notifications)
 
 @feed_bp.route('/reels')
 @login_required
@@ -389,20 +419,32 @@ def create_reel():
     flash('Your reel has been uploaded!', 'success')
     return redirect(url_for('feed.reels'))
 
-@feed_bp.route('/report_post/<int:post_id>')
+@feed_bp.route('/report_post', methods=['POST'])
 @login_required
-def report_post(post_id):
+def report_post():
+    """Reports a post with a given reason."""
+    post_id = request.form.get('post_id', type=int)
+    reason = request.form.get('reason')
+    other_reason = request.form.get('reason_other')
+
+    if not post_id or not reason:
+        flash('Invalid report submission.', 'danger')
+        return redirect(url_for('feed.home'))
+
     post = Post.query.get_or_404(post_id)
-    # For simplicity, we'll just create the report directly.
-    # A real implementation would have a form for the reason.
+
+    final_reason = reason
+    if reason == 'Other' and other_reason:
+        final_reason = other_reason.strip()
+
     new_report = ReportedPost(
         post_id=post.id,
         reported_by_id=current_user.id,
-        reason="Reported from post feed."
+        reason=final_reason
     )
     db.session.add(new_report)
     db.session.commit()
-    flash('Post has been reported.', 'success')
+    flash('Post has been reported. Thank you for your feedback.', 'success')
     return redirect(url_for('feed.home'))
 
 # --- API Routes for Likes and Comments ---

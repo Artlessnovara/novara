@@ -738,7 +738,7 @@ def profile():
     # Fetch earned certificates
     certificates = current_user.certificates.order_by(Certificate.issued_at.desc()).all()
 
-    return render_template('profile.html', user=current_user, comments=recent_comments, certificates=certificates)
+    return render_template('profile.html', user=current_user, certificates=certificates)
 
 from models import BlockedUser
 
