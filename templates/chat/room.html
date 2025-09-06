@@ -226,6 +226,33 @@
     </div>
 </div>
 
+<!-- Poll Creation Modal -->
+<div id="poll-creation-modal" class="camera-modal hidden">
+    <div class="contact-share-content">
+        <h3>Create Poll</h3>
+        <form id="poll-form">
+            <div class="form-group">
+                <label for="poll-question">Question</label>
+                <input type="text" id="poll-question" class="form-control" required>
+            </div>
+            <div id="poll-options-container" class="mt-3">
+                <label>Options</label>
+                <div class="poll-option-input">
+                    <input type="text" name="poll_option" class="form-control mb-2" placeholder="Option 1" required>
+                </div>
+                <div class="poll-option-input">
+                    <input type="text" name="poll_option" class="form-control mb-2" placeholder="Option 2" required>
+                </div>
+            </div>
+            <button type="button" id="add-poll-option-btn" class="btn btn-sm btn-outline-secondary mt-2">Add Option</button>
+            <div class="form-actions mt-3 d-flex justify-content-end">
+                <button type="button" id="cancel-poll-creation-btn" class="btn btn-secondary me-2">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 <style>
     .voice-recording-info {
@@ -749,27 +776,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Poll creation logic
-    const pollBtn = document.getElementById('create-poll-btn');
-    if (pollBtn) {
-        pollBtn.addEventListener('click', function() {
-            const question = prompt("Enter the poll question:");
-            if (!question) return;
+    // --- New Poll Creation Logic ---
+    const createPollBtn = document.getElementById('create-poll-btn');
+    const pollModal = document.getElementById('poll-creation-modal');
+    const pollForm = document.getElementById('poll-form');
+    const addOptionBtn = document.getElementById('add-poll-option-btn');
+    const cancelPollBtn = document.getElementById('cancel-poll-creation-btn');
+    const optionsContainer = document.getElementById('poll-options-container');
 
-            let options = [];
-            let option;
-            while (options.length < 10 && (option = prompt(`Enter option ${options.length + 1} (or leave blank to finish):`))) {
-                options.push(option);
+    if (createPollBtn) {
+        createPollBtn.addEventListener('click', () => {
+            // Hide media menu and show poll modal
+            if (mediaMenu) mediaMenu.classList.add('hidden');
+            pollModal.classList.remove('hidden');
+        });
+    }
+
+    if (cancelPollBtn) {
+        cancelPollBtn.addEventListener('click', () => {
+            pollModal.classList.add('hidden');
+            // Reset form for next time
+            pollForm.reset();
+            const optionInputs = optionsContainer.querySelectorAll('.poll-option-input');
+            for (let i = 2; i < optionInputs.length; i++) {
+                optionInputs[i].remove();
             }
+        });
+    }
 
-            if (options.length < 2) {
-                alert("A poll requires at least two options.");
+    if (addOptionBtn) {
+        addOptionBtn.addEventListener('click', () => {
+            const optionInputs = optionsContainer.querySelectorAll('input[name="poll_option"]');
+            if (optionInputs.length < 12) {
+                const newOption = document.createElement('div');
+                newOption.className = 'poll-option-input';
+                newOption.innerHTML = `<input type="text" name="poll_option" class="form-control mb-2" placeholder="Option ${optionInputs.length + 1}" required>`;
+                optionsContainer.appendChild(newOption);
+            } else {
+                alert("You can add a maximum of 12 options.");
+            }
+        });
+    }
+
+    if (pollForm) {
+        pollForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const question = document.getElementById('poll-question').value.trim();
+            const options = Array.from(document.querySelectorAll('#poll-options-container input[name="poll_option"]'))
+                                .map(input => input.value.trim())
+                                .filter(option => option !== '');
+
+            if (!question || options.length < 2) {
+                alert("A poll requires a question and at least two options.");
                 return;
-            }
-
-            // Hide the media menu after gathering input
-            if (mediaMenu) {
-                mediaMenu.classList.add('hidden');
             }
 
             socket.emit('create_poll', {
@@ -777,6 +836,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 question: question,
                 options: options
             });
+
+            // Hide and reset the modal
+            cancelPollBtn.click(); // Reuse cancel logic to reset the form
         });
     }
 
