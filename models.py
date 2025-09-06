@@ -644,6 +644,25 @@ class Post(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     privacy = db.Column(db.String(50), nullable=False, default='public') # public, followers, private
 
+    likes = db.relationship('PostLike', backref='post', lazy='dynamic', cascade="all, delete-orphan")
+    comments = db.relationship('PostComment', backref='post', lazy='dynamic', cascade="all, delete-orphan")
+
+class PostLike(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='_user_post_like_uc'),)
+
+class PostComment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    author = db.relationship('User', backref=db.backref('post_comments', lazy='dynamic'))
+
 class Reel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

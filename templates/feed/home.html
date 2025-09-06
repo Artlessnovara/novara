@@ -5,75 +5,277 @@
 {% block styles %}
 <style>
     .feed-container { max-width: 800px; margin: auto; }
-    .create-post-card { background: var(--card-bg-light); border-radius: var(--border-radius); padding: 1rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-md); }
-    .create-post-header { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color-light); padding-bottom: 1rem; }
-    .create-post-header textarea { flex-grow: 1; border: none; background: var(--background-color-light); border-radius: 20px; padding: 10px 15px; font-family: inherit; font-size: 1rem; outline: none; resize: none; }
-    .create-post-actions { display: flex; justify-content: space-between; padding-top: 1rem; }
-    .create-post-actions .action-btn { background: none; border: none; color: var(--secondary-text-light); font-weight: 600; cursor: pointer; padding: 10px; border-radius: 5px; transition: background-color 0.2s; }
-    .create-post-actions .action-btn:hover { background-color: var(--hover-overlay-light); }
-    .create-post-actions .post-btn { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
-    .post-card { background: var(--card-bg-light); border-radius: var(--border-radius); margin-bottom: 1.5rem; box-shadow: var(--shadow-md); }
-    .post-header { display: flex; align-items: center; gap: 10px; padding: 1rem; }
+    .create-post-prompt {
+        background: var(--card-bg-light);
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color-light);
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .create-post-link {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-grow: 1;
+        text-decoration: none;
+        color: var(--secondary-text-light);
+    }
+    .prompt-text {
+        background: var(--background-color-light);
+        border: 1px solid var(--border-color-light);
+        border-radius: 20px;
+        padding: 10px 15px;
+        width: 100%;
+        cursor: pointer;
+    }
+    .create-post-link:hover .prompt-text {
+        background-color: var(--hover-overlay-light);
+    }
+    .create-post-prompt .action-btn {
+        background: none;
+        border: none;
+        color: var(--secondary-text-light);
+        font-weight: 600;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 5px;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .post-container {
+        background: var(--card-bg-light);
+        padding-top: 1rem;
+        border-bottom: 1px solid var(--border-color-light);
+    }
+    .post-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+    }
+    .post-author {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
     .post-author-info { font-weight: 600; }
     .post-author-info span { display: block; font-size: 0.8rem; color: var(--secondary-text-light); font-weight: 400; }
     .post-content { padding: 0 1rem 1rem; }
-    .post-media img, .post-media video { max-width: 100%; border-radius: var(--border-radius); }
+    .post-media img, .post-media video { max-width: 100%; border-radius: 0; } /* No radius for media touching edges */
+    .post-stats {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        color: var(--secondary-text-light);
+        border-top: 1px solid var(--border-color-light);
+    }
+    .post-actions {
+        display: flex;
+        justify-content: space-around;
+        border-top: 1px solid var(--border-color-light);
+    }
+    .post-actions .action-btn {
+        flex: 1;
+        background: none;
+        border: none;
+        color: var(--secondary-text-light);
+        font-weight: 600;
+        cursor: pointer;
+        padding: 0.75rem;
+        border-radius: 0;
+        transition: background-color 0.2s;
+    }
+    .post-actions .action-btn:hover { background-color: var(--hover-overlay-light); }
+    .post-actions .action-btn.active { color: var(--primary-color); }
+
+    .comments-section {
+        padding: 0 1rem 1rem;
+        border-top: 1px solid var(--border-color-light);
+        display: none; /* Hidden by default */
+    }
+    .comment { display: flex; gap: 10px; margin-top: 1rem; }
+    .comment-content { background: var(--background-color-light); padding: 0.5rem 1rem; border-radius: 15px; }
+    .comment-form { display: flex; gap: 10px; margin-top: 1rem; }
+    .comment-input { flex-grow: 1; border: 1px solid var(--border-color-light); border-radius: 20px; padding: 8px 15px; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="feed-container">
-    <div class="create-post-card">
-        <form id="create-post-form" action="{{ url_for('feed.create_post') }}" method="POST" enctype="multipart/form-data">
-            <div class="create-post-header">
-                <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Your Profile Pic" class="profile-pic-small">
-                <textarea name="content" placeholder="What's on your mind, {{ current_user.name.split()[0] }}?" required></textarea>
-            </div>
-            <div class="privacy-selector">
-                <label for="privacy">Post Audience:</label>
-                <select name="privacy" id="privacy">
-                    <option value="public" selected>Public</option>
-                    <option value="followers">Followers</option>
-                    <option value="private">Only Me</option>
-                </select>
-            </div>
-            <div class="create-post-actions">
-                <label for="media-input" class="action-btn"><i class="fas fa-photo-video"></i> Photo/Video</label>
-                <input type="file" id="media-input" name="media" accept="image/*,video/*" style="display: none;">
-                <button type="submit" class="post-btn">Post</button>
-            </div>
-        </form>
+    <div class="create-post-prompt">
+        <a href="{{ url_for('feed.create_post_page') }}" class="create-post-link">
+            <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Your Profile Pic" class="profile-pic-small">
+            <div class="prompt-text">What's on your mind, {{ current_user.name.split()[0] }}?</div>
+        </a>
+        <a href="{{ url_for('feed.create_post_page') }}" class="action-btn"><i class="fas fa-photo-video"></i> Photo/Video</a>
     </div>
 
     <div class="posts-list">
         {% for post in posts %}
-            <div class="post-card">
-                <div class="post-header">
+        <div class="post-container" data-post-id="{{ post.id }}">
+            <div class="post-header">
+                <div class="post-author">
                     <img src="{{ url_for('static', filename='profile_pics/' + post.author.profile_pic) }}" alt="{{ post.author.name }}" class="profile-pic-small">
                     <div class="post-author-info">
-                        {{ post.author.name }}
+                        <a href="{{ url_for('feed.profile', user_id=post.author.id) }}" style="text-decoration: none; color: inherit;">{{ post.author.name }}</a>
                         <span>{{ post.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</span>
                     </div>
                 </div>
-                <div class="post-content">
-                    <p>{{ post.content }}</p>
-                </div>
-                {% if post.media_url %}
-                    <div class="post-media">
-                        {% if post.media_type == 'image' %}
-                            <img src="{{ url_for('static', filename=post.media_url) }}" alt="Post image">
-                        {% elif post.media_type == 'video' %}
-                            <video src="{{ url_for('static', filename=post.media_url) }}" controls></video>
-                        {% endif %}
-                    </div>
-                {% endif %}
-                <div class="post-actions" style="padding: 0 1rem 1rem;">
-                    <a href="{{ url_for('feed.report_post', post_id=post.id) }}" class="report-link">Report</a>
+                <div class="post-more-options">
+                    <button class="icon-btn"><i class="fas fa-ellipsis-h"></i></button>
+                    <!-- Dropdown for report would go here -->
                 </div>
             </div>
+
+            <div class="post-content">
+                <p>{{ post.content }}</p>
+            </div>
+
+            {% if post.media_url %}
+            <div class="post-media">
+                {% if post.media_type == 'image' %}
+                    <img src="{{ url_for('static', filename=post.media_url) }}" alt="Post image">
+                {% elif post.media_type == 'video' %}
+                    <video src="{{ url_for('static', filename=post.media_url) }}" controls style="width: 100%;"></video>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="post-stats">
+                <span class="likes-count">{{ post.likes.count() }} Likes</span>
+                <span class="comments-count">{{ post.comments.count() }} Comments</span>
+            </div>
+
+            <div class="post-actions">
+                <button class="action-btn like-btn {% if current_user.id in post.likes|map(attribute='user_id')|list %}active{% endif %}">
+                    <i class="fas fa-thumbs-up"></i> Like
+                </button>
+                <button class="action-btn comment-btn">
+                    <i class="fas fa-comment"></i> Comment
+                </button>
+            </div>
+
+            <div class="comments-section">
+                <div class="comment-form">
+                    <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Your Profile Pic" class="profile-pic-small">
+                    <input type="text" class="comment-input" placeholder="Write a comment...">
+                    <button class="btn-primary comment-submit-btn" style="border-radius: 20px;">Post</button>
+                </div>
+                <div class="comments-list">
+                    <!-- Comments will be loaded here by JavaScript -->
+                </div>
+            </div>
+        </div>
         {% else %}
-            <p>No posts yet. Be the first to share something!</p>
+            <p style="text-align: center; padding: 2rem;">No posts yet. Be the first to share something!</p>
         {% endfor %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.post-container').forEach(postContainer => {
+        const postId = postContainer.dataset.postId;
+        const likeBtn = postContainer.querySelector('.like-btn');
+        const likesCountSpan = postContainer.querySelector('.likes-count');
+        const commentBtn = postContainer.querySelector('.comment-btn');
+        const commentsSection = postContainer.querySelector('.comments-section');
+        const commentsList = postContainer.querySelector('.comments-list');
+        const commentForm = postContainer.querySelector('.comment-form');
+        const commentInput = postContainer.querySelector('.comment-input');
+        const commentSubmitBtn = postContainer.querySelector('.comment-submit-btn');
+
+        // --- Like/Unlike Logic ---
+        likeBtn.addEventListener('click', () => {
+            fetch(`/feed/api/post/${postId}/like`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add CSRF token header if needed
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    likesCountSpan.textContent = `${data.likes_count} Likes`;
+                    likeBtn.classList.toggle('active', data.liked_by_user);
+                }
+            });
+        });
+
+        // --- Comment Toggle & Fetch Logic ---
+        commentBtn.addEventListener('click', () => {
+            const isHidden = commentsSection.style.display === 'none' || commentsSection.style.display === '';
+
+            if (isHidden) {
+                commentsSection.style.display = 'block';
+                // Fetch comments only if the list is empty
+                if (commentsList.innerHTML.trim() === '') {
+                    fetchAndRenderComments(postId, commentsList);
+                }
+            } else {
+                commentsSection.style.display = 'none';
+            }
+        });
+
+        // --- Add Comment Logic ---
+        commentSubmitBtn.addEventListener('click', () => {
+            const content = commentInput.value.trim();
+            if (content) {
+                fetch(`/feed/api/post/${postId}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        appendComment(data.comment, commentsList);
+                        commentInput.value = '';
+                        // Optionally update comments count
+                    }
+                });
+            }
+        });
+    });
+
+    function fetchAndRenderComments(postId, commentsListEl) {
+        commentsListEl.innerHTML = '<p>Loading comments...</p>';
+        fetch(`/feed/api/post/${postId}/comments`)
+            .then(response => response.json())
+            .then(data => {
+                commentsListEl.innerHTML = ''; // Clear loading message
+                if (data.length === 0) {
+                    commentsListEl.innerHTML = '<p style="font-size: 0.9rem; color: #888; margin-top: 1rem;">No comments yet.</p>';
+                } else {
+                    data.forEach(comment => appendComment(comment, commentsListEl));
+                }
+            });
+    }
+
+    function appendComment(comment, commentsListEl) {
+        // Remove "no comments yet" message if it exists
+        const noCommentsMsg = commentsListEl.querySelector('p');
+        if (noCommentsMsg) {
+            noCommentsMsg.remove();
+        }
+
+        const commentEl = document.createElement('div');
+        commentEl.classList.add('comment');
+        commentEl.innerHTML = `
+            <img src="${comment.author.profile_pic}" alt="${comment.author.name}" class="profile-pic-small">
+            <div class="comment-content">
+                <a href="/feed/profile/${comment.author.id}" style="font-weight: 600; text-decoration: none; color: inherit;">${comment.author.name}</a>
+                <p style="margin: 0.25rem 0 0;">${comment.content}</p>
+            </div>
+        `;
+        commentsListEl.appendChild(commentEl);
+    }
+});
+</script>
 {% endblock %}

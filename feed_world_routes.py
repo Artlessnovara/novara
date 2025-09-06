@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import Post, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost
+from models import Post, PostLike, PostComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost
 from extensions import db
 from utils import save_post_media, save_community_cover_image
 from sqlalchemy.sql import func
@@ -23,6 +23,12 @@ def home():
     ).order_by(Post.timestamp.desc()).all()
 
     return render_template('feed/home.html', posts=posts)
+
+@feed_bp.route('/create', methods=['GET'])
+@login_required
+def create_post_page():
+    """Displays the dedicated page for creating a new post."""
+    return render_template('feed/create_post.html')
 
 @feed_bp.route('/create_post', methods=['POST'])
 @login_required
@@ -386,3 +392,84 @@ def report_post(post_id):
     db.session.commit()
     flash('Post has been reported.', 'success')
     return redirect(url_for('feed.home'))
+
+# --- API Routes for Likes and Comments ---
+
+@feed_bp.route('/api/post/<int:post_id>/like', methods=['POST'])
+@login_required
+def like_post(post_id):
+    """Toggles a like on a post."""
+    post = Post.query.get_or_404(post_id)
+    like = PostLike.query.filter_by(user_id=current_user.id, post_id=post.id).first()
+
+    if like:
+        # User has already liked the post, so unlike it
+        db.session.delete(like)
+        db.session.commit()
+        liked = False
+    else:
+        # User has not liked the post, so like it
+        new_like = PostLike(user_id=current_user.id, post_id=post.id)
+        db.session.add(new_like)
+        db.session.commit()
+        liked = True
+
+    return jsonify({
+        'status': 'success',
+        'likes_count': post.likes.count(),
+        'liked_by_user': liked
+    })
+
+@feed_bp.route('/api/post/<int:post_id>/comments', methods=['GET'])
+@login_required
+def get_comments(post_id):
+    """Fetches all comments for a post."""
+    post = Post.query.get_or_404(post_id)
+    comments = post.comments.order_by(PostComment.timestamp.asc()).all()
+
+    comments_data = []
+    for comment in comments:
+        comments_data.append({
+            'id': comment.id,
+            'content': comment.content,
+            'timestamp': comment.timestamp.isoformat(),
+            'author': {
+                'id': comment.author.id,
+                'name': comment.author.name,
+                'profile_pic': url_for('static', filename='profile_pics/' + comment.author.profile_pic)
+            }
+        })
+
+    return jsonify(comments_data)
+
+@feed_bp.route('/api/post/<int:post_id>/comment', methods=['POST'])
+@login_required
+def add_comment(post_id):
+    """Adds a new comment to a post."""
+    post = Post.query.get_or_404(post_id)
+    data = request.get_json()
+    content = data.get('content')
+
+    if not content or not content.strip():
+        return jsonify({'status': 'error', 'message': 'Comment content cannot be empty.'}), 400
+
+    new_comment = PostComment(
+        user_id=current_user.id,
+        post_id=post.id,
+        content=content.strip()
+    )
+    db.session.add(new_comment)
+    db.session.commit()
+
+    comment_data = {
+        'id': new_comment.id,
+        'content': new_comment.content,
+        'timestamp': new_comment.timestamp.isoformat(),
+        'author': {
+            'id': new_comment.author.id,
+            'name': new_comment.author.name,
+            'profile_pic': url_for('static', filename='profile_pics/' + new_comment.author.profile_pic)
+        }
+    }
+
+    return jsonify({'status': 'success', 'comment': comment_data}), 201
