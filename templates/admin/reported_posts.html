@@ -1,34 +1,43 @@
-{% extends "admin/dashboard.html" %}
+{% extends "base.html" %}
 
-{% block admin_content %}
-<h2>Reported Posts</h2>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Post Content</th>
-            <th>Reported By</th>
-            <th>Reason</th>
-            <th>Date</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
+{% block title %}Reported Posts{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Reported Posts</h1>
+        <p>Review posts that have been reported by users.</p>
+    </div>
+
+    <div class="user-table" role="table">
+        <div class="user-table-header" role="rowgroup">
+            <div class="table-cell" role="columnheader">Post Content</div>
+            <div class="table-cell" role="columnheader">Reported By</div>
+            <div class="table-cell" role="columnheader">Reason</div>
+            <div class="table-cell" role="columnheader">Date</div>
+            <div class="table-cell" role="columnheader">Actions</div>
+        </div>
+
         {% for report in reports %}
-        <tr>
-            <td>{{ report.post.content|truncate(100) }}</td>
-            <td>{{ report.reporter.name }}</td>
-            <td>{{ report.reason }}</td>
-            <td>{{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td>
-                <a href="#" class="btn btn-sm btn-primary">View Post</a>
-                <a href="#" class="btn btn-sm btn-danger">Delete Post</a>
-            </td>
-        </tr>
+        <div class="user-card" role="rowgroup">
+            <div class="user-info" role="row">
+                <div class="table-cell" role="cell" data-label="Post Content">{{ report.post.content|truncate(100) }}</div>
+                <div class="table-cell" role="cell" data-label="Reported By">{{ report.reporter.name }}</div>
+                <div class="table-cell" role="cell" data-label="Reason">{{ report.reason }}</div>
+                <div class="table-cell" role="cell" data-label="Date">{{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
+                <div class="table-cell user-actions" role="cell" data-label="Actions">
+                    <a href="#" class="btn-action btn-action-neutral">View Post</a>
+                    <a href="#" class="btn-action btn-action-negative">Delete Post</a>
+                </div>
+            </div>
+        </div>
         {% else %}
-        <tr>
-            <td colspan="5">No reported posts.</td>
-        </tr>
+        <div class="user-card" role="rowgroup">
+            <div class="user-info" role="row">
+                <div class="table-cell" role="cell" colspan="5">No reported posts.</div>
+            </div>
+        </div>
         {% endfor %}
-    </tbody>
-</table>
+    </div>
+</div>
 {% endblock %}

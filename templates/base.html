@@ -71,18 +71,21 @@
                     {# --- LOGGED-IN USERS --- #}
                     {% if current_user.role == 'student' %}
                         <a href="{{ nav_links.dashboard }}" class="{{ 'active' if request.endpoint == 'main.student_dashboard' }}">Dashboard</a>
+                        <a href="{{ url_for('feed.home') }}" class="{{ 'active' if request.endpoint.startswith('feed.') }}">Feed World</a>
                         <a href="{{ nav_links.profile }}" class="{{ 'active' if request.endpoint == 'main.profile' }}">Profile</a>
                         <a href="{{ nav_links.courses }}" class="{{ 'active' if request.endpoint == 'main.courses' }}">Courses</a>
                         <a href="{{ nav_links.chat }}" class="{{ 'active' if request.endpoint == 'main.chat_list' }}">Chat</a>
                         <a href="{{ nav_links.library }}" class="{{ 'active' if request.endpoint == 'main.library' }}">Library</a>
                     {% elif current_user.role == 'instructor' %}
                         <a href="{{ url_for('instructor.dashboard') }}" class="{{ 'active' if request.endpoint == 'instructor.dashboard' }}">Dashboard</a>
+                        <a href="{{ url_for('feed.home') }}" class="{{ 'active' if request.endpoint.startswith('feed.') }}">Feed World</a>
                         <a href="{{ nav_links.profile }}" class="{{ 'active' if request.endpoint == 'main.profile' }}">Profile</a>
                         <a href="{{ nav_links.courses }}" class="{{ 'active' if request.endpoint == 'main.courses' }}">Courses <small>(manage)</small></a>
                         <a href="{{ nav_links.chat }}" class="{{ 'active' if request.endpoint == 'main.chat_list' }}">Chat</a>
                         <a href="{{ nav_links.library }}" class="{{ 'active' if request.endpoint == 'main.library' }}">Library <small>(upload)</small></a>
                     {% elif current_user.role == 'admin' %}
                         <a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint == 'admin.dashboard' }}">Dashboard</a>
+                        <a href="{{ url_for('feed.home') }}" class="{{ 'active' if request.endpoint.startswith('feed.') }}">Feed World</a>
                         <a href="{{ url_for('admin.manage_group_requests') }}" class="{{ 'active' if request.endpoint == 'admin.manage_group_requests' }}">Group Requests</a>
                         <a href="{{ nav_links.profile }}" class="{{ 'active' if request.endpoint == 'main.profile' }}">Profile</a>
                         <a href="{{ nav_links.chat }}" class="{{ 'active' if request.endpoint == 'main.chat_list' }}">Chat</a>
