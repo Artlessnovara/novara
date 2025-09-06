@@ -34,15 +34,20 @@
             </div>
             <div class="profile-actions">
                 {% if user.id != current_user.id %}
-                    {% if current_user.is_following(user) %}
-                        <form action="{{ url_for('feed.unfollow', user_id=user.id) }}" method="POST">
-                            <button type="submit">Unfollow</button>
+                    <div style="display: flex; gap: 1rem;">
+                        {% if current_user.is_following(user) %}
+                            <form action="{{ url_for('feed.unfollow', user_id=user.id) }}" method="POST">
+                                <button type="submit" class="btn-secondary">Unfollow</button>
+                            </form>
+                        {% else %}
+                            <form action="{{ url_for('feed.follow', user_id=user.id) }}" method="POST">
+                                <button type="submit">Follow</button>
+                            </form>
+                        {% endif %}
+                        <form action="{{ url_for('main.create_private_chat', other_user_id=user.id) }}" method="POST">
+                            <button type="submit">Message</button>
                         </form>
-                    {% else %}
-                        <form action="{{ url_for('feed.follow', user_id=user.id) }}" method="POST">
-                            <button type="submit">Follow</button>
-                        </form>
-                    {% endif %}
+                    </div>
                 {% else %}
                     <button>Edit Profile</button>
                 {% endif %}

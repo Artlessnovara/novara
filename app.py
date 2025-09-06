@@ -115,6 +115,13 @@ def create_app(config_object=None):
         db.session.commit()
         print("Database initialized.")
 
+    @app.cli.command("reset-db")
+    def reset_db():
+        """Drops and creates all tables."""
+        db.drop_all()
+        db.create_all()
+        print("Database reset.")
+
     @app.cli.command("clean-chat-history")
     @click.option("--days", default=30, type=int, help="Delete messages older than this many days.")
     def clean_chat_history(days):
