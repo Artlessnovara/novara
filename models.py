@@ -4,6 +4,12 @@ from flask_login import UserMixin
 from datetime import datetime, timedelta
 from sqlalchemy.orm import synonym
 
+# Define the follow association table before it's used in the User model
+follow = db.Table('follow',
+    db.Column('follower_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('followed_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
+)
+
 class Enrollment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -51,6 +57,32 @@ class User(UserMixin, db.Model):
     library_purchases = db.relationship('LibraryPurchase', backref='user', lazy='dynamic', cascade="all, delete-orphan")
     chat_messages = db.relationship('ChatMessage', foreign_keys='ChatMessage.user_id', back_populates='author', lazy='dynamic')
     forwarded_messages = db.relationship('ChatMessage', foreign_keys='ChatMessage.forwarded_from_id', back_populates='forwarded_from', lazy='dynamic')
+
+    # Feed World Relationships
+    posts = db.relationship('Post', backref='author', lazy='dynamic', cascade="all, delete-orphan")
+    reels = db.relationship('Reel', backref='author', lazy='dynamic', cascade="all, delete-orphan")
+    projects = db.relationship('Project', backref='owner', lazy='dynamic', cascade="all, delete-orphan")
+    creative_works = db.relationship('CreativeWork', backref='artist', lazy='dynamic', cascade="all, delete-orphan")
+    notifications = db.relationship('Notification', foreign_keys='Notification.user_id', backref='user', lazy='dynamic', cascade="all, delete-orphan")
+
+    followed = db.relationship(
+        'User', secondary=follow,
+        primaryjoin=(id == follow.c.follower_id),
+        secondaryjoin=(id == follow.c.followed_id),
+        backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
+
+    def follow(self, user):
+        if not self.is_following(user):
+            self.followed.append(user)
+
+    def unfollow(self, user):
+        if self.is_following(user):
+            self.followed.remove(user)
+
+    def is_following(self, user):
+        return self.followed.filter(
+            follow.c.followed_id == user.id).count() > 0
+
 
     def is_enrolled(self, course):
         return Enrollment.query.filter_by(student=self, course=course, status='approved').count() > 0
@@ -599,6 +631,74 @@ class LinkPreview(db.Model):
     image_url = db.Column(db.String(2048), nullable=True)
 
     status = db.relationship('Status', backref=db.backref('link_preview', uselist=False, cascade="all, delete-orphan"))
+
+
+# --- Feed World Models ---
+
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    media_type = db.Column(db.String(20), nullable=True) # 'image', 'video'
+    media_url = db.Column(db.String(255), nullable=True)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    privacy = db.Column(db.String(50), nullable=False, default='public') # public, followers, private
+
+class Reel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    video_url = db.Column(db.String(255), nullable=False)
+    caption = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+class CommunityMembership(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    community_id = db.Column(db.Integer, db.ForeignKey('community.id'), primary_key=True)
+    role = db.Column(db.String(50), nullable=False, default='member') # e.g., member, admin, moderator
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('community_memberships', cascade="all, delete-orphan"))
+    community = db.relationship('Community', backref=db.backref('memberships', lazy='dynamic', cascade="all, delete-orphan"))
+
+
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+class CreativeWork(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    media_url = db.Column(db.String(255), nullable=False)
+    work_type = db.Column(db.String(50), nullable=False) # e.g., 'image', 'music', 'video', 'writing'
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    type = db.Column(db.String(50), nullable=False) # e.g., 'like_post', 'comment_post', 'follow_user'
+    object_type = db.Column(db.String(50))
+    object_id = db.Column(db.Integer)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    actor = db.relationship('User', foreign_keys=[actor_id])
+
+class ReportedPost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    reported_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reason = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    post = db.relationship('Post', backref='reports')
+    reporter = db.relationship('User', foreign_keys=[reported_by_id])
+
 
 class FCMToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)

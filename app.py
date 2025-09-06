@@ -1,8 +1,9 @@
 from flask import Flask
 from extensions import db, login_manager, socketio
-from models import User, ChatRoom, ChatMessage
+from models import User, ChatRoom, ChatMessage, Notification
 import os
 import click
+from flask_login import current_user
 import json
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
@@ -73,6 +74,9 @@ def create_app(config_object=None):
     from admin_routes import admin_bp
     app.register_blueprint(admin_bp)
 
+    from feed_world_routes import feed_bp
+    app.register_blueprint(feed_bp)
+
     # Register chat events
     from chat_events import register_chat_events
     register_chat_events(socketio)
@@ -83,6 +87,13 @@ def create_app(config_object=None):
     # Initialize Firebase Admin SDK
     with app.app_context():
         initialize_firebase()
+
+    @app.context_processor
+    def inject_notifications():
+        if current_user.is_authenticated:
+            unread_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+            return dict(unread_notification_count=unread_count)
+        return dict(unread_notification_count=0)
 
     def from_json_filter(value, default=None):
         try:

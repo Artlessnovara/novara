@@ -1,0 +1,38 @@
+{% extends "feed/base.html" %}
+
+{% block title %}{{ work.title }}{% endblock %}
+
+{% block styles %}
+<style>
+    .work-container { max-width: 900px; margin: auto; }
+    .work-view-card { background: var(--card-bg-light); border-radius: var(--border-radius); box-shadow: var(--shadow-md); overflow: hidden; }
+    .work-media { width: 100%; max-height: 70vh; background-color: #000; display: flex; justify-content: center; align-items: center; }
+    .work-media img, .work-media video { max-width: 100%; max-height: 70vh; }
+    .work-info { padding: 2rem; }
+    .work-info h1 { margin-top: 0; }
+    .work-meta { color: var(--secondary-text-light); margin-bottom: 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="work-container">
+    <div class="work-view-card">
+        <div class="work-media">
+            {% if work.work_type == 'image' %}
+                <img src="{{ url_for('static', filename=work.media_url) }}" alt="{{ work.title }}">
+            {% elif work.work_type == 'video' %}
+                <video src="{{ url_for('static', filename=work.media_url) }}" controls autoplay></video>
+            {% else %}
+                <p>Audio player not implemented yet.</p>
+            {% endif %}
+        </div>
+        <div class="work-info">
+            <h1>{{ work.title }}</h1>
+            <div class="work-meta">
+                Shared by <a href="{{ url_for('feed.profile', user_id=work.artist.id) }}">{{ work.artist.name }}</a> on {{ work.timestamp.strftime('%B %d, %Y') }}
+            </div>
+            <p>{{ work.description|safe }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

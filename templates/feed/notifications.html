@@ -1,0 +1,59 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block styles %}
+<style>
+    .notifications-container { max-width: 800px; margin: auto; }
+    .notification-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color-light);
+    }
+    .notification-item.unread {
+        background-color: #ecf3ff;
+    }
+    .notification-item a {
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        width: 100%;
+    }
+    .notification-item img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+    }
+    .notification-item .timestamp {
+        font-size: 0.8rem;
+        color: var(--secondary-text-light);
+        margin-left: auto;
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notifications-container">
+    <h1>Notifications</h1>
+    <div class="notifications-list">
+        {% for notification in notifications %}
+            <div class="notification-item {% if not notification.is_read %}unread{% endif %}">
+                {% if notification.type == 'follow' %}
+                    <a href="{{ url_for('feed.profile', user_id=notification.actor_id) }}">
+                        <img src="{{ url_for('static', filename='profile_pics/' + notification.actor.profile_pic) }}" alt="{{ notification.actor.name }}">
+                        <strong>{{ notification.actor.name }}</strong> started following you.
+                    </a>
+                {% endif %}
+                <span class="timestamp">{{ notification.timestamp.strftime('%b %d at %I:%M %p') }}</span>
+            </div>
+        {% else %}
+            <p>You have no notifications.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -193,3 +193,62 @@ def get_or_create_private_room(user1_id, user2_id):
     db.session.commit()
 
     return new_room
+
+def save_post_media(file):
+    """
+    Saves an image or video for a post.
+    """
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'webm', 'ogg'}
+    max_size = 50 * 1024 * 1024 # 50MB
+
+    filename = secure_filename(file.filename)
+    if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+        return None, None # Invalid file type
+
+    file.seek(0, os.SEEK_END)
+    file_length = file.tell()
+    if file_length > max_size:
+        return None, None # File too large
+    file.seek(0)
+
+    random_hex = os.urandom(8).hex()
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+
+    upload_folder = os.path.join(current_app.root_path, 'static/post_media')
+    os.makedirs(upload_folder, exist_ok=True)
+
+    filepath = os.path.join(upload_folder, new_filename)
+    file.save(filepath)
+
+    media_type = 'image' if f_ext.lower() in ['.png', 'jpg', 'jpeg', '.gif'] else 'video'
+
+    return os.path.join('post_media', new_filename), media_type
+
+def save_community_cover_image(file):
+    """Saves a cover image for a community."""
+    allowed_extensions = {'png', 'jpg', 'jpeg'}
+    max_size = 2 * 1024 * 1024 # 2MB
+
+    filename = secure_filename(file.filename)
+    if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+        return None
+
+    # Check file size
+    file.seek(0, os.SEEK_END)
+    file_length = file.tell()
+    if file_length > max_size:
+        return None
+    file.seek(0) # Reset file pointer
+
+    random_hex = os.urandom(8).hex()
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+
+    upload_folder = os.path.join(current_app.root_path, 'static/community_covers')
+    os.makedirs(upload_folder, exist_ok=True)
+
+    filepath = os.path.join(upload_folder, new_filename)
+    file.save(filepath)
+
+    return os.path.join('community_covers', new_filename)

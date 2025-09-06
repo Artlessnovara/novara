@@ -1,0 +1,31 @@
+{% extends "feed/base.html" %}
+
+{% block title %}{{ project.title }}{% endblock %}
+
+{% block styles %}
+<style>
+    .project-container { max-width: 900px; margin: auto; }
+    .project-view-card { background: var(--card-bg-light); border-radius: var(--border-radius); padding: 2rem; box-shadow: var(--shadow-md); }
+    .project-view-card h1 { margin-top: 0; }
+    .project-meta { color: var(--secondary-text-light); margin-bottom: 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="project-container">
+    <div class="project-view-card">
+        <h1>{{ project.title }}</h1>
+        <div class="project-meta">
+            Posted by <a href="{{ url_for('feed.profile', user_id=project.owner.id) }}">{{ project.owner.name }}</a> on {{ project.timestamp.strftime('%B %d, %Y') }}
+        </div>
+        <div class="project-description">
+            {{ project.description|safe }}
+        </div>
+        <hr style="margin: 2rem 0;">
+        <div class="project-feedback">
+            <h2>Feedback & Reviews</h2>
+            <p>Feedback functionality will be implemented here.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

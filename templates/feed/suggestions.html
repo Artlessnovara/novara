@@ -1,0 +1,86 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Suggestions For You{% endblock %}
+
+{% block styles %}
+<style>
+    .suggestions-container { max-width: 1000px; margin: auto; }
+    .suggestions-section { background: var(--card-bg-light); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); }
+    .suggestion-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color-light); }
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-info { display: flex; align-items: center; gap: 1rem; }
+    .suggestion-info img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+    .suggestion-info a { text-decoration: none; color: inherit; }
+    .follow-btn { background: var(--primary-color); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="suggestions-container">
+    <h1>Suggestions For You</h1>
+
+    <div class="suggestions-section">
+        <h2>People you may know</h2>
+        {% for user in suggested_users %}
+            <div class="suggestion-item">
+                <div class="suggestion-info">
+                    <a href="{{ url_for('feed.profile', user_id=user.id) }}">
+                        <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}">
+                    </a>
+                    <div>
+                        <strong><a href="{{ url_for('feed.profile', user_id=user.id) }}">{{ user.name }}</a></strong>
+                        <p>{{ user.bio|truncate(50) if user.bio else 'No bio available.' }}</p>
+                    </div>
+                </div>
+                <form action="{{ url_for('feed.follow', user_id=user.id) }}" method="POST">
+                    <button type="submit" class="follow-btn">Follow</button>
+                </form>
+            </div>
+        {% else %}
+            <p>No user suggestions at the moment.</p>
+        {% endfor %}
+    </div>
+
+    <div class="suggestions-section">
+        <h2>Communities you might like</h2>
+        {% for community in suggested_communities %}
+            <div class="suggestion-item">
+                <div class="suggestion-info">
+                     <a href="{{ url_for('feed.view_community', community_id=community.id) }}">
+                        <img src="{{ url_for('static', filename=community.cover_image or 'images/course_placeholder.jpg') }}" alt="{{ community.name }}">
+                    </a>
+                    <div>
+                        <strong><a href="{{ url_for('feed.view_community', community_id=community.id) }}">{{ community.name }}</a></strong>
+                        <p>{{ community.description|truncate(50) }}</p>
+                    </div>
+                </div>
+                {% if community.memberships.filter_by(user_id=current_user.id).first() %}
+                    <p>Joined</p>
+                {% else %}
+                <form action="{{ url_for('feed.join_community', community_id=community.id) }}" method="POST">
+                    <button type="submit" class="follow-btn">Join</button>
+                </form>
+                {% endif %}
+            </div>
+        {% else %}
+            <p>No community suggestions at the moment.</p>
+        {% endfor %}
+    </div>
+
+    <div class="suggestions-section">
+        <h2>Projects you might be interested in</h2>
+        {% for project in suggested_projects %}
+            <div class="suggestion-item">
+                <div class="suggestion-info">
+                    <div>
+                        <strong><a href="{{ url_for('feed.view_project', project_id=project.id) }}">{{ project.title }}</a></strong>
+                        <p>by {{ project.owner.name }}</p>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <p>No project suggestions at the moment.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

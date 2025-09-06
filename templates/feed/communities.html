@@ -1,0 +1,59 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Communities{% endblock %}
+
+{% block styles %}
+<style>
+    .communities-container { max-width: 1000px; margin: auto; }
+    .create-community-card { background: var(--card-bg-light); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); }
+    .create-community-card input, .create-community-card textarea { width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid var(--border-color-light); margin-top: 0.5rem; }
+    .create-community-card button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; margin-top: 1rem; }
+    .communities-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+    .community-card { background: var(--card-bg-light); border-radius: var(--border-radius); box-shadow: var(--shadow-sm); overflow: hidden; transition: box-shadow 0.2s; }
+    .community-card:hover { box-shadow: var(--shadow-md); }
+    .community-card a { text-decoration: none; color: inherit; }
+    .community-card-banner { height: 120px; background-color: #ccc; background-size: cover; background-position: center; }
+    .community-card-info { padding: 1rem; }
+    .community-card-info h3 { margin: 0 0 0.5rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="communities-container">
+    <div class="create-community-card">
+        <h3>Create a New Community</h3>
+        <form action="{{ url_for('feed.create_community') }}" method="POST" enctype="multipart/form-data">
+            <div>
+                <label for="name">Community Name</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div style="margin-top: 1rem;">
+                <label for="description">Description</label>
+                <textarea name="description" id="description" rows="3" required></textarea>
+            </div>
+            <div style="margin-top: 1rem;">
+                <label for="cover_image">Cover Image</label>
+                <input type="file" id="cover_image" name="cover_image" accept="image/*">
+            </div>
+            <button type="submit">Create Community</button>
+        </form>
+    </div>
+
+    <h2>Discover Communities</h2>
+    <div class="communities-grid">
+        {% for community in communities %}
+            <div class="community-card">
+                <a href="{{ url_for('feed.view_community', community_id=community.id) }}">
+                    <div class="community-card-banner" style="background-image: url('{{ url_for('static', filename=community.cover_image or 'images/course_placeholder.jpg') }}')"></div>
+                    <div class="community-card-info">
+                        <h3>{{ community.name }}</h3>
+                        <p>{{ community.description|truncate(100) }}</p>
+                    </div>
+                </a>
+            </div>
+        {% else %}
+            <p>No communities yet. Why not create one?</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

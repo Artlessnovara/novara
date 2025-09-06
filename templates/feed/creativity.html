@@ -1,0 +1,66 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Creativity Hub{% endblock %}
+
+{% block styles %}
+<style>
+    .creativity-container { max-width: 1200px; margin: auto; }
+    .upload-work-card { background: var(--card-bg-light); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); }
+    .upload-work-card input, .upload-work-card textarea { width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid var(--border-color-light); margin-top: 0.5rem; }
+    .upload-work-card button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; margin-top: 1rem; }
+    .works-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+    .work-card { background: var(--card-bg-light); border-radius: var(--border-radius); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .work-card a { text-decoration: none; color: inherit; }
+    .work-card-media { height: 250px; background-color: #eee; }
+    .work-card-media img, .work-card-media video { width: 100%; height: 100%; object-fit: cover; }
+    .work-card-info { padding: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="creativity-container">
+    <div class="upload-work-card">
+        <h3>Showcase Your Work</h3>
+        <form action="{{ url_for('feed.create_creative_work') }}" method="POST" enctype="multipart/form-data">
+            <div>
+                <label for="title">Title</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            <div style="margin-top: 1rem;">
+                <label for="description">Description</label>
+                <textarea name="description" id="description" rows="3"></textarea>
+            </div>
+            <div style="margin-top: 1rem;">
+                <label for="media">Media File (Image/Video/Audio)</label>
+                <input type="file" id="media" name="media" accept="image/*,video/*,audio/*" required>
+            </div>
+            <button type="submit">Upload Work</button>
+        </form>
+    </div>
+
+    <h2>Creative Works</h2>
+    <div class="works-grid">
+        {% for work in works %}
+            <div class="work-card">
+                <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
+                    <div class="work-card-media">
+                        {% if work.work_type == 'image' %}
+                            <img src="{{ url_for('static', filename=work.media_url) }}" alt="{{ work.title }}">
+                        {% elif work.work_type == 'video' %}
+                            <video src="{{ url_for('static', filename=work.media_url) }}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
+                        {% else %}
+                             <div style="display:flex; align-items:center; justify-content:center; height:100%;"><i class="fas fa-music" style="font-size: 5rem; color: #ccc;"></i></div>
+                        {% endif %}
+                    </div>
+                    <div class="work-card-info">
+                        <h3>{{ work.title }}</h3>
+                        <p>by {{ work.artist.name }}</p>
+                    </div>
+                </a>
+            </div>
+        {% else %}
+            <p>No creative works yet. Be the first to share something!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
