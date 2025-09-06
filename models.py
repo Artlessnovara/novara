@@ -2,7 +2,7 @@ from extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from datetime import datetime, timedelta
-from sqlalchemy.orm import synonym
+from sqlalchemy.orm import synonym, foreign
 
 # Define the follow association table before it's used in the User model
 follow = db.Table('follow',
@@ -48,7 +48,7 @@ class User(UserMixin, db.Model):
 
     courses_taught = db.relationship('Course', backref='instructor', lazy='dynamic')
     enrollments = db.relationship('Enrollment', back_populates='student', lazy='dynamic')
-    comments = db.relationship('Comment', backref='author', lazy='dynamic')
+    course_comments = db.relationship('CourseComment', backref='author', lazy='dynamic')
     library_items = db.relationship('LibraryMaterial', backref='uploader', lazy='dynamic')
     quiz_submissions = db.relationship('QuizSubmission', backref='student', lazy='dynamic')
     assignment_submissions = db.relationship('AssignmentSubmission', backref='student', lazy='dynamic')
@@ -118,7 +118,7 @@ class Course(db.Model):
     final_exam_enabled = db.Column(db.Boolean, default=True)
 
     modules = db.relationship('Module', backref='course', lazy='dynamic', cascade="all, delete-orphan")
-    comments = db.relationship('Comment', backref='course', lazy='dynamic', cascade="all, delete-orphan")
+    comments = db.relationship('CourseComment', backref='course', lazy='dynamic', cascade="all, delete-orphan")
     enrollments = db.relationship('Enrollment', back_populates='course', lazy='dynamic', cascade="all, delete-orphan")
     final_exam = db.relationship('FinalExam', backref='course', uselist=False, cascade="all, delete-orphan")
     chat_room = db.relationship('ChatRoom', backref='course_room', uselist=False, cascade="all, delete-orphan")
@@ -151,14 +151,14 @@ class Lesson(db.Model):
     completions = db.relationship('LessonCompletion', backref='lesson', lazy='dynamic', cascade="all, delete-orphan")
     def __repr__(self): return f'<Lesson {self.title}>'
 
-class Comment(db.Model):
+class CourseComment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     body = db.Column(db.Text, nullable=False)
     rating = db.Column(db.Integer, nullable=True)
-    def __repr__(self): return f'<Comment {self.body[:15]}...>'
+    def __repr__(self): return f'<CourseComment {self.body[:15]}...>'
 
 class LibraryMaterial(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -372,6 +372,7 @@ class Community(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     creator = db.relationship('User', backref='created_communities')
+    posts = db.relationship('Post', backref='community', lazy='dynamic', cascade="all, delete-orphan")
 
 class ChatRoom(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -638,30 +639,48 @@ class LinkPreview(db.Model):
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=True)
     content = db.Column(db.Text, nullable=False)
     media_type = db.Column(db.String(20), nullable=True) # 'image', 'video'
     media_url = db.Column(db.String(255), nullable=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     privacy = db.Column(db.String(50), nullable=False, default='public') # public, followers, private
 
-    likes = db.relationship('PostLike', backref='post', lazy='dynamic', cascade="all, delete-orphan")
-    comments = db.relationship('PostComment', backref='post', lazy='dynamic', cascade="all, delete-orphan")
+    likes = db.relationship('Like',
+                            primaryjoin="and_(Like.target_type=='post', foreign(Like.target_id)==Post.id)",
+                            lazy='dynamic',
+                            cascade="all, delete-orphan")
+    comments = db.relationship('GenericComment',
+                               primaryjoin="and_(GenericComment.target_type=='post', foreign(GenericComment.target_id)==Post.id)",
+                               lazy='dynamic',
+                               cascade="all, delete-orphan")
 
-class PostLike(db.Model):
+class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-    __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='_user_post_like_uc'),)
 
-class PostComment(db.Model):
+    # Polymorphic relationship
+    target_type = db.Column(db.String(50), nullable=False)
+    target_id = db.Column(db.Integer, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('likes', lazy='dynamic'))
+
+    __table_args__ = (db.Index('ix_like_target', 'target_type', 'target_id'),)
+
+class GenericComment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
-    author = db.relationship('User', backref=db.backref('post_comments', lazy='dynamic'))
+    # Polymorphic relationship
+    target_type = db.Column(db.String(50), nullable=False)
+    target_id = db.Column(db.Integer, nullable=False)
+
+    author = db.relationship('User', backref=db.backref('generic_comments', lazy='dynamic'))
+
+    __table_args__ = (db.Index('ix_comment_target', 'target_type', 'target_id'),)
 
 class Reel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -687,6 +706,15 @@ class Project(db.Model):
     description = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
+    likes = db.relationship('Like',
+                            primaryjoin="and_(Like.target_type=='project', foreign(Like.target_id)==Project.id)",
+                            lazy='dynamic',
+                            cascade="all, delete-orphan")
+    comments = db.relationship('GenericComment',
+                               primaryjoin="and_(GenericComment.target_type=='project', foreign(GenericComment.target_id)==Project.id)",
+                               lazy='dynamic',
+                               cascade="all, delete-orphan")
+
 class CreativeWork(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -695,6 +723,15 @@ class CreativeWork(db.Model):
     media_url = db.Column(db.String(255), nullable=False)
     work_type = db.Column(db.String(50), nullable=False) # e.g., 'image', 'music', 'video', 'writing'
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    likes = db.relationship('Like',
+                            primaryjoin="and_(Like.target_type=='creative_work', foreign(Like.target_id)==CreativeWork.id)",
+                            lazy='dynamic',
+                            cascade="all, delete-orphan")
+    comments = db.relationship('GenericComment',
+                               primaryjoin="and_(GenericComment.target_type=='creative_work', foreign(GenericComment.target_id)==CreativeWork.id)",
+                               lazy='dynamic',
+                               cascade="all, delete-orphan")
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)

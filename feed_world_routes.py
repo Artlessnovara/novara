@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import Post, PostLike, PostComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost
+from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost
 from extensions import db
 from utils import save_post_media, save_community_cover_image
 from sqlalchemy.sql import func
@@ -37,9 +37,12 @@ def create_post():
     content = request.form.get('content')
     privacy = request.form.get('privacy', 'public')
     media_file = request.files.get('media')
+    community_id = request.form.get('community_id', type=int)
 
     if not content:
         flash('Content is required to create a post.', 'danger')
+        if community_id:
+            return redirect(url_for('feed.view_community', community_id=community_id))
         return redirect(url_for('feed.home'))
 
     media_url = None
@@ -56,12 +59,15 @@ def create_post():
         content=content,
         media_url=media_url,
         media_type=media_type,
-        privacy=privacy
+        privacy=privacy,
+        community_id=community_id
     )
     db.session.add(new_post)
     db.session.commit()
 
     flash('Your post has been created!', 'success')
+    if community_id:
+        return redirect(url_for('feed.view_community', community_id=community_id))
     return redirect(url_for('feed.home'))
 
 @feed_bp.route('/communities')
@@ -114,10 +120,10 @@ def create_community():
 @feed_bp.route('/community/<int:community_id>')
 @login_required
 def view_community(community_id):
-    """View a single community."""
+    """View a single community and its posts."""
     community = Community.query.get_or_404(community_id)
-    # You can add logic here to fetch posts specific to this community
-    return render_template('feed/view_community.html', community=community)
+    posts = community.posts.order_by(Post.timestamp.desc()).all()
+    return render_template('feed/view_community.html', community=community, posts=posts)
 
 @feed_bp.route('/community/<int:community_id>/join', methods=['POST'])
 @login_required
@@ -400,7 +406,7 @@ def report_post(post_id):
 def like_post(post_id):
     """Toggles a like on a post."""
     post = Post.query.get_or_404(post_id)
-    like = PostLike.query.filter_by(user_id=current_user.id, post_id=post.id).first()
+    like = Like.query.filter_by(user_id=current_user.id, target_type='post', target_id=post.id).first()
 
     if like:
         # User has already liked the post, so unlike it
@@ -409,7 +415,7 @@ def like_post(post_id):
         liked = False
     else:
         # User has not liked the post, so like it
-        new_like = PostLike(user_id=current_user.id, post_id=post.id)
+        new_like = Like(user_id=current_user.id, target_type='post', target_id=post.id)
         db.session.add(new_like)
         db.session.commit()
         liked = True
@@ -425,7 +431,7 @@ def like_post(post_id):
 def get_comments(post_id):
     """Fetches all comments for a post."""
     post = Post.query.get_or_404(post_id)
-    comments = post.comments.order_by(PostComment.timestamp.asc()).all()
+    comments = post.comments.order_by(GenericComment.timestamp.asc()).all()
 
     comments_data = []
     for comment in comments:
@@ -453,9 +459,166 @@ def add_comment(post_id):
     if not content or not content.strip():
         return jsonify({'status': 'error', 'message': 'Comment content cannot be empty.'}), 400
 
-    new_comment = PostComment(
+    new_comment = GenericComment(
         user_id=current_user.id,
-        post_id=post.id,
+        target_type='post',
+        target_id=post.id,
+        content=content.strip()
+    )
+    db.session.add(new_comment)
+    db.session.commit()
+
+    comment_data = {
+        'id': new_comment.id,
+        'content': new_comment.content,
+        'timestamp': new_comment.timestamp.isoformat(),
+        'author': {
+            'id': new_comment.author.id,
+            'name': new_comment.author.name,
+            'profile_pic': url_for('static', filename='profile_pics/' + new_comment.author.profile_pic)
+        }
+    }
+
+    return jsonify({'status': 'success', 'comment': comment_data}), 201
+
+# --- API Routes for Creative Work Likes and Comments ---
+
+@feed_bp.route('/api/creative_work/<int:work_id>/like', methods=['POST'])
+@login_required
+def like_creative_work(work_id):
+    """Toggles a like on a creative work."""
+    work = CreativeWork.query.get_or_404(work_id)
+    like = Like.query.filter_by(user_id=current_user.id, target_type='creative_work', target_id=work.id).first()
+
+    if like:
+        db.session.delete(like)
+        liked = False
+    else:
+        new_like = Like(user_id=current_user.id, target_type='creative_work', target_id=work.id)
+        db.session.add(new_like)
+        liked = True
+
+    db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'likes_count': work.likes.count(),
+        'liked_by_user': liked
+    })
+
+@feed_bp.route('/api/creative_work/<int:work_id>/comments', methods=['GET'])
+@login_required
+def get_creative_work_comments(work_id):
+    """Fetches all comments for a creative work."""
+    work = CreativeWork.query.get_or_404(work_id)
+    comments = work.comments.order_by(GenericComment.timestamp.asc()).all()
+
+    comments_data = [{
+        'id': comment.id,
+        'content': comment.content,
+        'timestamp': comment.timestamp.isoformat(),
+        'author': {
+            'id': comment.author.id,
+            'name': comment.author.name,
+            'profile_pic': url_for('static', filename='profile_pics/' + comment.author.profile_pic)
+        }
+    } for comment in comments]
+
+    return jsonify(comments_data)
+
+@feed_bp.route('/api/creative_work/<int:work_id>/comment', methods=['POST'])
+@login_required
+def add_creative_work_comment(work_id):
+    """Adds a new comment to a creative work."""
+    work = CreativeWork.query.get_or_404(work_id)
+    data = request.get_json()
+    content = data.get('content')
+
+    if not content or not content.strip():
+        return jsonify({'status': 'error', 'message': 'Comment content cannot be empty.'}), 400
+
+    new_comment = GenericComment(
+        user_id=current_user.id,
+        target_type='creative_work',
+        target_id=work.id,
+        content=content.strip()
+    )
+    db.session.add(new_comment)
+    db.session.commit()
+
+    comment_data = {
+        'id': new_comment.id,
+        'content': new_comment.content,
+        'timestamp': new_comment.timestamp.isoformat(),
+        'author': {
+            'id': new_comment.author.id,
+            'name': new_comment.author.name,
+            'profile_pic': url_for('static', filename='profile_pics/' + new_comment.author.profile_pic)
+        }
+    }
+
+    return jsonify({'status': 'success', 'comment': comment_data}), 201
+
+# --- API Routes for Project Likes and Comments ---
+
+@feed_bp.route('/api/project/<int:project_id>/like', methods=['POST'])
+@login_required
+def like_project(project_id):
+    """Toggles a like on a project."""
+    project = Project.query.get_or_404(project_id)
+    like = Like.query.filter_by(user_id=current_user.id, target_type='project', target_id=project.id).first()
+
+    if like:
+        db.session.delete(like)
+        liked = False
+    else:
+        new_like = Like(user_id=current_user.id, target_type='project', target_id=project.id)
+        db.session.add(new_like)
+        liked = True
+
+    db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'likes_count': project.likes.count(),
+        'liked_by_user': liked
+    })
+
+@feed_bp.route('/api/project/<int:project_id>/comments', methods=['GET'])
+@login_required
+def get_project_comments(project_id):
+    """Fetches all comments for a project."""
+    project = Project.query.get_or_404(project_id)
+    comments = project.comments.order_by(GenericComment.timestamp.asc()).all()
+
+    comments_data = [{
+        'id': comment.id,
+        'content': comment.content,
+        'timestamp': comment.timestamp.isoformat(),
+        'author': {
+            'id': comment.author.id,
+            'name': comment.author.name,
+            'profile_pic': url_for('static', filename='profile_pics/' + comment.author.profile_pic)
+        }
+    } for comment in comments]
+
+    return jsonify(comments_data)
+
+@feed_bp.route('/api/project/<int:project_id>/comment', methods=['POST'])
+@login_required
+def add_project_comment(project_id):
+    """Adds a new comment to a project."""
+    project = Project.query.get_or_404(project_id)
+    data = request.get_json()
+    content = data.get('content')
+
+    if not content or not content.strip():
+        return jsonify({'status': 'error', 'message': 'Comment content cannot be empty.'}), 400
+
+    new_comment = GenericComment(
+        user_id=current_user.id,
+        target_type='project',
+        target_id=project.id,
         content=content.strip()
     )
     db.session.add(new_comment)

@@ -5,7 +5,7 @@ import random
 import secrets
 import os
 from werkzeug.utils import secure_filename
-from models import User, Course, Category, Comment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory
+from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory
 from extensions import db
 from utils import save_chat_file, save_status_file, get_or_create_platform_setting, is_contact, get_or_create_private_room
 from datetime import timedelta
@@ -120,7 +120,7 @@ def course_detail(course_id):
         is_enrolled = current_user.is_enrolled(course)
 
     # Prepare comments for the template
-    comments = course.comments.order_by(Comment.timestamp.desc()).limit(10).all()
+    comments = course.comments.order_by(CourseComment.timestamp.desc()).limit(10).all()
 
     return render_template('course_detail.html', course=course, is_enrolled=is_enrolled, comments=comments)
 
@@ -147,7 +147,7 @@ def post_comment(course_id):
     comment_body = request.form.get('comment_body')
     rating = request.form.get('rating', type=int)
     if comment_body and rating:
-        comment = Comment(body=comment_body, rating=rating, author=current_user, course=course)
+        comment = CourseComment(body=comment_body, rating=rating, author=current_user, course=course)
         db.session.add(comment)
         db.session.commit()
         flash('Your review has been posted.')
@@ -733,7 +733,7 @@ def save_picture(form_picture):
 @login_required
 def profile():
     # Fetch recent comments for activity feed
-    recent_comments = current_user.comments.order_by(Comment.timestamp.desc()).limit(5).all()
+    recent_comments = current_user.course_comments.order_by(CourseComment.timestamp.desc()).limit(5).all()
 
     # Fetch earned certificates
     certificates = current_user.certificates.order_by(Certificate.issued_at.desc()).all()
