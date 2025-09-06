@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novara</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <!-- Using Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Theme stylesheet -->
+    <link id="theme-stylesheet" rel="stylesheet" href="{{ url_for('static', filename='css/themes/' + (current_user.theme if current_user.is_authenticated and current_user.theme else 'light') + '.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <main class="main-content" style="height: 100vh; padding-bottom: 0;">
+            {% block chat_content %}{% endblock %}
+        </main>
+    </div>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/socket_handler.js') }}"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+    {% block chat_scripts %}{% endblock %}
+</body>
+</html>

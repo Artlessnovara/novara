@@ -3,7 +3,7 @@ from werkzeug.utils import secure_filename
 from flask import current_app
 from models import PlatformSetting, ChatRoom, ChatRoomMember, User
 from extensions import db
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import aliased
 
 def save_chat_file(file):
@@ -151,8 +151,8 @@ def is_contact(user1_id, user2_id):
         .filter(
             ChatRoom.room_type == 'private',
             or_(
-                (member1.user_id == user1_id, member2.user_id == user2_id),
-                (member1.user_id == user2_id, member2.user_id == user1_id)
+                and_(member1.user_id == user1_id, member2.user_id == user2_id),
+                and_(member1.user_id == user2_id, member2.user_id == user1_id)
             )
         ).first()
 
@@ -168,8 +168,8 @@ def get_or_create_private_room(user1_id, user2_id):
         .filter(
             ChatRoom.room_type == 'private',
             or_(
-                (member1.user_id == user1_id, member2.user_id == user2_id),
-                (member1.user_id == user2_id, member2.user_id == user1_id)
+                and_(member1.user_id == user1_id, member2.user_id == user2_id),
+                and_(member1.user_id == user2_id, member2.user_id == user1_id)
             )
         ).first()
 
