@@ -1,0 +1,72 @@
+{% extends "feed/base.html" %}
+
+{% block title %}{{ community.name }}{% endblock %}
+
+{% block styles %}
+<style>
+    .community-container { max-width: 900px; margin: auto; }
+    .community-header {
+        background-color: var(--card-bg-light);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-md);
+        margin-bottom: 2rem;
+        padding: 2rem;
+        text-align: center;
+    }
+    .community-cover {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 1rem;
+        display: block;
+        border: 4px solid var(--card-bg-light);
+        box-shadow: var(--shadow-sm);
+    }
+    .join-btn {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 50px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 1rem;
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="community-container">
+    <div class="community-header">
+        <img src="{{ url_for('static', filename=community.cover_image or 'images/course_placeholder.jpg') }}" alt="{{ community.name }} Cover" class="community-cover">
+        <h1>{{ community.name }}</h1>
+        <p>{{ community.description }}</p>
+
+        {% if current_user.is_authenticated %}
+            {% set membership = community.memberships.filter_by(user_id=current_user.id).first() %}
+            {% if not membership %}
+                <form action="{{ url_for('feed.join_community', community_id=community.id) }}" method="POST">
+                    <button type="submit" class="join-btn">Join Community</button>
+                </form>
+            {% else %}
+                <p><strong>You are a member!</strong></p>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="community-body">
+        <h2>Members ({{ community.memberships.count() }})</h2>
+        <ul>
+        {% for member in community.memberships %}
+            <li>{{ member.user.name }} ({{ member.role }})</li>
+        {% endfor %}
+        </ul>
+
+        <h2>Posts</h2>
+        <p>Community posts will be displayed here.</p>
+    </div>
+
+</div>
+{% endblock %}

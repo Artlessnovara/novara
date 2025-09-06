@@ -1,0 +1,51 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Search Results for "{{ query }}"{% endblock %}
+
+{% block styles %}
+<style>
+    .search-results-container { max-width: 900px; margin: auto; }
+    .results-section { background: var(--card-bg-light); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); }
+    .result-item { padding: 1rem 0; border-bottom: 1px solid var(--border-color-light); }
+    .result-item:last-child { border-bottom: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="search-results-container">
+    <h1>Search Results for "{{ query }}"</h1>
+
+    <div class="results-section">
+        <h2>Users</h2>
+        {% for user in users %}
+            <div class="result-item">
+                <a href="{{ url_for('feed.profile', user_id=user.id) }}">{{ user.name }}</a>
+            </div>
+        {% else %}
+            <p>No users found.</p>
+        {% endfor %}
+    </div>
+
+    <div class="results-section">
+        <h2>Posts</h2>
+        {% for post in posts %}
+            <div class="result-item">
+                <p>"{{ post.content|truncate(100) }}" by {{ post.author.name }}</p>
+            </div>
+        {% else %}
+            <p>No posts found.</p>
+        {% endfor %}
+    </div>
+
+    <div class="results-section">
+        <h2>Communities</h2>
+        {% for community in communities %}
+            <div class="result-item">
+                <a href="{{ url_for('feed.view_community', community_id=community.id) }}">{{ community.name }}</a>
+            </div>
+        {% else %}
+            <p>No communities found.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

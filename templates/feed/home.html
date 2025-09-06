@@ -1,0 +1,79 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Home Feed{% endblock %}
+
+{% block styles %}
+<style>
+    .feed-container { max-width: 800px; margin: auto; }
+    .create-post-card { background: var(--card-bg-light); border-radius: var(--border-radius); padding: 1rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-md); }
+    .create-post-header { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color-light); padding-bottom: 1rem; }
+    .create-post-header textarea { flex-grow: 1; border: none; background: var(--background-color-light); border-radius: 20px; padding: 10px 15px; font-family: inherit; font-size: 1rem; outline: none; resize: none; }
+    .create-post-actions { display: flex; justify-content: space-between; padding-top: 1rem; }
+    .create-post-actions .action-btn { background: none; border: none; color: var(--secondary-text-light); font-weight: 600; cursor: pointer; padding: 10px; border-radius: 5px; transition: background-color 0.2s; }
+    .create-post-actions .action-btn:hover { background-color: var(--hover-overlay-light); }
+    .create-post-actions .post-btn { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+    .post-card { background: var(--card-bg-light); border-radius: var(--border-radius); margin-bottom: 1.5rem; box-shadow: var(--shadow-md); }
+    .post-header { display: flex; align-items: center; gap: 10px; padding: 1rem; }
+    .post-author-info { font-weight: 600; }
+    .post-author-info span { display: block; font-size: 0.8rem; color: var(--secondary-text-light); font-weight: 400; }
+    .post-content { padding: 0 1rem 1rem; }
+    .post-media img, .post-media video { max-width: 100%; border-radius: var(--border-radius); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="feed-container">
+    <div class="create-post-card">
+        <form id="create-post-form" action="{{ url_for('feed.create_post') }}" method="POST" enctype="multipart/form-data">
+            <div class="create-post-header">
+                <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Your Profile Pic" class="profile-pic-small">
+                <textarea name="content" placeholder="What's on your mind, {{ current_user.name.split()[0] }}?" required></textarea>
+            </div>
+            <div class="privacy-selector">
+                <label for="privacy">Post Audience:</label>
+                <select name="privacy" id="privacy">
+                    <option value="public" selected>Public</option>
+                    <option value="followers">Followers</option>
+                    <option value="private">Only Me</option>
+                </select>
+            </div>
+            <div class="create-post-actions">
+                <label for="media-input" class="action-btn"><i class="fas fa-photo-video"></i> Photo/Video</label>
+                <input type="file" id="media-input" name="media" accept="image/*,video/*" style="display: none;">
+                <button type="submit" class="post-btn">Post</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="posts-list">
+        {% for post in posts %}
+            <div class="post-card">
+                <div class="post-header">
+                    <img src="{{ url_for('static', filename='profile_pics/' + post.author.profile_pic) }}" alt="{{ post.author.name }}" class="profile-pic-small">
+                    <div class="post-author-info">
+                        {{ post.author.name }}
+                        <span>{{ post.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                    </div>
+                </div>
+                <div class="post-content">
+                    <p>{{ post.content }}</p>
+                </div>
+                {% if post.media_url %}
+                    <div class="post-media">
+                        {% if post.media_type == 'image' %}
+                            <img src="{{ url_for('static', filename=post.media_url) }}" alt="Post image">
+                        {% elif post.media_type == 'video' %}
+                            <video src="{{ url_for('static', filename=post.media_url) }}" controls></video>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                <div class="post-actions" style="padding: 0 1rem 1rem;">
+                    <a href="{{ url_for('feed.report_post', post_id=post.id) }}" class="report-link">Report</a>
+                </div>
+            </div>
+        {% else %}
+            <p>No posts yet. Be the first to share something!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

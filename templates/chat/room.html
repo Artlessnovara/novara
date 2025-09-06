@@ -27,6 +27,7 @@
             </div>
         </div>
         <div class="header-actions">
+            <a href="{{ url_for('feed.home') }}" class="icon-btn" aria-label="Home"><i class="fa-solid fa-home"></i></a>
             {% if current_user.role in ['admin', 'instructor'] and current_user.can_make_calls %}
                 {% if chat_info.room_type == 'private' and chat_info.other_user_id %}
                     {# One-to-one call buttons #}

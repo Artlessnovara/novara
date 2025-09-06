@@ -1,0 +1,103 @@
+{% extends "feed/base.html" %}
+
+{% block title %}{{ user.name }}'s Profile{% endblock %}
+
+{% block styles %}
+<style>
+    .profile-container { max-width: 900px; margin: auto; }
+    .profile-header { display: flex; align-items: center; gap: 2rem; background: var(--card-bg-light); padding: 2rem; border-radius: var(--border-radius); margin-bottom: 2rem; }
+    .profile-pic-large { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; }
+    .profile-info h1 { margin: 0 0 0.5rem 0; }
+    .profile-stats { display: flex; gap: 1.5rem; margin: 1rem 0; }
+    .profile-actions button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+    .profile-tabs { display: flex; border-bottom: 1px solid var(--border-color-light); margin-bottom: 1.5rem; }
+    .tab-link { padding: 1rem 1.5rem; cursor: pointer; border-bottom: 2px solid transparent; }
+    .tab-link.active { border-bottom-color: var(--primary-color); color: var(--primary-color); font-weight: 600; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .posts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .post-grid-item img, .post-grid-item video { width: 100%; height: 250px; object-fit: cover; border-radius: var(--border-radius); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}" class="profile-pic-large">
+        <div class="profile-info">
+            <h1>{{ user.name }}</h1>
+            <p>{{ user.bio or 'No bio yet.' }}</p>
+            <div class="profile-stats">
+                <div><strong>{{ posts|length }}</strong> posts</div>
+                <div><strong>{{ user.followers.count() }}</strong> followers</div>
+                <div><strong>{{ user.followed.count() }}</strong> following</div>
+            </div>
+            <div class="profile-actions">
+                {% if user.id != current_user.id %}
+                    {% if current_user.is_following(user) %}
+                        <form action="{{ url_for('feed.unfollow', user_id=user.id) }}" method="POST">
+                            <button type="submit">Unfollow</button>
+                        </form>
+                    {% else %}
+                        <form action="{{ url_for('feed.follow', user_id=user.id) }}" method="POST">
+                            <button type="submit">Follow</button>
+                        </form>
+                    {% endif %}
+                {% else %}
+                    <button>Edit Profile</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-tabs">
+        <div class="tab-link active" onclick="showTab('posts')">Posts</div>
+        <div class="tab-link" onclick="showTab('reels')">Reels</div>
+        <div class="tab-link" onclick="showTab('projects')">Projects</div>
+    </div>
+
+    <div id="posts" class="tab-content active">
+        <div class="posts-grid">
+            {% for post in posts %}
+                <div class="post-grid-item">
+                    {% if post.media_type == 'image' %}
+                        <img src="{{ url_for('static', filename=post.media_url) }}" alt="Post by {{ user.name }}">
+                    {% elif post.media_type == 'video' %}
+                        <video src="{{ url_for('static', filename=post.media_url) }}"></video>
+                    {% else %}
+                        <div style="padding:1rem; background: #eee; height: 100%; border-radius: var(--border-radius);">{{ post.content|truncate(100) }}</div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <p>No posts yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="reels" class="tab-content">
+        <p>Reels will be shown here.</p>
+    </div>
+
+    <div id="projects" class="tab-content">
+        <p>Projects will be shown here.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function showTab(tabName) {
+        // Hide all tab content
+        document.querySelectorAll('.tab-content').forEach(function(tab) {
+            tab.classList.remove('active');
+        });
+        // Deactivate all tab links
+        document.querySelectorAll('.tab-link').forEach(function(link) {
+            link.classList.remove('active');
+        });
+        // Show the selected tab content and activate the link
+        document.getElementById(tabName).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+</script>
+{% endblock %}

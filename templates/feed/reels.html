@@ -1,0 +1,59 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Reels{% endblock %}
+
+{% block styles %}
+<style>
+    .reels-container { max-width: 900px; margin: auto; }
+    .upload-reel-card { background: var(--card-bg-light); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); }
+    .upload-reel-card h3 { margin-top: 0; }
+    .upload-reel-card form div { margin-bottom: 1rem; }
+    .upload-reel-card label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+    .upload-reel-card input[type="file"], .upload-reel-card textarea { width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid var(--border-color-light); }
+    .upload-reel-card button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; }
+
+    .reels-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+    .reel-item a { display: block; position: relative; text-decoration: none; color: white; border-radius: var(--border-radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+    .reel-item video { width: 100%; height: 400px; object-fit: cover; background-color: #000; }
+    .reel-item .reel-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%); }
+    .reel-item .reel-info p { margin: 0; }
+    .reel-item .reel-info span { font-size: 0.8rem; opacity: 0.8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reels-container">
+
+    <div class="upload-reel-card">
+        <h3>Upload a Reel</h3>
+        <form action="{{ url_for('feed.create_reel') }}" method="POST" enctype="multipart/form-data">
+            <div>
+                <label for="video">Video File</label>
+                <input type="file" name="video" accept="video/*" required>
+            </div>
+            <div>
+                <label for="caption">Caption</label>
+                <textarea name="caption" rows="3" placeholder="Write a caption..."></textarea>
+            </div>
+            <button type="submit">Upload Reel</button>
+        </form>
+    </div>
+
+    <h2>Reels</h2>
+    <div class="reels-grid">
+        {% for reel in reels %}
+            <div class="reel-item">
+                <a href="#">
+                    <video src="{{ url_for('static', filename=reel.video_url) }}" muted onmouseover="this.play()" onmouseout="this.pause(); this.currentTime=0;"></video>
+                    <div class="reel-info">
+                        <p>{{ reel.caption|truncate(50) }}</p>
+                        <span>by {{ reel.author.name }}</span>
+                    </div>
+                </a>
+            </div>
+        {% else %}
+            <p>No reels yet. Be the first to upload one!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

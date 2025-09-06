@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, abort, flash, redirect, url_for, r
 from flask_login import login_required, current_user
 import os
 
-from models import User, Course, Category, LibraryMaterial, PlatformSetting, Enrollment, CertificateRequest, Certificate, LibraryPurchase, ChatRoom, ChatRoomMember, MutedUser, ReportedMessage, ReportedGroup, AdminLog, GroupRequest, Community
+from models import User, Course, Category, LibraryMaterial, PlatformSetting, Enrollment, CertificateRequest, Certificate, LibraryPurchase, ChatRoom, ChatRoomMember, MutedUser, ReportedMessage, ReportedGroup, AdminLog, GroupRequest, Community, ReportedPost
 from extensions import db
 from pdf_generator import generate_certificate_pdf
 from utils import save_chat_room_cover_image, get_or_create_platform_setting
@@ -736,6 +736,15 @@ def reported_groups():
 
     reports = ReportedGroup.query.order_by(ReportedGroup.timestamp.desc()).all()
     return render_template('admin/reported_groups.html', reports=reports)
+
+@admin_bp.route('/reported-posts')
+@login_required
+def reported_posts():
+    if current_user.role != 'admin':
+        abort(403)
+
+    reports = ReportedPost.query.order_by(ReportedPost.timestamp.desc()).all()
+    return render_template('admin/reported_posts.html', reports=reports)
 
 @admin_bp.route('/monitor/private-chats')
 @login_required
