@@ -5,6 +5,7 @@ from extensions import db
 from utils import save_post_media, save_community_cover_image
 from sqlalchemy.sql import func
 from datetime import datetime, date, timedelta
+from models import Department
 
 feed_bp = Blueprint('feed', __name__, url_prefix='/feed')
 
@@ -77,6 +78,30 @@ def communities():
     """Communities page."""
     all_communities = Community.query.order_by(Community.name).all()
     return render_template('feed/communities.html', communities=all_communities)
+
+@feed_bp.route('/departments')
+@login_required
+def department_showcase():
+    """Department showcase page."""
+    departments = Department.query.order_by(Department.name).all()
+    return render_template('feed/department_showcase.html', departments=departments)
+
+@feed_bp.route('/mentors')
+@login_required
+def find_mentors():
+    """Page to find available mentors."""
+    mentors = User.query.filter_by(is_available_for_mentorship=True, role='instructor').all() # Assuming only instructors can be mentors for now
+    return render_template('feed/find_mentors.html', mentors=mentors)
+
+@feed_bp.route('/department/<int:department_id>')
+@login_required
+def department_detail(department_id):
+    """Shows the detail page for a single department."""
+    department = Department.query.get_or_404(department_id)
+    # Fetch posts and projects related to this department
+    posts = Post.query.filter_by(department_id=department.id).order_by(Post.timestamp.desc()).all()
+    projects = Project.query.filter_by(department_id=department.id).order_by(Project.timestamp.desc()).all()
+    return render_template('feed/department_detail.html', department=department, posts=posts, projects=projects)
 
 @feed_bp.route('/community/create', methods=['POST'])
 @login_required
@@ -163,15 +188,17 @@ def create_project():
     """Create a new project."""
     title = request.form.get('title')
     description = request.form.get('description')
+    department_id = request.form.get('department_id', type=int)
 
-    if not title or not description:
-        flash('Title and description are required.', 'danger')
-        return redirect(url_for('feed.innovation'))
+    if not title or not description or not department_id:
+        flash('Title, description, and department are required.', 'danger')
+        return redirect(request.referrer or url_for('feed.home'))
 
     new_project = Project(
         title=title,
         description=description,
-        user_id=current_user.id
+        user_id=current_user.id,
+        department_id=department_id
     )
     db.session.add(new_project)
     db.session.commit()
@@ -179,12 +206,19 @@ def create_project():
     flash('Your project has been created!', 'success')
     return redirect(url_for('feed.view_project', project_id=new_project.id))
 
+from collections import defaultdict
+
 @feed_bp.route('/project/<int:project_id>')
 @login_required
 def view_project(project_id):
-    """View a single project."""
+    """View a single project with its Kanban board."""
     project = Project.query.get_or_404(project_id)
-    return render_template('feed/view_project.html', project=project)
+
+    tasks_by_status = defaultdict(list)
+    for task in project.tasks:
+        tasks_by_status[task.status].append(task)
+
+    return render_template('feed/project_detail.html', project=project, tasks_by_status=tasks_by_status)
 
 @feed_bp.route('/creativity')
 @login_required
@@ -301,6 +335,15 @@ def follow(user_id):
     db.session.commit()
     flash(f"You are now following {user_to_follow.name}.", "success")
     return redirect(url_for('feed.profile', user_id=user_id))
+
+@feed_bp.route('/toggle_mentorship', methods=['POST'])
+@login_required
+def toggle_mentorship():
+    """Toggles the user's availability for mentorship."""
+    current_user.is_available_for_mentorship = not current_user.is_available_for_mentorship
+    db.session.commit()
+    flash(f"Your mentorship availability has been updated.", "success")
+    return redirect(url_for('feed.profile'))
 
 @feed_bp.route('/unfollow/<int:user_id>', methods=['POST'])
 @login_required

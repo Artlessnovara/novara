@@ -1,4 +1,5 @@
 Flask
+beautifulsoup4
 Flask-SQLAlchemy
 Flask-Login
 Pillow
@@ -9,3 +10,4 @@ beautifulsoup4
 Flask-Migrate
 firebase-admin
 requests
+pytest

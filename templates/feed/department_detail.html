@@ -1,0 +1,108 @@
+{% extends "feed/base.html" %}
+
+{% block title %}{{ department.name }}{% endblock %}
+
+{% block styles %}
+<style>
+    .department-header {
+        padding: 2rem 1.5rem;
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+        text-align: center;
+    }
+    .department-header h1 {
+        margin: 0;
+        font-size: 2.5rem;
+    }
+    .department-header p {
+        margin-top: 0.5rem;
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+    .department-nav {
+        display: flex;
+        justify-content: center;
+        background: var(--card-bg-light);
+        box-shadow: var(--shadow-sm);
+        margin: 1.5rem 1.5rem 0;
+        border-radius: var(--border-radius);
+    }
+    .department-nav a {
+        padding: 1rem;
+        text-decoration: none;
+        color: var(--secondary-text-light);
+        font-weight: 600;
+        border-bottom: 3px solid transparent;
+    }
+    .department-nav a.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+    .department-content {
+        padding: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="department-container">
+    <div class="department-header">
+        <h1>{{ department.name }}</h1>
+        <p>{{ department.description }}</p>
+        <div style="margin-top: 1.5rem;">
+            <a href="{{ url_for('feed.find_mentors') }}" class="btn-primary" style="background-color: white; color: #007bff;">Find a Mentor</a>
+        </div>
+    </div>
+
+    <nav class="department-nav">
+        <a href="{{ url_for('feed.department_detail', department_id=department.id) }}" class="{% if not request.args.get('tab') or request.args.get('tab') == 'feed' %}active{% endif %}">Feed</a>
+        <a href="{{ url_for('feed.department_detail', department_id=department.id, tab='projects') }}" class="{% if request.args.get('tab') == 'projects' %}active{% endif %}">Projects</a>
+        <a href="#" class="">Resources</a>
+        <a href="#" class="">Members</a>
+    </nav>
+
+    <div class="department-content">
+        {% if not request.args.get('tab') or request.args.get('tab') == 'feed' %}
+            <h2>Department Feed</h2>
+            {% for post in posts %}
+                {# Using a simplified post display for now #}
+                <div class="post-simple">
+                    <p><strong>{{ post.author.name }}</strong>: {{ post.content }}</p>
+                </div>
+            {% else %}
+                <p>No posts in this department yet.</p>
+            {% endfor %}
+        {% elif request.args.get('tab') == 'projects' %}
+            <h2>Department Projects</h2>
+
+            <div class="create-project-form" style="margin-bottom: 2rem; background: var(--background-color-light); padding: 1rem; border-radius: var(--border-radius);">
+                <h4>Create a New Project</h4>
+                <form action="{{ url_for('feed.create_project') }}" method="POST">
+                    <input type="hidden" name="department_id" value="{{ department.id }}">
+                    <div class="form-group">
+                        <label for="title">Project Title</label>
+                        <input type="text" id="title" name="title" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" class="form-control" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Create Project</button>
+                </form>
+            </div>
+
+            <div class="projects-list">
+                {% for project in projects %}
+                    <div class="project-item" style="border-bottom: 1px solid var(--border-color-light); padding-bottom: 1rem; margin-bottom: 1rem;">
+                        <a href="{{ url_for('feed.view_project', project_id=project.id) }}"><h3>{{ project.title }}</h3></a>
+                        <p>{{ project.description|truncate(150) }}</p>
+                    </div>
+                {% else %}
+                    <p>No projects in this department yet.</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

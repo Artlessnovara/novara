@@ -25,21 +25,6 @@
 
 {% block content %}
 <div class="innovation-container">
-    <div class="create-project-section">
-        <h3>Share a New Project</h3>
-        <form action="{{ url_for('feed.create_project') }}" method="POST">
-            <div>
-                <label for="title">Project Title</label>
-                <input type="text" id="title" name="title" required>
-            </div>
-            <div style="margin-top: 1rem;">
-                <label for="description">Description</label>
-                <textarea name="description" id="description" rows="5" required></textarea>
-            </div>
-            <button type="submit">Create Project</button>
-        </form>
-    </div>
-
     <h2>Latest Projects</h2>
     <div class="projects-list">
         {% for project in projects %}

@@ -20,36 +20,12 @@
     {% block styles %}{% endblock %}
 </head>
 <body>
-    <header class="feed-header">
-        <div class="header-container">
-            <div class="logo">
-                <a href="{{ url_for('feed.home') }}">Novara Pro</a>
-            </div>
-            <form action="{{ url_for('feed.search') }}" method="GET" class="search-bar">
-                <i class="fas fa-search"></i>
-                <input type="search" name="q" placeholder="Search Novara Pro..." value="{{ request.args.get('q', '') }}">
-            </form>
-            <div class="header-icons">
-                <a href="#" class="header-icon" aria-label="Messages">
-                    <i class="fas fa-comment-dots"></i>
-                </a>
-                <a href="{{ url_for('feed.notifications') }}" class="header-icon" aria-label="Notifications">
-                    <i class="fas fa-bell"></i>
-                    {% if unread_notification_count > 0 %}
-                        <span class="notification-badge">{{ unread_notification_count }}</span>
-                    {% endif %}
-                </a>
-                <a href="{{ url_for('feed.profile') }}" class="header-icon" aria-label="Profile">
-                    <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Profile" class="profile-pic-small">
-                </a>
-            </div>
-        </div>
-    </header>
+    {# The top header is removed for a cleaner, mobile-first UI #}
 
     <main class="feed-main">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="flashes">
+                <div class="flashes" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 500px;">
                     <ul>
                         {% for category, message in messages %}
                             <li class="{{ category }}">{{ message }}</li>
@@ -62,33 +38,24 @@
     </main>
 
     <nav class="bottom-nav">
-        <a href="{{ url_for('feed.home') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.home' }}">
+        <a href="{{ url_for('feed.home') }}" class="bottom-nav-item {% if request.endpoint == 'feed.home' %}active{% endif %}">
             <i class="fas fa-home"></i>
             <span>Home</span>
         </a>
-        <a href="{{ url_for('feed.communities') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.communities' }}">
-            <i class="fas fa-users"></i>
-            <span>Communities</span>
+        <a href="{{ url_for('feed.department_showcase') }}" class="bottom-nav-item {% if request.endpoint == 'feed.department_showcase' %}active{% endif %}">
+            <i class="fas fa-building"></i>
+            <span>Departments</span>
         </a>
-        <a href="{{ url_for('feed.innovation') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.innovation' }}">
-            <i class="fas fa-lightbulb"></i>
-            <span>Innovation</span>
+        <a href="{{ url_for('feed.create_post_page') }}" class="bottom-nav-item create-item">
+            <i class="fas fa-plus-circle"></i>
         </a>
-        <a href="{{ url_for('feed.creativity') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.creativity' }}">
-            <i class="fas fa-palette"></i>
-            <span>Creativity</span>
+        <a href="#" class="bottom-nav-item"> {# TODO: Add events url #}
+            <i class="fas fa-calendar-alt"></i>
+            <span>Events</span>
         </a>
-         <a href="{{ url_for('feed.profile') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.profile' }}">
+        <a href="{{ url_for('feed.profile') }}" class="bottom-nav-item {% if request.endpoint == 'feed.profile' %}active{% endif %}">
             <i class="fas fa-user"></i>
             <span>Profile</span>
-        </a>
-        <a href="{{ url_for('feed.suggestions') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.suggestions' }}">
-            <i class="fas fa-user-plus"></i>
-            <span>Suggestions</span>
-        </a>
-        <a href="{{ url_for('feed.more') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.more' }}">
-            <i class="fas fa-ellipsis-h"></i>
-            <span>More</span>
         </a>
     </nav>
 

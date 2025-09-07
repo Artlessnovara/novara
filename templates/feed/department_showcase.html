@@ -1,0 +1,67 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Departments{% endblock %}
+
+{% block styles %}
+<style>
+    .showcase-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+    .department-card {
+        background: var(--card-bg-light);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        text-decoration: none;
+        color: var(--text-color-light);
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .department-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+    .card-cover {
+        height: 120px;
+        background-color: #007bff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: white;
+    }
+    .card-content {
+        padding: 1rem;
+    }
+    .card-content h3 {
+        margin-top: 0;
+        font-size: 1.25rem;
+    }
+    .card-content p {
+        font-size: 0.9rem;
+        color: var(--secondary-text-light);
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container" style="padding: 1rem;">
+    <h1 class="page-title" style="text-align: center; margin-bottom: 2rem;">Scholars Novara Departments</h1>
+    <div class="showcase-grid">
+        {% for dept in departments %}
+            <a href="{{ url_for('feed.department_detail', department_id=dept.id) }}" class="department-card">
+                <div class="card-cover">
+                    <i class="fas fa-university"></i> {# Generic icon for now #}
+                </div>
+                <div class="card-content">
+                    <h3>{{ dept.name }}</h3>
+                    <p>{{ dept.description or 'The official department for ' + dept.name }}</p>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

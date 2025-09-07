@@ -154,6 +154,34 @@ def create_app(config_object=None):
         db.session.commit()
         print(f"Admin user {name} ({email}) created successfully.")
 
+    @app.cli.command("seed-departments")
+    def seed_departments():
+        """Seeds the database with the 14 official departments."""
+        from models import Department
+        department_names = [
+            "Educational", "Innovation & Technology", "Health & Wellness",
+            "Leadership & Governance", "Creativity & Arts", "Entrepreneurship & Enterprise",
+            "Research & Development", "Community & Social Impact", "Ethics & Values",
+            "Science & Environment", "Sports & Physical Development",
+            "Spiritual & Moral Development", "Digital Media & Communication",
+            "Campus Life & Student Affairs"
+        ]
+        for name in department_names:
+            if not Department.query.filter_by(name=name).first():
+                department = Department(name=name, description=f"The official {name} department.")
+                db.session.add(department)
+        db.session.commit()
+        print("Departments seeded successfully.")
+
+    @app.cli.command("verify-data")
+    def verify_data():
+        """Verifies that the initial data has been seeded."""
+        from models import Department
+        departments = Department.query.all()
+        print(f"Found {len(departments)} departments:")
+        for dept in departments:
+            print(f"- {dept.name}")
+
     return app
 
 # Create a default app instance for discoverability by Flask CLI

@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
     {% endif %}
 </head>
-<body class="{{ 'admin-page' if request.endpoint and request.endpoint.startswith('admin.') else 'ice-sky-theme' }}">
+<body class="{{ 'admin-page' if request.endpoint and request.endpoint.startswith('admin.') else 'ice-sky-theme' }} {% block body_class %}{% endblock %}">
     <!-- Particle background for admin -->
     {% if request.endpoint and request.endpoint.startswith('admin.') %}
     <div class="particles">

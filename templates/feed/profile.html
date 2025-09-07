@@ -49,7 +49,15 @@
                         </form>
                     </div>
                 {% else %}
-                    <button>Edit Profile</button>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <button>Edit Profile</button>
+                        <form action="{{ url_for('feed.toggle_mentorship') }}" method="POST">
+                            <label for="mentorship-toggle" style="cursor: pointer; font-weight: normal;">
+                                <input type="checkbox" id="mentorship-toggle" name="is_available" onchange="this.form.submit()" {% if current_user.is_available_for_mentorship %}checked{% endif %}>
+                                Available for Mentorship
+                            </label>
+                        </form>
+                    </div>
                 {% endif %}
             </div>
         </div>

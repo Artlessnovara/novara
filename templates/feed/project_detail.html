@@ -1,0 +1,98 @@
+{% extends "feed/base.html" %}
+
+{% block title %}{{ project.title }}{% endblock %}
+
+{% block styles %}
+<style>
+    .kanban-container {
+        padding: 1.5rem;
+    }
+    .kanban-header {
+        margin-bottom: 2rem;
+    }
+    .kanban-board {
+        display: flex;
+        gap: 1.5rem;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+    }
+    .kanban-column {
+        min-width: 300px;
+        width: 300px;
+        background-color: var(--background-color-light);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+    }
+    .kanban-column h3 {
+        margin-top: 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--border-color-light);
+    }
+    .kanban-task {
+        background-color: var(--card-bg-light);
+        border-radius: var(--border-radius-sm);
+        padding: 1rem;
+        margin-top: 1rem;
+        box-shadow: var(--shadow-sm);
+        cursor: grab;
+    }
+    .kanban-task p {
+        margin: 0;
+    }
+    .task-title {
+        font-weight: 600;
+    }
+    .task-due-date {
+        font-size: 0.8rem;
+        color: var(--secondary-text-light);
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="kanban-container">
+    <div class="kanban-header">
+        <h1>{{ project.title }}</h1>
+        <p>{{ project.description }}</p>
+    </div>
+
+    <div class="kanban-board">
+        <div class="kanban-column" id="col-todo">
+            <h3>To Do</h3>
+            {% for task in tasks_by_status['To Do'] %}
+                <div class="kanban-task" data-task-id="{{ task.id }}">
+                    <p class="task-title">{{ task.title }}</p>
+                    {% if task.due_date %}
+                        <p class="task-due-date">Due: {{ task.due_date.strftime('%b %d') }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="kanban-column" id="col-inprogress">
+            <h3>In Progress</h3>
+            {% for task in tasks_by_status['In Progress'] %}
+                <div class="kanban-task" data-task-id="{{ task.id }}">
+                    <p class="task-title">{{ task.title }}</p>
+                    {% if task.due_date %}
+                        <p class="task-due-date">Due: {{ task.due_date.strftime('%b %d') }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="kanban-column" id="col-done">
+            <h3>Done</h3>
+            {% for task in tasks_by_status['Done'] %}
+                <div class="kanban-task" data-task-id="{{ task.id }}">
+                    <p class="task-title">{{ task.title }}</p>
+                    {% if task.due_date %}
+                        <p class="task-due-date">Due: {{ task.due_date.strftime('%b %d') }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

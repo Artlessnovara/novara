@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Scholars Social Hub{% endblock %}
+
+{% block body_class %}social-hub{% endblock %}
+
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/social_hub.css') }}">
+{% endblock %}
+
+{# The header is now hidden by CSS using the .social-hub class #}
+
+{% block footer %}
+<nav class="bottom-nav">
+    <a href="{{ url_for('feed.home') }}" class="bottom-nav-item {% if request.endpoint.startswith('feed.') %}active{% endif %}">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+    </a>
+    <a href="#" class="bottom-nav-item">
+        <i class="fas fa-building"></i>
+        <span>Departments</span>
+    </a>
+    <a href="#" class="bottom-nav-item create-item">
+        <i class="fas fa-plus-circle"></i>
+    </a>
+    <a href="#" class="bottom-nav-item">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Events</span>
+    </a>
+    <a href="{{ url_for('main.profile') }}" class="bottom-nav-item {% if request.endpoint == 'main.profile' %}active{% endif %}">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
+    </a>
+</nav>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    {# Add any social-hub specific scripts here in the future #}
+{% endblock %}

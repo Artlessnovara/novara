@@ -40,6 +40,7 @@ class User(UserMixin, db.Model):
     chat_wallpaper = db.Column(db.String(255), nullable=True)
     message_notifications_enabled = db.Column(db.Boolean, default=True)
     group_notifications_enabled = db.Column(db.Boolean, default=True)
+    is_available_for_mentorship = db.Column(db.Boolean, default=False)
 
     # Privacy Settings
     privacy_last_seen = db.Column(db.String(50), default='everyone', nullable=False)
@@ -367,12 +368,14 @@ class Community(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.Text, nullable=True)
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)
     cover_image = db.Column(db.String(150), nullable=True)
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     creator = db.relationship('User', backref='created_communities')
     posts = db.relationship('Post', backref='community', lazy='dynamic', cascade="all, delete-orphan")
+    department = db.relationship('Department', backref=db.backref('communities', lazy='dynamic'))
 
 class ChatRoom(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -640,6 +643,7 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=True)
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)
     content = db.Column(db.Text, nullable=False)
     media_type = db.Column(db.String(20), nullable=True) # 'image', 'video'
     media_url = db.Column(db.String(255), nullable=True)
@@ -654,6 +658,8 @@ class Post(db.Model):
                                primaryjoin="and_(GenericComment.target_type=='post', foreign(GenericComment.target_id)==Post.id)",
                                lazy='dynamic',
                                cascade="all, delete-orphan")
+
+    department = db.relationship('Department', backref=db.backref('posts', lazy='dynamic'))
 
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -700,6 +706,7 @@ class Reel(db.Model):
                                cascade="all, delete-orphan",
                                overlaps="generic_comments")
 
+
 class CommunityMembership(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     community_id = db.Column(db.Integer, db.ForeignKey('community.id'), primary_key=True)
@@ -713,6 +720,7 @@ class CommunityMembership(db.Model):
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)
     title = db.Column(db.String(150), nullable=False)
     description = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
@@ -778,3 +786,73 @@ class FCMToken(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref='fcm_tokens')
+
+
+class Department(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    cover_image = db.Column(db.String(150), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Department {self.name}>'
+
+
+class DepartmentMembership(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'), primary_key=True)
+    role = db.Column(db.String(50), nullable=False, default='member') # e.g., member, head, admin
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('department_memberships', cascade="all, delete-orphan"))
+    department = db.relationship('Department', backref=db.backref('members', lazy='dynamic', cascade="all, delete-orphan"))
+
+
+class ProjectMember(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    role = db.Column(db.String(50), nullable=False, default='member') # e.g., member, admin
+
+    user = db.relationship('User', backref='project_memberships')
+    project = db.relationship('Project', backref=db.backref('members', cascade="all, delete-orphan"))
+
+
+class ProjectTask(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    title = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(50), nullable=False, default='To Do') # e.g., To Do, In Progress, Done
+    assignee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    due_date = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    project = db.relationship('Project', backref=db.backref('tasks', cascade="all, delete-orphan"))
+    assignee = db.relationship('User', backref='assigned_tasks')
+
+
+class Mentorship(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    mentor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    mentee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    ended_at = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(50), nullable=False, default='active') # active, ended
+
+    mentor = db.relationship('User', foreign_keys=[mentor_id], backref='mentoring')
+    mentee = db.relationship('User', foreign_keys=[mentee_id], backref='mentored_by')
+
+
+class MentorshipRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    requester_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(50), nullable=False, default='pending') # pending, accepted, rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+
+    requester = db.relationship('User', foreign_keys=[requester_id], backref='sent_mentorship_requests')
+    recipient = db.relationship('User', foreign_keys=[recipient_id], backref='received_mentorship_requests')
