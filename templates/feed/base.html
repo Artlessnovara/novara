@@ -66,21 +66,13 @@
             <i class="fas fa-home"></i>
             <span>Home</span>
         </a>
-        <a href="{{ url_for('feed.communities') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.communities' }}">
-            <i class="fas fa-users"></i>
-            <span>Communities</span>
-        </a>
-        <a href="{{ url_for('feed.innovation') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.innovation' }}">
-            <i class="fas fa-lightbulb"></i>
-            <span>Innovation</span>
-        </a>
-        <a href="{{ url_for('feed.creativity') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.creativity' }}">
-            <i class="fas fa-palette"></i>
-            <span>Creativity</span>
-        </a>
-         <a href="{{ url_for('feed.profile') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.profile' }}">
+        <a href="{{ url_for('feed.profile') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.profile' }}">
             <i class="fas fa-user"></i>
             <span>Profile</span>
+        </a>
+        <a href="{{ url_for('feed.creativity') }}" class="nav-item nav-item-center {{ 'active' if request.endpoint == 'feed.creativity' }}">
+            <i class="fa-brands fa-tiktok"></i>
+            <span>Creativity</span>
         </a>
         <a href="{{ url_for('feed.suggestions') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.suggestions' }}">
             <i class="fas fa-user-plus"></i>

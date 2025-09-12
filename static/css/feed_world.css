@@ -230,3 +230,65 @@ body {
     background-color: #fff3cd;
     border-color: #ffeeba;
 }
+
+/*--------------------------------------------------------------
+# Centered Navigation Item
+--------------------------------------------------------------*/
+.nav-item-center {
+    /* Transform to raise the button */
+    transform: translateY(-10px);
+    border-radius: 50%;
+    background: var(--primary-gradient, var(--primary-color));
+    border: 3px solid var(--card-bg-light);
+    color: white;
+    width: 50px; /* Set a fixed width */
+    height: 50px; /* Set a fixed height */
+    flex-grow: 0 !important; /* Prevent it from growing */
+    margin: 0 10px; /* Add some margin */
+}
+
+.nav-item-center:hover, .nav-item-center.active {
+    color: white;
+    /* Optional: Add a subtle shadow or glow on hover/active */
+    box-shadow: 0 0 10px rgba(74, 105, 189, 0.7);
+}
+
+.nav-item-center i {
+    font-size: 1.8rem; /* Larger icon */
+}
+
+.nav-item-center span {
+    display: none; /* Hide the text label for the center button */
+}
+
+/*--------------------------------------------------------------
+# More Menu Page
+--------------------------------------------------------------*/
+.more-menu-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+
+.more-menu-list li a {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    text-decoration: none;
+    color: var(--primary-text-light);
+    border-radius: var(--border-radius);
+    transition: background-color 0.2s;
+    font-size: 1.1rem;
+}
+
+.more-menu-list li a:hover {
+    background-color: var(--hover-overlay-light);
+}
+
+.more-menu-list li i {
+    font-size: 1.5rem;
+    margin-right: 20px;
+    width: 30px;
+    text-align: center;
+    color: var(--primary-color);
+}
