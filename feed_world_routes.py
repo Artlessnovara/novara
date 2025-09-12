@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost
+from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status
 from extensions import db
 from utils import save_post_media, save_community_cover_image
 from sqlalchemy.sql import func
@@ -22,6 +22,21 @@ def home():
         ( (Post.privacy == 'followers') & (Post.user_id.in_(following_ids)) ) |
         ( (Post.privacy == 'private') & (Post.user_id == current_user.id) )
     ).order_by(Post.timestamp.desc()).all()
+
+    # Pre-process posts to include reaction data
+    for post in posts:
+        # Get reaction counts
+        reaction_counts = db.session.query(
+            Like.reaction_type, func.count(Like.reaction_type)
+        ).filter_by(target_type='post', target_id=post.id).group_by(Like.reaction_type).all()
+        post.reaction_summary = {r_type: count for r_type, count in reaction_counts}
+
+        # Get current user's reaction
+        user_reaction_obj = Like.query.filter_by(
+            user_id=current_user.id, target_type='post', target_id=post.id
+        ).first()
+        post.user_reaction = user_reaction_obj.reaction_type if user_reaction_obj else None
+
 
     return render_template('feed/home.html', posts=posts)
 
@@ -449,29 +464,59 @@ def report_post():
 
 # --- API Routes for Likes and Comments ---
 
-@feed_bp.route('/api/post/<int:post_id>/like', methods=['POST'])
+@feed_bp.route('/api/post/<int:post_id>/react', methods=['POST'])
 @login_required
-def like_post(post_id):
-    """Toggles a like on a post."""
+def react_to_post(post_id):
+    """Adds, updates, or removes a reaction on a post."""
     post = Post.query.get_or_404(post_id)
-    like = Like.query.filter_by(user_id=current_user.id, target_type='post', target_id=post.id).first()
+    data = request.get_json()
+    reaction_type = data.get('reaction_type', 'like')
 
-    if like:
-        # User has already liked the post, so unlike it
-        db.session.delete(like)
-        db.session.commit()
-        liked = False
+    # Validate reaction_type
+    allowed_reactions = {'like', 'love', 'haha', 'wow', 'sad', 'angry'}
+    if reaction_type not in allowed_reactions:
+        return jsonify({'status': 'error', 'message': 'Invalid reaction type.'}), 400
+
+    existing_reaction = Like.query.filter_by(
+        user_id=current_user.id,
+        target_type='post',
+        target_id=post.id
+    ).first()
+
+    if existing_reaction:
+        if existing_reaction.reaction_type == reaction_type:
+            # User is toggling off the same reaction
+            db.session.delete(existing_reaction)
+            user_reaction = None
+        else:
+            # User is changing their reaction
+            existing_reaction.reaction_type = reaction_type
+            user_reaction = reaction_type
     else:
-        # User has not liked the post, so like it
-        new_like = Like(user_id=current_user.id, target_type='post', target_id=post.id)
-        db.session.add(new_like)
-        db.session.commit()
-        liked = True
+        # User is adding a new reaction
+        new_reaction = Like(
+            user_id=current_user.id,
+            target_type='post',
+            target_id=post.id,
+            reaction_type=reaction_type
+        )
+        db.session.add(new_reaction)
+        user_reaction = reaction_type
+
+    db.session.commit()
+
+    # Get updated reaction counts
+    reaction_counts = db.session.query(
+        Like.reaction_type, func.count(Like.reaction_type)
+    ).filter_by(target_type='post', target_id=post.id).group_by(Like.reaction_type).all()
+
+    counts_dict = {r_type: count for r_type, count in reaction_counts}
 
     return jsonify({
         'status': 'success',
-        'likes_count': post.likes.count(),
-        'liked_by_user': liked
+        'reaction_counts': counts_dict,
+        'total_reactions': post.likes.count(),
+        'user_reaction': user_reaction
     })
 
 @feed_bp.route('/api/post/<int:post_id>/comments', methods=['GET'])
@@ -580,6 +625,33 @@ def like_reel(reel_id):
 
 
 # --- API Routes for Creative Work Likes and Comments ---
+
+@feed_bp.route('/api/post/<int:post_id>/share', methods=['POST'])
+@login_required
+def share_post(post_id):
+    """Shares a post."""
+    original_post = Post.query.get_or_404(post_id)
+    data = request.get_json()
+    content = data.get('content', '') # Optional comment from the user
+
+    # Prevent sharing a post that is already a share
+    if original_post.original_post_id:
+        flash('You cannot share a post that is already a share.', 'danger')
+        return jsonify({'status': 'error', 'message': 'Cannot share a share.'}), 400
+
+    # Create the new shared post
+    new_post = Post(
+        user_id=current_user.id,
+        content=content,
+        privacy='public', # Shares are always public
+        original_post_id=original_post.id
+    )
+    db.session.add(new_post)
+    db.session.commit()
+
+    flash('Post successfully shared!', 'success')
+    return jsonify({'status': 'success', 'message': 'Post shared.'})
+
 
 @feed_bp.route('/api/creative_work/<int:work_id>/like', methods=['POST'])
 @login_required
