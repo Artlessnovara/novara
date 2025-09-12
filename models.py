@@ -640,9 +640,10 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=True)
-    content = db.Column(db.Text, nullable=False)
+    content = db.Column(db.Text, nullable=True) # Nullable for shared posts with no comment
     media_type = db.Column(db.String(20), nullable=True) # 'image', 'video'
     media_url = db.Column(db.String(255), nullable=True)
+    original_post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     privacy = db.Column(db.String(50), nullable=False, default='public') # public, followers, private
 
@@ -654,11 +655,13 @@ class Post(db.Model):
                                primaryjoin="and_(GenericComment.target_type=='post', foreign(GenericComment.target_id)==Post.id)",
                                lazy='dynamic',
                                cascade="all, delete-orphan")
+    original_post = db.relationship('Post', remote_side=[id], backref='reposts')
 
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    reaction_type = db.Column(db.String(20), nullable=False, server_default='like')
 
     # Polymorphic relationship
     target_type = db.Column(db.String(50), nullable=False)
