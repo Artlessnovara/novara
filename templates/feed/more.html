@@ -5,6 +5,22 @@
 {% block content %}
 <div class="feed-container">
     <h1>More Options</h1>
-    <p>Settings, privacy, and other extras will be available here. This section is under construction.</p>
+    <div class="more-menu">
+        <ul class="more-menu-list">
+            <li>
+                <a href="{{ url_for('feed.communities') }}">
+                    <i class="fas fa-users"></i>
+                    <span>Communities</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('feed.innovation') }}">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Innovation</span>
+                </a>
+            </li>
+            <!-- Add more links here in the future -->
+        </ul>
+    </div>
 </div>
 {% endblock %}
