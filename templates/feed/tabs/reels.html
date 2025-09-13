@@ -9,6 +9,10 @@
             <label for="caption">Caption</label>
             <textarea name="caption" rows="3" placeholder="Write a caption..."></textarea>
         </div>
+        <div>
+            <label for="tags">Tags (comma-separated)</label>
+            <input type="text" id="tags" name="tags" placeholder="e.g., comedy, tutorial, dance">
+        </div>
         <button type="submit">Upload Reel</button>
     </form>
 </div>
@@ -23,12 +27,19 @@
                 <strong>{{ reel.author.name }}</strong>
             </div>
             <p class="reel-caption">{{ reel.caption }}</p>
+            <div class="reel-tags">
+                {% if reel.tags %}
+                    {% for tag in reel.tags.split(',') %}
+                        <a href="{{ url_for('feed.search', q=tag.strip()) }}" class="tag">{{ tag.strip() }}</a>
+                    {% endfor %}
+                {% endif %}
+            </div>
         </div>
         <div class="reel-actions">
             <button class="action-btn like-btn" data-reel-id="{{ reel.id }}"><i class="fas fa-heart"></i> <span>{{ reel.likes.count() }}</span></button>
             <button class="action-btn comment-btn" data-reel-id="{{ reel.id }}"><i class="fas fa-comment"></i> <span>{{ reel.comments.count() }}</span></button>
             <button class="action-btn btn-bookmark" data-id="{{ reel.id }}" data-type="reel"><i class="fas fa-bookmark"></i></button>
-            <button class="action-btn share-btn" data-reel-id="{{ reel.id }}"><i class="fas fa-share"></i></button>
+            <button class="action-btn btn-share" data-id="{{ reel.id }}" data-type="reel"><i class="fas fa-share"></i></button>
         </div>
     </div>
     {% else %}

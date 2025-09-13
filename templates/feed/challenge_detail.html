@@ -33,7 +33,7 @@
                     <p>Select one of your existing creative works to submit.</p>
                     <select name="creative_work_id" class="form-control" required>
                         <option value="">-- Choose a work --</option>
-                        {% for work in current_user.creative_works.order_by(desc(CreativeWork.timestamp)).all() %}
+                        {% for work in current_user.creative_works.order_by(CreativeWork.timestamp.desc()).all() %}
                             <option value="{{ work.id }}">{{ work.title }} ({{ work.work_type }})</option>
                         {% endfor %}
                     </select>
@@ -65,6 +65,12 @@
                                 </div>
                             </div>
                         </a>
+                        <div class="submission-vote">
+                            <button class="btn-vote {% if current_user.id in submission.votes|map(attribute='user_id')|list %}voted{% endif %}" data-submission-id="{{ submission.id }}">
+                                <i class="fas fa-star"></i> <span>Vote</span>
+                            </button>
+                            <span class="vote-count">{{ submission.votes.count() }} votes</span>
+                        </div>
                     </div>
                 {% else %}
                     <p>No submissions yet. Be the first!</p>
@@ -91,12 +97,17 @@
 
 /* Re-using styles from creativity.html for the grid */
 .works-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
-.work-item { position: relative; overflow: hidden; border-radius: var(--border-radius); }
-.work-item a { text-decoration: none; color: white; }
+.work-item { position: relative; overflow: hidden; border-radius: var(--border-radius); background: var(--card-bg-light); box-shadow: var(--shadow-sm); }
+.work-item a { text-decoration: none; color: white; display: block; }
 .work-item-media { height: 220px; background-color: #eee; }
 .work-item-media img { width: 100%; height: 100%; object-fit: cover; }
 .work-item-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); padding: 2rem 1rem 1rem; opacity: 0; transition: opacity 0.3s; }
 .work-item:hover .work-item-overlay { opacity: 1; }
 .work-item-info { font-size: 0.9rem; }
+
+.submission-vote { padding: 0.75rem; text-align: center; }
+.btn-vote { background: var(--hover-overlay-light); border: 1px solid var(--border-color-light); color: var(--primary-text-light); padding: 5px 15px; border-radius: 20px; cursor: pointer; }
+.btn-vote.voted { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+.vote-count { font-size: 0.9rem; margin-left: 10px; color: var(--secondary-text-light); }
 </style>
 {% endblock %}

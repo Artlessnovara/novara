@@ -71,3 +71,18 @@
     cursor: pointer;
     font-size: 1rem;
 }
+
+.work-item-tags, .writing-card-tags, .audio-card-tags, .reel-tags {
+    margin-top: 10px;
+}
+
+.tag {
+    display: inline-block;
+    background-color: var(--hover-overlay-dark);
+    color: var(--primary-text-dark);
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    border-radius: 10px;
+    margin-right: 5px;
+    text-decoration: none;
+}
