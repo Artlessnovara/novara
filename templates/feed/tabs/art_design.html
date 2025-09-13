@@ -1,0 +1,73 @@
+<div class="upload-work-section">
+    <h3>Showcase Your Art & Design</h3>
+    <form action="{{ url_for('feed.create_creative_work') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="category" value="art_design">
+        <div>
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div style="margin-top: 1rem;">
+            <label for="description">Description</label>
+            <textarea name="description" id="description" rows="3"></textarea>
+        </div>
+        <div style="margin-top: 1rem;">
+            <label for="media">Media File (Image)</label>
+            <input type="file" id="media" name="media" accept="image/*" required>
+        </div>
+        <div style="margin-top: 1rem;">
+            <input type="checkbox" id="watermark" name="watermark" value="true">
+            <label for="watermark">Add watermark with my username</label>
+        </div>
+        <button type="submit">Upload Art</button>
+    </form>
+</div>
+
+<div class="works-grid">
+    {% for work in works %}
+        {% if work.work_type == 'image' %}
+            <div class="work-item">
+                <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
+                    <div class="work-item-media">
+                        <img src="{{ url_for('static', filename=work.media_url) }}" alt="{{ work.title }}">
+                    </div>
+                    <div class="work-item-overlay">
+                        <div class="work-item-info">
+                            <h3>{{ work.title }}</h3>
+                            <p>by {{ work.artist.name }}</p>
+                            <div class="work-item-stats">
+                                <span><i class="fas fa-thumbs-up"></i> {{ work.likes.count() }}</span>
+                                <span style="margin-left: 1rem;"><i class="fas fa-comment"></i> {{ work.comments.count() }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        {% endif %}
+    {% else %}
+        <p>No creative works yet. Be the first to share something!</p>
+    {% endfor %}
+</div>
+
+<style>
+.works-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.work-item { position: relative; overflow: hidden; border-radius: var(--border-radius); }
+.work-item a { text-decoration: none; color: white; }
+.work-item-media { height: 300px; background-color: #eee; }
+.work-item-media img { width: 100%; height: 100%; object-fit: cover; }
+.work-item-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+    padding: 2rem 1rem 1rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.work-item:hover .work-item-overlay { opacity: 1; }
+.work-item-info h3 { margin: 0 0 0.5rem 0; }
+.work-item-stats { font-size: 0.8rem; }
+.upload-work-section { background: var(--card-bg-light); border: 1px solid var(--border-color-light); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; }
+.upload-work-section input[type="text"], .upload-work-section textarea { width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid var(--border-color-light); margin-top: 0.5rem; }
+.upload-work-section button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; margin-top: 1rem; }
+</style>

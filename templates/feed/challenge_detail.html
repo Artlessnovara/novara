@@ -1,0 +1,102 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Challenge: {{ challenge.title }}{% endblock %}
+
+{% block content %}
+<div class="challenge-detail-container" style="max-width: 1200px; margin: auto; padding: 1rem;">
+
+    <div class="challenge-header-main">
+        <h1>{{ challenge.title }}</h1>
+        {% if challenge.is_active %}
+            <span class="status-badge active">Active</span>
+        {% else %}
+            <span class="status-badge past">Finished</span>
+        {% endif %}
+    </div>
+    <p class="challenge-meta">Hosted by {{ challenge.creator.name }} | Deadline: {{ challenge.deadline.strftime('%B %d, %Y at %I:%M %p') }}</p>
+
+    <div class="challenge-body">
+        <div class="challenge-info-panel">
+            <h3>About this Challenge</h3>
+            <p>{{ challenge.description }}</p>
+
+            <h4>Rules</h4>
+            <p>{{ challenge.rules or 'No specific rules provided.' }}</p>
+
+            <h4>Prize</h4>
+            <p>{{ challenge.prize or 'Bragging rights and glory!' }}</p>
+
+            {% if challenge.is_active %}
+            <div class="submit-to-challenge">
+                <h3>Submit Your Entry</h3>
+                <form action="{{ url_for('feed.submit_to_challenge', challenge_id=challenge.id) }}" method="POST">
+                    <p>Select one of your existing creative works to submit.</p>
+                    <select name="creative_work_id" class="form-control" required>
+                        <option value="">-- Choose a work --</option>
+                        {% for work in current_user.creative_works.order_by(desc(CreativeWork.timestamp)).all() %}
+                            <option value="{{ work.id }}">{{ work.title }} ({{ work.work_type }})</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Submit to Challenge</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="challenge-submissions-panel">
+            <h3>Submissions ({{ challenge.submissions.count() }})</h3>
+            <div class="works-grid">
+                {% for submission in challenge.submissions %}
+                    {% set work = submission.creative_work %}
+                    <div class="work-item">
+                        <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
+                            <div class="work-item-media">
+                                {% if work.work_type == 'image' %}
+                                    <img src="{{ url_for('static', filename=work.media_url) }}" alt="{{ work.title }}">
+                                {% else %}
+                                     <div style="display:flex; align-items:center; justify-content:center; height:100%; background-color: #f0f0f0;">
+                                         <p style="padding: 1rem; text-align: center;">{{ work.title }}</p>
+                                     </div>
+                                {% endif %}
+                            </div>
+                            <div class="work-item-overlay">
+                                <div class="work-item-info">
+                                    <p>by {{ work.artist.name }}</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                {% else %}
+                    <p>No submissions yet. Be the first!</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.challenge-header-main { display: flex; align-items: center; gap: 1rem; }
+.status-badge { padding: 5px 15px; border-radius: 20px; color: white; font-weight: 600; }
+.status-badge.active { background-color: #28a745; }
+.status-badge.past { background-color: #6c757d; }
+.challenge-meta { color: var(--secondary-text-light); border-bottom: 1px solid var(--border-color-light); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.challenge-body { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+@media (min-width: 992px) {
+    .challenge-body { grid-template-columns: 1fr 2fr; }
+}
+.challenge-info-panel h3, .challenge-submissions-panel h3 { border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+.submit-to-challenge { margin-top: 2rem; background: var(--background-color-light); padding: 1.5rem; border-radius: var(--border-radius); }
+.form-control { width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid var(--border-color-light); }
+.btn.btn-primary { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; }
+
+/* Re-using styles from creativity.html for the grid */
+.works-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+.work-item { position: relative; overflow: hidden; border-radius: var(--border-radius); }
+.work-item a { text-decoration: none; color: white; }
+.work-item-media { height: 220px; background-color: #eee; }
+.work-item-media img { width: 100%; height: 100%; object-fit: cover; }
+.work-item-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); padding: 2rem 1rem 1rem; opacity: 0; transition: opacity 0.3s; }
+.work-item:hover .work-item-overlay { opacity: 1; }
+.work-item-info { font-size: 0.9rem; }
+</style>
+{% endblock %}
