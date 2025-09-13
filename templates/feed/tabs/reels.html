@@ -27,6 +27,7 @@
         <div class="reel-actions">
             <button class="action-btn like-btn" data-reel-id="{{ reel.id }}"><i class="fas fa-heart"></i> <span>{{ reel.likes.count() }}</span></button>
             <button class="action-btn comment-btn" data-reel-id="{{ reel.id }}"><i class="fas fa-comment"></i> <span>{{ reel.comments.count() }}</span></button>
+            <button class="action-btn btn-bookmark" data-id="{{ reel.id }}" data-type="reel"><i class="fas fa-bookmark"></i></button>
             <button class="action-btn share-btn" data-reel-id="{{ reel.id }}"><i class="fas fa-share"></i></button>
         </div>
     </div>

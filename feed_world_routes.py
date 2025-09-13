@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, ChallengeSubmission
+from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, ChallengeSubmission, Bookmark
 from extensions import db
 from utils import save_post_media, save_community_cover_image
 from sqlalchemy.sql import func, desc
@@ -201,20 +201,32 @@ def view_project(project_id):
     project = Project.query.get_or_404(project_id)
     return render_template('feed/view_project.html', project=project)
 
-@feed_bp.route('/creativity', defaults={'category': 'art_design'})
+@feed_bp.route('/creativity', defaults={'category': 'all'})
 @feed_bp.route('/creativity/<category>')
 @login_required
 def creativity(category):
     """Creativity page with categories."""
-    categories = ["art_design", "writing", "music_audio", "reels", "challenges", "top_creators"]
+    categories = ["all", "art_design", "writing", "music_audio", "reels", "challenges", "top_creators"]
     if category not in categories:
-        return redirect(url_for('feed.creativity', category='art_design'))
+        return redirect(url_for('feed.creativity', category='all'))
 
     works = []
-    if category == 'art_design':
-        works = CreativeWork.query.filter_by(work_type='image').order_by(CreativeWork.timestamp.desc()).all()
+    if category == 'all':
+        creative_works = CreativeWork.query.all()
+        reels = Reel.query.all()
+        works = sorted(creative_works + reels, key=lambda x: x.timestamp, reverse=True)
+    elif category == 'art_design':
+        query = CreativeWork.query.filter_by(work_type='image')
+        sub_cat_filter = request.args.get('filter')
+        if sub_cat_filter and sub_cat_filter != 'all':
+            query = query.filter_by(sub_category=sub_cat_filter)
+        works = query.order_by(CreativeWork.timestamp.desc()).all()
     elif category == 'writing':
-        works = CreativeWork.query.filter_by(work_type='writing').order_by(CreativeWork.timestamp.desc()).all()
+        query = CreativeWork.query.filter_by(work_type='writing')
+        sub_cat_filter = request.args.get('filter')
+        if sub_cat_filter and sub_cat_filter != 'all':
+            query = query.filter_by(sub_category=sub_cat_filter)
+        works = query.order_by(CreativeWork.timestamp.desc()).all()
     elif category == 'music_audio':
         works = CreativeWork.query.filter_by(work_type='audio').order_by(CreativeWork.timestamp.desc()).all()
     elif category == 'reels':
@@ -222,7 +234,6 @@ def creativity(category):
     elif category == 'challenges':
         works = Challenge.query.order_by(Challenge.deadline.desc()).all()
     elif category == 'top_creators':
-        # Most Liked Creators
         most_liked = db.session.query(
             User, func.count(Like.id).label('total_likes')
         ).join(CreativeWork, User.id == CreativeWork.user_id)\
@@ -231,18 +242,13 @@ def creativity(category):
          .group_by(User.id)\
          .order_by(desc('total_likes'))\
          .limit(10).all()
-
-        # Most Active Creators (by number of works)
         most_active = db.session.query(
             User, func.count(CreativeWork.id).label('work_count')
         ).join(CreativeWork, User.id == CreativeWork.user_id)\
          .group_by(User.id)\
          .order_by(desc('work_count'))\
          .limit(10).all()
-
-        # For spotlight, we'll just feature the top 3 most liked for now
         spotlight_creators = [user for user, likes in most_liked[:3]]
-
         works = {
             'most_liked': most_liked,
             'most_active': most_active,
@@ -280,6 +286,7 @@ def create_creative_work():
             title=title,
             description=description,
             work_type='writing',
+            sub_category=request.form.get('sub_category'),
             style_options=style_map.get(bg_style),
             user_id=current_user.id
         )
@@ -327,6 +334,7 @@ def create_creative_work():
             description=description,
             media_url=media_url,
             work_type=media_type,
+            sub_category=request.form.get('sub_category'),
             user_id=current_user.id
         )
 
@@ -444,6 +452,25 @@ def more():
     """More options page."""
     return render_template('feed/more.html')
 
+@feed_bp.route('/saved')
+@login_required
+def saved():
+    """Display user's saved/bookmarked items."""
+    bookmarks = current_user.bookmarks.order_by(Bookmark.timestamp.desc()).all()
+
+    saved_items = []
+    for bookmark in bookmarks:
+        item = None
+        if bookmark.target_type == 'creative_work':
+            item = CreativeWork.query.get(bookmark.target_id)
+        elif bookmark.target_type == 'reel':
+            item = Reel.query.get(bookmark.target_id)
+
+        if item:
+            saved_items.append(item)
+
+    return render_template('feed/saved.html', items=saved_items)
+
 @feed_bp.route('/follow/<int:user_id>', methods=['POST'])
 @login_required
 def follow(user_id):
@@ -544,7 +571,21 @@ def search():
 
     results = {}
     if category:
-        if category == 'art_design':
+        if category == 'all':
+            results['art_design'] = CreativeWork.query.filter(
+                CreativeWork.work_type == 'image',
+                CreativeWork.title.ilike(f'%{query}%')
+            ).limit(10).all()
+            results['writing'] = CreativeWork.query.filter(
+                CreativeWork.work_type == 'writing',
+                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.description.ilike(f'%{query}%'))
+            ).limit(10).all()
+            results['music_audio'] = CreativeWork.query.filter(
+                CreativeWork.work_type == 'audio',
+                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.genre.ilike(f'%{query}%'))
+            ).limit(10).all()
+            results['reels'] = Reel.query.filter(Reel.caption.ilike(f'%{query}%')).limit(10).all()
+        elif category == 'art_design':
             results['art_design'] = CreativeWork.query.filter(
                 CreativeWork.work_type == 'image',
                 CreativeWork.title.ilike(f'%{query}%')
@@ -741,6 +782,41 @@ def add_comment(post_id):
     }
 
     return jsonify({'status': 'success', 'comment': comment_data}), 201
+
+@feed_bp.route('/api/bookmark', methods=['POST'])
+@login_required
+def bookmark():
+    """Toggles a bookmark on an item."""
+    data = request.get_json()
+    target_id = data.get('target_id')
+    target_type = data.get('target_type')
+
+    if not target_id or not target_type:
+        return jsonify({'status': 'error', 'message': 'Missing target information.'}), 400
+
+    existing_bookmark = Bookmark.query.filter_by(
+        user_id=current_user.id,
+        target_type=target_type,
+        target_id=target_id
+    ).first()
+
+    if existing_bookmark:
+        db.session.delete(existing_bookmark)
+        bookmarked = False
+        message = 'Bookmark removed.'
+    else:
+        new_bookmark = Bookmark(
+            user_id=current_user.id,
+            target_type=target_type,
+            target_id=target_id
+        )
+        db.session.add(new_bookmark)
+        bookmarked = True
+        message = 'Item bookmarked.'
+
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'bookmarked': bookmarked, 'message': message})
 
 # --- API Route for Reels ---
 

@@ -20,6 +20,7 @@
     </div>
 
     <nav class="creativity-tabs">
+        <a href="{{ url_for('feed.creativity', category='all') }}" class="tab-link {% if active_category == 'all' %}active{% endif %}">🌐 All</a>
         <a href="{{ url_for('feed.creativity', category='art_design') }}" class="tab-link {% if active_category == 'art_design' %}active{% endif %}">🖼️ Art & Design</a>
         <a href="{{ url_for('feed.creativity', category='writing') }}" class="tab-link {% if active_category == 'writing' %}active{% endif %}">✍️ Writing</a>
         <a href="{{ url_for('feed.creativity', category='music_audio') }}" class="tab-link {% if active_category == 'music_audio' %}active{% endif %}">🎶 Music & Audio</a>
@@ -29,7 +30,9 @@
     </nav>
 
     <div class="tab-content-wrapper">
-        {% if active_category == 'art_design' %}
+        {% if active_category == 'all' %}
+            <div id="all" class="tab-content active">{% include 'feed/tabs/all.html' %}</div>
+        {% elif active_category == 'art_design' %}
             <div id="art_design" class="tab-content active">{% include 'feed/tabs/art_design.html' %}</div>
         {% elif active_category == 'writing' %}
             <div id="writing" class="tab-content active">{% include 'feed/tabs/writing.html' %}</div>

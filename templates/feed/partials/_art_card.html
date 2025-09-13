@@ -1,0 +1,18 @@
+<div class="work-item">
+    <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
+        <div class="work-item-media">
+            <img src="{{ url_for('static', filename=work.media_url) }}" alt="{{ work.title }}">
+        </div>
+        <div class="work-item-overlay">
+            <div class="work-item-info">
+                <h3>{{ work.title }}</h3>
+                <p>by {{ work.artist.name }}</p>
+                <div class="work-item-stats">
+                    <span><i class="fas fa-thumbs-up"></i> {{ work.likes.count() }}</span>
+                    <span style="margin-left: 1rem;"><i class="fas fa-comment"></i> {{ work.comments.count() }}</span>
+                    <button class="btn-bookmark" data-id="{{ work.id }}" data-type="creative_work"><i class="fas fa-bookmark"></i></button>
+                </div>
+            </div>
+        </div>
+    </a>
+</div>

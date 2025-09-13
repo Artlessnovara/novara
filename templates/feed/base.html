@@ -16,7 +16,11 @@
 
     <!-- Feed World Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/feed_world.css') }}">
-
+    <style>
+        .btn-bookmark.bookmarked {
+            color: var(--primary-color);
+        }
+    </style>
     {% block styles %}{% endblock %}
 </head>
 <body>
@@ -87,6 +91,37 @@
     <!-- Day.js for relative timestamps -->
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.min.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Bookmark functionality
+        document.body.addEventListener('click', function(e) {
+            const bookmarkBtn = e.target.closest('.btn-bookmark');
+            if (bookmarkBtn) {
+                e.preventDefault();
+                const targetId = bookmarkBtn.dataset.id;
+                const targetType = bookmarkBtn.dataset.type;
+
+                fetch('/feed/api/bookmark', { // Corrected URL
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ target_id: targetId, target_type: targetType })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        bookmarkBtn.classList.toggle('bookmarked', data.bookmarked);
+                    } else {
+                        console.error('Failed to bookmark:', data.message);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        });
+    });
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

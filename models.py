@@ -738,6 +738,7 @@ class CreativeWork(db.Model):
     description = db.Column(db.Text, nullable=True)
     media_url = db.Column(db.String(255), nullable=True)
     work_type = db.Column(db.String(50), nullable=False) # e.g., 'image', 'music', 'video', 'writing'
+    sub_category = db.Column(db.String(50), nullable=True)
     style_options = db.Column(db.JSON, nullable=True) # For storing text post styles
     genre = db.Column(db.String(50), nullable=True) # For music
     cover_image_url = db.Column(db.String(255), nullable=True) # For music/audio
@@ -776,6 +777,19 @@ class ReportedPost(db.Model):
     post = db.relationship('Post', backref='reports')
     reporter = db.relationship('User', foreign_keys=[reported_by_id])
 
+
+class Bookmark(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    # Polymorphic relationship
+    target_type = db.Column(db.String(50), nullable=False)
+    target_id = db.Column(db.Integer, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('bookmarks', lazy='dynamic'))
+
+    __table_args__ = (db.Index('ix_bookmark_target', 'target_type', 'target_id'),)
 
 class FCMToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
