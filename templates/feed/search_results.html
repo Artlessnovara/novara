@@ -11,7 +11,18 @@
         <h2>Search Results for "{{ query }}"</h2>
     {% endif %}
 
-    {% if category == 'art_design' %}
+    {% if category == 'all' %}
+        {% for type, items in results.items() %}
+            {% if items %}
+            <div class="results-section">
+                <h3>{{ type.replace('_', ' ')|title }}</h3>
+                {% for item in items %}
+                    <p><a href="#">{{ item.title or item.caption }}</a></p>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endfor %}
+    {% elif category == 'art_design' %}
         <div class="results-section">
             <h3>Art & Design</h3>
             <div class="works-grid">

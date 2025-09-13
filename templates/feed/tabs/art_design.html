@@ -11,6 +11,16 @@
             <textarea name="description" id="description" rows="3"></textarea>
         </div>
         <div style="margin-top: 1rem;">
+            <label for="sub_category">Sub-Category</label>
+            <select name="sub_category" id="sub_category">
+                <option value="">All Art & Design</option>
+                <option value="digital">Digital Art</option>
+                <option value="hand_drawn">Hand-drawn</option>
+                <option value="photography">Photography</option>
+                <option value="crafts">Crafts</option>
+            </select>
+        </div>
+        <div style="margin-top: 1rem;">
             <label for="media">Media File (Image)</label>
             <input type="file" id="media" name="media" accept="image/*" required>
         </div>
@@ -22,26 +32,23 @@
     </form>
 </div>
 
+<div class="filters-bar">
+    <form action="{{ url_for('feed.creativity', category='art_design') }}" method="GET">
+        <label for="art_filter">Filter by:</label>
+        <select name="filter" id="art_filter" onchange="this.form.submit()">
+            <option value="all" {% if request.args.get('filter') == 'all' %}selected{% endif %}>All</option>
+            <option value="digital" {% if request.args.get('filter') == 'digital' %}selected{% endif %}>Digital Art</option>
+            <option value="hand_drawn" {% if request.args.get('filter') == 'hand_drawn' %}selected{% endif %}>Hand-drawn</option>
+            <option value="photography" {% if request.args.get('filter') == 'photography' %}selected{% endif %}>Photography</option>
+            <option value="crafts" {% if request.args.get('filter') == 'crafts' %}selected{% endif %}>Crafts</option>
+        </select>
+    </form>
+</div>
+
 <div class="works-grid">
     {% for work in works %}
         {% if work.work_type == 'image' %}
-            <div class="work-item">
-                <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
-                    <div class="work-item-media">
-                        <img src="{{ url_for('static', filename=work.media_url) }}" alt="{{ work.title }}">
-                    </div>
-                    <div class="work-item-overlay">
-                        <div class="work-item-info">
-                            <h3>{{ work.title }}</h3>
-                            <p>by {{ work.artist.name }}</p>
-                            <div class="work-item-stats">
-                                <span><i class="fas fa-thumbs-up"></i> {{ work.likes.count() }}</span>
-                                <span style="margin-left: 1rem;"><i class="fas fa-comment"></i> {{ work.comments.count() }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
+            {% include 'feed/partials/_art_card.html' %}
         {% endif %}
     {% else %}
         <p>No creative works yet. Be the first to share something!</p>

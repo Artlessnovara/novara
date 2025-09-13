@@ -1,0 +1,32 @@
+<div class="all-works-feed">
+    {% for work in works %}
+        {% if work.work_type == 'image' %}
+            {% include 'feed/partials/_art_card.html' %}
+        {% elif work.work_type == 'writing' %}
+            {% include 'feed/partials/_writing_card.html' %}
+        {% elif work.work_type == 'audio' %}
+            {% include 'feed/partials/_music_card.html' %}
+        {% elif work.video_url %}
+            {# This is a Reel object #}
+            <div class="reel-search-item">
+                 <a href="#">{{ work.caption|truncate(80) }} by {{ work.author.name }}</a>
+            </div>
+        {% endif %}
+    {% else %}
+        <p>No creative works have been posted yet.</p>
+    {% endfor %}
+</div>
+
+<style>
+/* Using a masonry-like layout for the 'All' feed */
+.all-works-feed {
+    column-count: 1;
+    column-gap: 1rem;
+}
+.all-works-feed > * {
+    break-inside: avoid;
+    margin-bottom: 1rem;
+}
+@media (min-width: 768px) { .all-works-feed { column-count: 2; } }
+@media (min-width: 1024px) { .all-works-feed { column-count: 3; } }
+</style>

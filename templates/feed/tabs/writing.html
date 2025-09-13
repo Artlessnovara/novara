@@ -7,6 +7,16 @@
             <input type="text" id="title" name="title" required>
         </div>
         <div style="margin-top: 1rem;">
+            <label for="sub_category">Sub-Category</label>
+            <select name="sub_category" id="sub_category">
+                <option value="">All Writing</option>
+                <option value="poetry">Poetry</option>
+                <option value="quotes">Quotes</option>
+                <option value="stories">Stories</option>
+                <option value="essays">Essays</option>
+            </select>
+        </div>
+        <div style="margin-top: 1rem;">
             <label for="description">Your Text</label>
             <textarea name="description" id="description" rows="10" required placeholder="Write your poem, story, or quote here..."></textarea>
         </div>
@@ -30,23 +40,23 @@
     </form>
 </div>
 
+<div class="filters-bar">
+    <form action="{{ url_for('feed.creativity', category='writing') }}" method="GET">
+        <label for="writing_filter">Filter by:</label>
+        <select name="filter" id="writing_filter" onchange="this.form.submit()">
+            <option value="all" {% if request.args.get('filter') == 'all' %}selected{% endif %}>All</option>
+            <option value="poetry" {% if request.args.get('filter') == 'poetry' %}selected{% endif %}>Poetry</option>
+            <option value="quotes" {% if request.args.get('filter') == 'quotes' %}selected{% endif %}>Quotes</option>
+            <option value="stories" {% if request.args.get('filter') == 'stories' %}selected{% endif %}>Stories</option>
+            <option value="essays" {% if request.args.get('filter') == 'essays' %}selected{% endif %}>Essays</option>
+        </select>
+    </form>
+</div>
+
 <div class="writing-list">
     {% for work in works %}
         {% if work.work_type == 'writing' %}
-            <div class="writing-card" style="background-color: {{ work.style_options.get('bg_color', '#ffffff') }}; color: {{ work.style_options.get('text_color', '#000000') }};">
-                <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
-                    <div class="writing-card-content">
-                        <h3>{{ work.title }}</h3>
-                        <p class="author">by {{ work.artist.name }}</p>
-                        <hr>
-                        <p class="writing-body">{{ work.description | truncate(300, True) }}</p>
-                    </div>
-                </a>
-                <div class="writing-card-footer">
-                    <span><i class="fas fa-thumbs-up"></i> {{ work.likes.count() }}</span>
-                    <span><i class="fas fa-comment"></i> {{ work.comments.count() }}</span>
-                </div>
-            </div>
+            {% include 'feed/partials/_writing_card.html' %}
         {% endif %}
     {% else %}
         <p>No writings yet. Be the first to share something!</p>
