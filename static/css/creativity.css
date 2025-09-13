@@ -1,0 +1,73 @@
+/* Tabs navigation */
+.creativity-tabs {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none; /* For Firefox */
+    -ms-overflow-style: none;  /* For Internet Explorer and Edge */
+    border-bottom: 1px solid var(--border-color-light);
+    margin-bottom: 1.5rem;
+}
+
+.creativity-tabs::-webkit-scrollbar {
+    display: none; /* For Chrome, Safari, and Opera */
+}
+
+.creativity-tabs .tab-link {
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    color: var(--secondary-text-light);
+    font-weight: 600;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.3s, border-color 0.3s;
+}
+
+.creativity-tabs .tab-link.active,
+.creativity-tabs .tab-link:hover {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* Tab content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Search bar */
+.creativity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.creativity-search {
+    position: relative;
+    width: 300px;
+}
+
+.creativity-search input {
+    width: 100%;
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    border-radius: 50px;
+    border: 1px solid var(--border-color-light);
+    background-color: var(--background-color-light);
+}
+
+.creativity-search .search-icon-button {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--secondary-text-light);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}

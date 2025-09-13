@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status
+from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, ChallengeSubmission
 from extensions import db
 from utils import save_post_media, save_community_cover_image
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, desc
 from datetime import datetime, date, timedelta
 
 feed_bp = Blueprint('feed', __name__, url_prefix='/feed')
@@ -201,12 +201,55 @@ def view_project(project_id):
     project = Project.query.get_or_404(project_id)
     return render_template('feed/view_project.html', project=project)
 
-@feed_bp.route('/creativity')
+@feed_bp.route('/creativity', defaults={'category': 'art_design'})
+@feed_bp.route('/creativity/<category>')
 @login_required
-def creativity():
-    """Creativity page."""
-    works = CreativeWork.query.order_by(CreativeWork.timestamp.desc()).all()
-    return render_template('feed/creativity.html', works=works)
+def creativity(category):
+    """Creativity page with categories."""
+    categories = ["art_design", "writing", "music_audio", "reels", "challenges", "top_creators"]
+    if category not in categories:
+        return redirect(url_for('feed.creativity', category='art_design'))
+
+    works = []
+    if category == 'art_design':
+        works = CreativeWork.query.filter_by(work_type='image').order_by(CreativeWork.timestamp.desc()).all()
+    elif category == 'writing':
+        works = CreativeWork.query.filter_by(work_type='writing').order_by(CreativeWork.timestamp.desc()).all()
+    elif category == 'music_audio':
+        works = CreativeWork.query.filter_by(work_type='audio').order_by(CreativeWork.timestamp.desc()).all()
+    elif category == 'reels':
+        works = Reel.query.order_by(Reel.timestamp.desc()).all()
+    elif category == 'challenges':
+        works = Challenge.query.order_by(Challenge.deadline.desc()).all()
+    elif category == 'top_creators':
+        # Most Liked Creators
+        most_liked = db.session.query(
+            User, func.count(Like.id).label('total_likes')
+        ).join(CreativeWork, User.id == CreativeWork.user_id)\
+         .join(Like, Like.target_id == CreativeWork.id)\
+         .filter(Like.target_type == 'creative_work')\
+         .group_by(User.id)\
+         .order_by(desc('total_likes'))\
+         .limit(10).all()
+
+        # Most Active Creators (by number of works)
+        most_active = db.session.query(
+            User, func.count(CreativeWork.id).label('work_count')
+        ).join(CreativeWork, User.id == CreativeWork.user_id)\
+         .group_by(User.id)\
+         .order_by(desc('work_count'))\
+         .limit(10).all()
+
+        # For spotlight, we'll just feature the top 3 most liked for now
+        spotlight_creators = [user for user, likes in most_liked[:3]]
+
+        works = {
+            'most_liked': most_liked,
+            'most_active': most_active,
+            'spotlight': spotlight_creators
+        }
+
+    return render_template('feed/creativity.html', works=works, active_category=category)
 
 @feed_bp.route('/creative_work/create', methods=['POST'])
 @login_required
@@ -214,29 +257,84 @@ def create_creative_work():
     """Create a new creative work."""
     title = request.form.get('title')
     description = request.form.get('description')
-    media_file = request.files.get('media')
+    category = request.form.get('category')
 
-    if not title or not media_file:
-        flash('Title and a media file are required.', 'danger')
-        return redirect(url_for('feed.creativity'))
+    if not title:
+        flash('Title is required.', 'danger')
+        return redirect(url_for('feed.creativity', category=category))
 
-    media_url, media_type = save_post_media(media_file)
-    if not media_url:
-        flash('Invalid file type or size for media.', 'danger')
-        return redirect(url_for('feed.creativity'))
+    if category == 'writing':
+        if not description:
+            flash('Text content is required for a writing post.', 'danger')
+            return redirect(url_for('feed.creativity', category=category))
 
-    new_work = CreativeWork(
-        title=title,
-        description=description,
-        media_url=media_url,
-        work_type=media_type,
-        user_id=current_user.id
-    )
+        bg_style = request.form.get('bg_style', 'default')
+        style_map = {
+            'default': {'bg_color': '#ffffff', 'text_color': '#000000'},
+            'dark': {'bg_color': '#333333', 'text_color': '#ffffff'},
+            'parchment': {'bg_color': '#fdf5e6', 'text_color': '#5d4037'},
+            'blue': {'bg_color': '#e7f3ff', 'text_color': '#0d47a1'}
+        }
+
+        new_work = CreativeWork(
+            title=title,
+            description=description,
+            work_type='writing',
+            style_options=style_map.get(bg_style),
+            user_id=current_user.id
+        )
+    elif category == 'music_audio':
+        media_file = request.files.get('media')
+        if not media_file:
+            flash('An audio file is required.', 'danger')
+            return redirect(url_for('feed.creativity', category=category))
+
+        media_url, media_type = save_post_media(media_file)
+        if media_type != 'audio':
+            flash('Invalid file type. Please upload an audio file.', 'danger')
+            return redirect(url_for('feed.creativity', category=category))
+
+        cover_image_url = None
+        cover_image_file = request.files.get('cover_image')
+        if cover_image_file:
+            cover_image_url, _ = save_post_media(cover_image_file)
+
+        new_work = CreativeWork(
+            title=title,
+            description=description,
+            media_url=media_url,
+            work_type='audio',
+            genre=request.form.get('genre'),
+            cover_image_url=cover_image_url,
+            user_id=current_user.id
+        )
+    else: # Assumes art_design or other file-based types
+        media_file = request.files.get('media')
+        if not media_file:
+            flash('A media file is required.', 'danger')
+            return redirect(url_for('feed.creativity', category=category))
+
+        watermark = request.form.get('watermark')
+        watermark_text = current_user.name if watermark else None
+        media_url, media_type = save_post_media(media_file, watermark_text=watermark_text)
+
+        if not media_url or media_type not in ['image', 'video']:
+            flash('Invalid file type or size for media.', 'danger')
+            return redirect(url_for('feed.creativity', category=category))
+
+        new_work = CreativeWork(
+            title=title,
+            description=description,
+            media_url=media_url,
+            work_type=media_type,
+            user_id=current_user.id
+        )
+
     db.session.add(new_work)
     db.session.commit()
 
     flash('Your creative work has been uploaded!', 'success')
-    return redirect(url_for('feed.view_creative_work', work_id=new_work.id))
+    return redirect(url_for('feed.creativity', category=category))
 
 @feed_bp.route('/creative_work/<int:work_id>')
 @login_required
@@ -244,6 +342,57 @@ def view_creative_work(work_id):
     """View a single creative work."""
     work = CreativeWork.query.get_or_404(work_id)
     return render_template('feed/view_creative_work.html', work=work)
+
+@feed_bp.route('/challenge/<int:challenge_id>')
+@login_required
+def view_challenge(challenge_id):
+    """View a single challenge and its submissions."""
+    challenge = Challenge.query.get_or_404(challenge_id)
+    # A more complex app might paginate submissions
+    return render_template('feed/challenge_detail.html', challenge=challenge)
+
+@feed_bp.route('/challenge/<int:challenge_id>/submit', methods=['POST'])
+@login_required
+def submit_to_challenge(challenge_id):
+    """Submit a creative work to a challenge."""
+    challenge = Challenge.query.get_or_404(challenge_id)
+    creative_work_id = request.form.get('creative_work_id', type=int)
+
+    if not challenge.is_active:
+        flash("This challenge has ended and is no longer accepting submissions.", "danger")
+        return redirect(url_for('feed.view_challenge', challenge_id=challenge_id))
+
+    if not creative_work_id:
+        flash("You must select one of your creative works to submit.", "danger")
+        return redirect(url_for('feed.view_challenge', challenge_id=challenge_id))
+
+    work = CreativeWork.query.get_or_404(creative_work_id)
+    if work.user_id != current_user.id:
+        flash("You can only submit your own creative works.", "danger")
+        return redirect(url_for('feed.view_challenge', challenge_id=challenge_id))
+
+    # Check if the user has already submitted this work to this challenge
+    existing_submission = ChallengeSubmission.query.filter_by(
+        challenge_id=challenge.id,
+        submission_id=work.id,
+        submission_type='creative_work'
+    ).first()
+
+    if existing_submission:
+        flash("You have already submitted this work to this challenge.", "info")
+        return redirect(url_for('feed.view_challenge', challenge_id=challenge_id))
+
+    new_submission = ChallengeSubmission(
+        challenge_id=challenge.id,
+        user_id=current_user.id,
+        submission_id=work.id,
+        submission_type='creative_work'
+    )
+    db.session.add(new_submission)
+    db.session.commit()
+
+    flash("Your work has been submitted to the challenge!", "success")
+    return redirect(url_for('feed.view_challenge', challenge_id=challenge_id))
 
 @feed_bp.route('/profile/')
 @feed_bp.route('/profile/<int:user_id>')
@@ -386,25 +535,44 @@ def reels_viewer():
 @feed_bp.route('/search')
 @login_required
 def search():
-    """Search for users, posts, and communities."""
+    """Search for users, posts, communities, and creative content."""
     query = request.args.get('q', '')
+    category = request.args.get('c', None) # Creativity category
+
     if not query:
         return redirect(url_for('feed.home'))
 
-    # Search users
-    users = User.query.filter(User.name.ilike(f'%{query}%')).limit(10).all()
-
-    # Search posts
-    posts = Post.query.filter(Post.content.ilike(f'%{query}%')).limit(10).all()
-
-    # Search communities
-    communities = Community.query.filter(Community.name.ilike(f'%{query}%')).limit(10).all()
+    results = {}
+    if category:
+        if category == 'art_design':
+            results['art_design'] = CreativeWork.query.filter(
+                CreativeWork.work_type == 'image',
+                CreativeWork.title.ilike(f'%{query}%')
+            ).limit(20).all()
+        elif category == 'writing':
+            results['writing'] = CreativeWork.query.filter(
+                CreativeWork.work_type == 'writing',
+                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.description.ilike(f'%{query}%'))
+            ).limit(20).all()
+        elif category == 'music_audio':
+            results['music_audio'] = CreativeWork.query.filter(
+                CreativeWork.work_type == 'audio',
+                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.genre.ilike(f'%{query}%'))
+            ).limit(20).all()
+        elif category == 'reels':
+            results['reels'] = Reel.query.filter(Reel.caption.ilike(f'%{query}%')).limit(20).all()
+        elif category == 'challenges':
+            results['challenges'] = Challenge.query.filter(Challenge.title.ilike(f'%{query}%')).limit(20).all()
+    else:
+        # Generic search
+        results['users'] = User.query.filter(User.name.ilike(f'%{query}%')).limit(10).all()
+        results['posts'] = Post.query.filter(Post.content.ilike(f'%{query}%')).limit(10).all()
+        results['communities'] = Community.query.filter(Community.name.ilike(f'%{query}%')).limit(10).all()
 
     return render_template('feed/search_results.html',
                            query=query,
-                           users=users,
-                           posts=posts,
-                           communities=communities)
+                           results=results,
+                           category=category)
 
 @feed_bp.route('/create_reel', methods=['POST'])
 @login_required

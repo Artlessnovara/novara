@@ -1,0 +1,94 @@
+<div class="upload-work-section">
+    <h3>Share Your Writing</h3>
+    <form action="{{ url_for('feed.create_creative_work') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="category" value="writing">
+        <div>
+            <label for="title">Title (e.g., "My First Poem", "A Short Story")</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div style="margin-top: 1rem;">
+            <label for="description">Your Text</label>
+            <textarea name="description" id="description" rows="10" required placeholder="Write your poem, story, or quote here..."></textarea>
+        </div>
+        <div style="margin-top: 1rem;">
+            <label>Choose a Background Style</label>
+            <div class="style-selector">
+                <input type="radio" id="bg-default" name="bg_style" value="default" checked>
+                <label for="bg-default" class="style-option" style="background: #fff; border: 1px solid #ddd;">Default</label>
+
+                <input type="radio" id="bg-dark" name="bg_style" value="dark">
+                <label for="bg-dark" class="style-option" style="background: #333; color: #fff;">Dark</label>
+
+                <input type="radio" id="bg-parchment" name="bg_style" value="parchment">
+                <label for="bg-parchment" class="style-option" style="background: #fdf5e6;">Parchment</label>
+
+                <input type="radio" id="bg-blue" name="bg_style" value="blue">
+                <label for="bg-blue" class="style-option" style="background: #e7f3ff;">Light Blue</label>
+            </div>
+        </div>
+        <button type="submit">Publish Writing</button>
+    </form>
+</div>
+
+<div class="writing-list">
+    {% for work in works %}
+        {% if work.work_type == 'writing' %}
+            <div class="writing-card" style="background-color: {{ work.style_options.get('bg_color', '#ffffff') }}; color: {{ work.style_options.get('text_color', '#000000') }};">
+                <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
+                    <div class="writing-card-content">
+                        <h3>{{ work.title }}</h3>
+                        <p class="author">by {{ work.artist.name }}</p>
+                        <hr>
+                        <p class="writing-body">{{ work.description | truncate(300, True) }}</p>
+                    </div>
+                </a>
+                <div class="writing-card-footer">
+                    <span><i class="fas fa-thumbs-up"></i> {{ work.likes.count() }}</span>
+                    <span><i class="fas fa-comment"></i> {{ work.comments.count() }}</span>
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <p>No writings yet. Be the first to share something!</p>
+    {% endfor %}
+</div>
+
+<style>
+.style-selector { display: flex; gap: 10px; margin-top: 5px; }
+.style-selector input[type="radio"] { display: none; }
+.style-selector .style-option {
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.style-selector input[type="radio"]:checked + .style-option {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.writing-list { column-count: 1; column-gap: 1rem; }
+.writing-card {
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 1rem;
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color-light);
+    break-inside: avoid;
+}
+.writing-card a { text-decoration: none; color: inherit; }
+.writing-card h3 { margin-top: 0; }
+.writing-card .author { font-size: 0.9rem; color: var(--secondary-text-light); }
+.writing-card hr { border: 0; border-top: 1px solid var(--border-color-light); margin: 1rem 0; }
+.writing-card .writing-body { white-space: pre-wrap; line-height: 1.6; }
+.writing-card-footer { margin-top: 1rem; display: flex; gap: 1rem; color: var(--secondary-text-light); }
+
+@media (min-width: 768px) {
+    .writing-list { column-count: 2; }
+}
+@media (min-width: 1024px) {
+    .writing-list { column-count: 3; }
+}
+</style>

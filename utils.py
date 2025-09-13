@@ -1,4 +1,5 @@
 import os
+import uuid
 from werkzeug.utils import secure_filename
 from flask import current_app
 from models import PlatformSetting, ChatRoom, ChatRoomMember, User
@@ -194,36 +195,81 @@ def get_or_create_private_room(user1_id, user2_id):
 
     return new_room
 
-def save_post_media(file):
-    """
-    Saves an image or video for a post.
-    """
-    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'webm', 'ogg'}
-    max_size = 50 * 1024 * 1024 # 50MB
+def save_post_media(file, watermark_text=None):
+    if not file or not file.filename:
+        return None, None
+
+    # Define allowed extensions for different types
+    allowed_images = {'png', 'jpg', 'jpeg', 'gif'}
+    allowed_videos = {'mp4', 'mov', 'avi', 'mkv', 'webm'}
+    allowed_audio = {'mp3', 'wav', 'ogg'}
 
     filename = secure_filename(file.filename)
-    if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+    extension = filename.rsplit('.', 1)[1].lower()
+
+    # Determine media type and save path
+    if extension in allowed_images:
+        media_type = 'image'
+        save_dir = os.path.join(current_app.root_path, 'static/uploads/images')
+    elif extension in allowed_videos:
+        media_type = 'video'
+        save_dir = os.path.join(current_app.root_path, 'static/uploads/videos')
+    elif extension in allowed_audio:
+        media_type = 'audio'
+        save_dir = os.path.join(current_app.root_path, 'static/uploads/audios')
+    else:
         return None, None # Invalid file type
 
-    file.seek(0, os.SEEK_END)
-    file_length = file.tell()
-    if file_length > max_size:
-        return None, None # File too large
-    file.seek(0)
+    # Ensure the save directory exists
+    os.makedirs(save_dir, exist_ok=True)
 
-    random_hex = os.urandom(8).hex()
-    _, f_ext = os.path.splitext(filename)
-    new_filename = random_hex + f_ext
+    # Generate a unique filename to prevent overwrites
+    unique_filename = f"{uuid.uuid4().hex[:16]}.{extension}"
+    file_path = os.path.join(save_dir, unique_filename)
 
-    upload_folder = os.path.join(current_app.root_path, 'static/post_media')
-    os.makedirs(upload_folder, exist_ok=True)
+    # Save the file
+    if media_type == 'image' and watermark_text:
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+            image = Image.open(file).convert("RGBA")
 
-    filepath = os.path.join(upload_folder, new_filename)
-    file.save(filepath)
+            # Create a transparent layer for the text
+            txt_layer = Image.new('RGBA', image.size, (255,255,255,0))
 
-    media_type = 'image' if f_ext.lower() in ['.png', 'jpg', 'jpeg', '.gif'] else 'video'
+            # Choose a font
+            try:
+                # Using a common system font path
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
+            except IOError:
+                font = ImageFont.load_default()
 
-    return os.path.join('post_media', new_filename), media_type
+            draw = ImageDraw.Draw(txt_layer)
+
+            # Position for the watermark (bottom right)
+            text_width, text_height = draw.textsize(watermark_text, font=font)
+            x = image.width - text_width - 10
+            y = image.height - text_height - 10
+
+            # Draw the text with transparency
+            draw.text((x, y), watermark_text, font=font, fill=(255, 255, 255, 128)) # White with 50% opacity
+
+            # Composite the text layer over the image
+            out = Image.alpha_composite(image, txt_layer)
+            # Save as PNG to preserve transparency
+            png_filename = f"{unique_filename.split('.')[0]}.png"
+            file_path = os.path.join(save_dir, png_filename)
+            out.save(file_path, 'PNG')
+            unique_filename = png_filename
+        except Exception as e:
+            print(f"Could not apply watermark: {e}")
+            file.seek(0)
+            file.save(file_path)
+    else:
+        file.save(file_path)
+
+    # Return the relative path for use in templates
+    relative_path = os.path.join('uploads', media_type + 's', unique_filename)
+    return relative_path, media_type
 
 def save_community_cover_image(file):
     """Saves a cover image for a community."""

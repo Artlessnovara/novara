@@ -3,83 +3,54 @@
 {% block title %}Creativity Hub{% endblock %}
 
 {% block styles %}
-<style>
-    .creativity-container { max-width: 1200px; margin: auto; padding: 1rem; }
-    .upload-work-section { background: var(--card-bg-light); border: 1px solid var(--border-color-light); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; }
-    .upload-work-section input, .upload-work-section textarea { width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid var(--border-color-light); margin-top: 0.5rem; }
-    .upload-work-section button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; margin-top: 1rem; }
-
-    .works-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-    .work-item { position: relative; overflow: hidden; border-radius: var(--border-radius); }
-    .work-item a { text-decoration: none; color: white; }
-    .work-item-media { height: 300px; background-color: #eee; }
-    .work-item-media img, .work-item-media video { width: 100%; height: 100%; object-fit: cover; }
-    .work-item-overlay {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
-        padding: 2rem 1rem 1rem;
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-    .work-item:hover .work-item-overlay { opacity: 1; }
-    .work-item-info h3 { margin: 0 0 0.5rem 0; }
-    .work-item-stats { font-size: 0.8rem; }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/creativity.css') }}">
 {% endblock %}
 
 {% block content %}
 <div class="creativity-container">
-    <div class="upload-work-section">
-        <h3>Showcase Your Work</h3>
-        <form action="{{ url_for('feed.create_creative_work') }}" method="POST" enctype="multipart/form-data">
-            <div>
-                <label for="title">Title</label>
-                <input type="text" id="title" name="title" required>
-            </div>
-            <div style="margin-top: 1rem;">
-                <label for="description">Description</label>
-                <textarea name="description" id="description" rows="3"></textarea>
-            </div>
-            <div style="margin-top: 1rem;">
-                <label for="media">Media File (Image/Video/Audio)</label>
-                <input type="file" id="media" name="media" accept="image/*,video/*,audio/*" required>
-            </div>
-            <button type="submit">Upload Work</button>
+    <div class="creativity-header">
+        <h2>Creativity Hub</h2>
+        {% if active_category != 'top_creators' %}
+        <form action="{{ url_for('feed.search') }}" method="GET" class="creativity-search">
+            <input type="hidden" name="c" value="{{ active_category }}">
+            <input type="text" name="q" placeholder="Search in {{ active_category.replace('_', ' ')|title }}..." required>
+            <button type="submit" class="search-icon-button"><i class="fas fa-search"></i></button>
         </form>
+        {% endif %}
     </div>
 
-    <h2>Creative Works</h2>
-    <div class="works-grid">
-        {% for work in works %}
-            <div class="work-item">
-                <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
-                    <div class="work-item-media">
-                        {% if work.work_type == 'image' %}
-                            <img src="{{ url_for('static', filename=work.media_url) }}" alt="{{ work.title }}">
-                        {% elif work.work_type == 'video' %}
-                            <video src="{{ url_for('static', filename=work.media_url) }}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
-                        {% else %}
-                             <div style="display:flex; align-items:center; justify-content:center; height:100%;"><i class="fas fa-music" style="font-size: 5rem; color: #ccc;"></i></div>
-                        {% endif %}
-                    </div>
-                    <div class="work-item-overlay">
-                        <div class="work-item-info">
-                            <h3>{{ work.title }}</h3>
-                            <p>by {{ work.artist.name }}</p>
-                            <div class="work-item-stats">
-                                <span><i class="fas fa-thumbs-up"></i> {{ work.likes.count() }}</span>
-                                <span style="margin-left: 1rem;"><i class="fas fa-comment"></i> {{ work.comments.count() }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-        {% else %}
-            <p>No creative works yet. Be the first to share something!</p>
-        {% endfor %}
+    <nav class="creativity-tabs">
+        <a href="{{ url_for('feed.creativity', category='art_design') }}" class="tab-link {% if active_category == 'art_design' %}active{% endif %}">🖼️ Art & Design</a>
+        <a href="{{ url_for('feed.creativity', category='writing') }}" class="tab-link {% if active_category == 'writing' %}active{% endif %}">✍️ Writing</a>
+        <a href="{{ url_for('feed.creativity', category='music_audio') }}" class="tab-link {% if active_category == 'music_audio' %}active{% endif %}">🎶 Music & Audio</a>
+        <a href="{{ url_for('feed.creativity', category='reels') }}" class="tab-link {% if active_category == 'reels' %}active{% endif %}">🎥 Reels</a>
+        <a href="{{ url_for('feed.creativity', category='challenges') }}" class="tab-link {% if active_category == 'challenges' %}active{% endif %}">🏆 Challenges</a>
+        <a href="{{ url_for('feed.creativity', category='top_creators') }}" class="tab-link {% if active_category == 'top_creators' %}active{% endif %}">🌟 Top Creators</a>
+    </nav>
+
+    <div class="tab-content-wrapper">
+        {% if active_category == 'art_design' %}
+            <div id="art_design" class="tab-content active">{% include 'feed/tabs/art_design.html' %}</div>
+        {% elif active_category == 'writing' %}
+            <div id="writing" class="tab-content active">{% include 'feed/tabs/writing.html' %}</div>
+        {% elif active_category == 'music_audio' %}
+            <div id="music_audio" class="tab-content active">{% include 'feed/tabs/music_audio.html' %}</div>
+        {% elif active_category == 'reels' %}
+            <div id="reels" class="tab-content active">{% include 'feed/tabs/reels.html' %}</div>
+        {% elif active_category == 'challenges' %}
+            <div id="challenges" class="tab-content active">{% include 'feed/tabs/challenges.html' %}</div>
+        {% elif active_category == 'top_creators' %}
+            <div id="top_creators" class="tab-content active">{% include 'feed/tabs/top_creators.html' %}</div>
+        {% endif %}
     </div>
+
 </div>
+
+<script>
+// Basic script to handle tab switching without a full page reload,
+// though the current setup reloads the page. This can be enhanced later.
+document.addEventListener('DOMContentLoaded', function() {
+    // The logic is handled by the backend route for now.
+});
+</script>
 {% endblock %}

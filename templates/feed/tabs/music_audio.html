@@ -1,0 +1,93 @@
+<div class="upload-work-section">
+    <h3>Upload Your Music & Audio</h3>
+    <form action="{{ url_for('feed.create_creative_work') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="category" value="music_audio">
+        <div>
+            <label for="title">Track Title</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div style="margin-top: 1rem;">
+            <label for="description">Description (optional)</label>
+            <textarea name="description" id="description" rows="3"></textarea>
+        </div>
+        <div style="margin-top: 1rem;">
+            <label for="genre">Genre</label>
+            <input type="text" id="genre" name="genre" placeholder="e.g., Lo-fi, Podcast, Rock">
+        </div>
+        <div style="margin-top: 1rem;">
+            <label for="media">Audio File (MP3, WAV, etc.)</label>
+            <input type="file" id="media" name="media" accept="audio/*" required>
+        </div>
+        <div style="margin-top: 1rem;">
+            <label for="cover_image">Cover Image (optional)</label>
+            <input type="file" id="cover_image" name="cover_image" accept="image/*">
+        </div>
+        <button type="submit">Upload Track</button>
+    </form>
+</div>
+
+<div class="audio-list">
+    {% for work in works %}
+        {% if work.work_type == 'audio' %}
+            <div class="audio-card">
+                <div class="audio-card-art">
+                    {% if work.cover_image_url %}
+                        <img src="{{ url_for('static', filename=work.cover_image_url) }}" alt="Cover for {{ work.title }}">
+                    {% else %}
+                        <i class="fas fa-music default-art"></i>
+                    {% endif %}
+                </div>
+                <div class="audio-card-info">
+                    <h4>{{ work.title }}</h4>
+                    <p>{{ work.artist.name }}</p>
+                    <span class="genre-tag">{{ work.genre }}</span>
+                    <audio controls src="{{ url_for('static', filename=work.media_url) }}" style="width: 100%; margin-top: 10px;"></audio>
+                    <div class="audio-card-footer">
+                        <span><i class="fas fa-thumbs-up"></i> {{ work.likes.count() }}</span>
+                        <span><i class="fas fa-comment"></i> {{ work.comments.count() }}</span>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <p>No music or audio has been uploaded yet.</p>
+    {% endfor %}
+</div>
+
+<style>
+.audio-list { display: flex; flex-direction: column; gap: 1.5rem; }
+.audio-card {
+    display: flex;
+    background: var(--card-bg-light);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    gap: 1rem;
+}
+.audio-card-art {
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.audio-card-art img { width: 100%; height: 100%; object-fit: cover; }
+.audio-card-art .default-art { font-size: 3rem; color: #ccc; }
+.audio-card-info { flex-grow: 1; }
+.audio-card-info h4 { margin: 0 0 5px 0; }
+.audio-card-info p { margin: 0; font-size: 0.9rem; color: var(--secondary-text-light); }
+.genre-tag {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    border-radius: 10px;
+    margin-top: 5px;
+}
+.audio-card-footer { margin-top: 10px; display: flex; gap: 1rem; color: var(--secondary-text-light); font-size: 0.9rem; }
+</style>

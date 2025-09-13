@@ -1,0 +1,84 @@
+<div class="challenges-header">
+    <h3>Challenges</h3>
+    <!-- Admins would see a 'Create Challenge' button here. To be implemented later. -->
+</div>
+
+<div class="challenges-list">
+    <h4>Ongoing Challenges</h4>
+    <div class="challenge-group">
+        {% set ongoing_challenges = works|selectattr("is_active")|list %}
+        {% if ongoing_challenges %}
+            {% for challenge in ongoing_challenges %}
+                <a href="{{ url_for('feed.view_challenge', challenge_id=challenge.id) }}" class="challenge-card">
+                    <div class="challenge-card-body">
+                        <h5>{{ challenge.title }}</h5>
+                        <p>{{ challenge.description|truncate(100) }}</p>
+                        <div class="challenge-card-footer">
+                            <span><i class="fas fa-trophy"></i> Prize: {{ challenge.prize or 'Bragging rights' }}</span>
+                            <span><i class="fas fa-clock"></i> Deadline: {{ challenge.deadline.strftime('%b %d, %Y') }}</span>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        {% else %}
+            <p>No ongoing challenges at the moment. Check back soon!</p>
+        {% endif %}
+    </div>
+
+    <h4 style="margin-top: 2rem;">Past Challenges</h4>
+    <div class="challenge-group">
+        {% set past_challenges = works|rejectattr("is_active")|list %}
+        {% if past_challenges %}
+            {% for challenge in past_challenges %}
+                <a href="{{ url_for('feed.view_challenge', challenge_id=challenge.id) }}" class="challenge-card past">
+                    <div class="challenge-card-body">
+                        <h5>{{ challenge.title }}</h5>
+                        <p>{{ challenge.description|truncate(100) }}</p>
+                    </div>
+                </a>
+            {% endfor %}
+        {% else %}
+            <p>No past challenges yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.challenges-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.challenge-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+.challenge-card {
+    display: block;
+    background: var(--card-bg-light);
+    border: 1px solid var(--primary-color);
+    border-left: 5px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    text-decoration: none;
+    color: var(--primary-text-light);
+    transition: box-shadow 0.2s;
+}
+.challenge-card:hover {
+    box-shadow: var(--shadow-md);
+}
+.challenge-card.past {
+    border-color: var(--border-color-light);
+    opacity: 0.7;
+}
+.challenge-card h5 { margin: 0 0 0.5rem 0; color: var(--primary-color); }
+.challenge-card p { margin: 0 0 1rem 0; }
+.challenge-card-footer {
+    font-size: 0.8rem;
+    color: var(--secondary-text-light);
+    display: flex;
+    justify-content: space-between;
+}
+</style>

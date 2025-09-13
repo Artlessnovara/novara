@@ -736,8 +736,11 @@ class CreativeWork(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(150), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    media_url = db.Column(db.String(255), nullable=False)
+    media_url = db.Column(db.String(255), nullable=True)
     work_type = db.Column(db.String(50), nullable=False) # e.g., 'image', 'music', 'video', 'writing'
+    style_options = db.Column(db.JSON, nullable=True) # For storing text post styles
+    genre = db.Column(db.String(50), nullable=True) # For music
+    cover_image_url = db.Column(db.String(255), nullable=True) # For music/audio
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     likes = db.relationship('Like',
@@ -781,3 +784,32 @@ class FCMToken(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref='fcm_tokens')
+
+class Challenge(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    rules = db.Column(db.Text, nullable=True)
+    prize = db.Column(db.String(255), nullable=True)
+    deadline = db.Column(db.DateTime, nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    creator = db.relationship('User', backref='created_challenges')
+    submissions = db.relationship('ChallengeSubmission', backref='challenge', lazy='dynamic', cascade="all, delete-orphan")
+
+    @property
+    def is_active(self):
+        return datetime.utcnow() < self.deadline
+
+class ChallengeSubmission(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    challenge_id = db.Column(db.Integer, db.ForeignKey('challenge.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    # Polymorphic relationship for submissions
+    submission_type = db.Column(db.String(50))
+    submission_id = db.Column(db.Integer)
+
+    user = db.relationship('User', backref='challenge_submissions')
