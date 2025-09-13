@@ -41,6 +41,23 @@
         <video src="{{ url_for('static', filename=post.media_url) }}" controls style="width: 100%;"></video>
     {% endif %}
 </div>
+{% elif post.shared_creative_work %}
+    <div class="shared-content">
+        {% with work=post.shared_creative_work %}
+            {% if work.work_type == 'image' %}
+                {% include 'feed/partials/_art_card.html' %}
+            {% elif work.work_type == 'writing' %}
+                {% include 'feed/partials/_writing_card.html' %}
+            {% elif work.work_type == 'audio' %}
+                {% include 'feed/partials/_music_card.html' %}
+            {% endif %}
+        {% endwith %}
+    </div>
+{% elif post.shared_reel %}
+    <div class="shared-content">
+        {# Simplified reel display for the main feed #}
+        <video src="{{ url_for('static', filename=post.shared_reel.video_url) }}" controls style="width: 100%;"></video>
+    </div>
 {% endif %}
 
 <div class="post-stats">

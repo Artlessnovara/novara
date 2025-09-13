@@ -644,6 +644,8 @@ class Post(db.Model):
     media_type = db.Column(db.String(20), nullable=True) # 'image', 'video'
     media_url = db.Column(db.String(255), nullable=True)
     original_post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=True)
+    shared_creative_work_id = db.Column(db.Integer, db.ForeignKey('creative_work.id'), nullable=True)
+    shared_reel_id = db.Column(db.Integer, db.ForeignKey('reel.id'), nullable=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     privacy = db.Column(db.String(50), nullable=False, default='public') # public, followers, private
 
@@ -656,6 +658,8 @@ class Post(db.Model):
                                lazy='dynamic',
                                cascade="all, delete-orphan")
     original_post = db.relationship('Post', remote_side=[id], backref='reposts')
+    shared_creative_work = db.relationship('CreativeWork', backref='shares')
+    shared_reel = db.relationship('Reel', backref='shares')
 
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -690,6 +694,7 @@ class Reel(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     video_url = db.Column(db.String(255), nullable=False)
     caption = db.Column(db.Text, nullable=True)
+    tags = db.Column(db.String(255), nullable=True) # Comma-separated tags
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     likes = db.relationship('Like',
@@ -742,6 +747,7 @@ class CreativeWork(db.Model):
     style_options = db.Column(db.JSON, nullable=True) # For storing text post styles
     genre = db.Column(db.String(50), nullable=True) # For music
     cover_image_url = db.Column(db.String(255), nullable=True) # For music/audio
+    tags = db.Column(db.String(255), nullable=True) # Comma-separated tags
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     likes = db.relationship('Like',
@@ -827,3 +833,12 @@ class ChallengeSubmission(db.Model):
     submission_id = db.Column(db.Integer)
 
     user = db.relationship('User', backref='challenge_submissions')
+    votes = db.relationship('Vote', backref='submission', lazy='dynamic', cascade="all, delete-orphan")
+
+class Vote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    submission_id = db.Column(db.Integer, db.ForeignKey('challenge_submission.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='votes')

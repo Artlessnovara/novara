@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, ChallengeSubmission, Bookmark
+from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, ChallengeSubmission, Bookmark, Vote
 from extensions import db
 from utils import save_post_media, save_community_cover_image
 from sqlalchemy.sql import func, desc
@@ -288,6 +288,7 @@ def create_creative_work():
             work_type='writing',
             sub_category=request.form.get('sub_category'),
             style_options=style_map.get(bg_style),
+            tags=request.form.get('tags'),
             user_id=current_user.id
         )
     elif category == 'music_audio':
@@ -313,6 +314,7 @@ def create_creative_work():
             work_type='audio',
             genre=request.form.get('genre'),
             cover_image_url=cover_image_url,
+            tags=request.form.get('tags'),
             user_id=current_user.id
         )
     else: # Assumes art_design or other file-based types
@@ -335,6 +337,7 @@ def create_creative_work():
             media_url=media_url,
             work_type=media_type,
             sub_category=request.form.get('sub_category'),
+            tags=request.form.get('tags'),
             user_id=current_user.id
         )
 
@@ -588,20 +591,22 @@ def search():
         elif category == 'art_design':
             results['art_design'] = CreativeWork.query.filter(
                 CreativeWork.work_type == 'image',
-                CreativeWork.title.ilike(f'%{query}%')
+                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.tags.ilike(f'%{query}%'))
             ).limit(20).all()
         elif category == 'writing':
             results['writing'] = CreativeWork.query.filter(
                 CreativeWork.work_type == 'writing',
-                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.description.ilike(f'%{query}%'))
+                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.description.ilike(f'%{query}%') | CreativeWork.tags.ilike(f'%{query}%'))
             ).limit(20).all()
         elif category == 'music_audio':
             results['music_audio'] = CreativeWork.query.filter(
                 CreativeWork.work_type == 'audio',
-                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.genre.ilike(f'%{query}%'))
+                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.genre.ilike(f'%{query}%') | CreativeWork.tags.ilike(f'%{query}%'))
             ).limit(20).all()
         elif category == 'reels':
-            results['reels'] = Reel.query.filter(Reel.caption.ilike(f'%{query}%')).limit(20).all()
+            results['reels'] = Reel.query.filter(
+                (Reel.caption.ilike(f'%{query}%') | Reel.tags.ilike(f'%{query}%'))
+            ).limit(20).all()
         elif category == 'challenges':
             results['challenges'] = Challenge.query.filter(Challenge.title.ilike(f'%{query}%')).limit(20).all()
     else:
@@ -621,6 +626,7 @@ def create_reel():
     """Create a new reel."""
     caption = request.form.get('caption')
     video_file = request.files.get('video')
+    tags = request.form.get('tags')
 
     if not video_file:
         flash('A video file is required to create a reel.', 'danger')
@@ -635,7 +641,8 @@ def create_reel():
     new_reel = Reel(
         user_id=current_user.id,
         caption=caption,
-        video_url=video_url
+        video_url=video_url,
+        tags=tags
     )
     db.session.add(new_reel)
     db.session.commit()
@@ -817,6 +824,77 @@ def bookmark():
     db.session.commit()
 
     return jsonify({'status': 'success', 'bookmarked': bookmarked, 'message': message})
+
+@feed_bp.route('/api/share', methods=['POST'])
+@login_required
+def share():
+    """Shares a creative work or reel."""
+    data = request.get_json()
+    target_id = data.get('target_id')
+    target_type = data.get('target_type')
+
+    if not target_id or not target_type:
+        return jsonify({'status': 'error', 'message': 'Missing target information.'}), 400
+
+    shared_creative_work_id = None
+    shared_reel_id = None
+
+    if target_type == 'creative_work':
+        shared_creative_work_id = target_id
+    elif target_type == 'reel':
+        shared_reel_id = target_id
+    else:
+        return jsonify({'status': 'error', 'message': 'Invalid target type.'}), 400
+
+    new_post = Post(
+        user_id=current_user.id,
+        content=data.get('content', ''), # Optional comment
+        shared_creative_work_id=shared_creative_work_id,
+        shared_reel_id=shared_reel_id,
+        privacy='public' # Shares are always public
+    )
+    db.session.add(new_post)
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Successfully shared.'})
+
+@feed_bp.route('/api/vote', methods=['POST'])
+@login_required
+def vote():
+    """Toggles a vote on a challenge submission."""
+    data = request.get_json()
+    submission_id = data.get('submission_id')
+
+    if not submission_id:
+        return jsonify({'status': 'error', 'message': 'Missing submission information.'}), 400
+
+    submission = ChallengeSubmission.query.get_or_404(submission_id)
+
+    # Users cannot vote for their own submissions
+    if submission.user_id == current_user.id:
+        return jsonify({'status': 'error', 'message': 'You cannot vote for your own submission.'}), 403
+
+    existing_vote = Vote.query.filter_by(
+        user_id=current_user.id,
+        submission_id=submission_id
+    ).first()
+
+    if existing_vote:
+        db.session.delete(existing_vote)
+        voted = False
+        message = 'Vote removed.'
+    else:
+        new_vote = Vote(
+            user_id=current_user.id,
+            submission_id=submission_id
+        )
+        db.session.add(new_vote)
+        voted = True
+        message = 'Vote cast.'
+
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'voted': voted, 'message': message, 'vote_count': submission.votes.count()})
 
 # --- API Route for Reels ---
 
