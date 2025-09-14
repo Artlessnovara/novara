@@ -1,0 +1,25 @@
+{% extends "feed/base.html" %}
+
+{% block title %}My Drafts{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>My Drafts</h1>
+    <p>This is where your saved drafts will appear.</p>
+    <!-- Logic to display drafts will go here -->
+    {% if drafts %}
+        <ul class="list-group">
+        {% for draft in drafts %}
+            <li class="list-group-item">
+                <strong>{{ draft.draft_type }}:</strong>
+                <!-- A simple representation of the draft content -->
+                <pre>{{ draft.content | tojson(indent=2) }}</pre>
+                <small class="text-muted">Last updated: {{ draft.updated_at.strftime('%Y-%m-%d') }}</small>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>You have no saved drafts.</p>
+    {% endif %}
+</div>
+{% endblock %}

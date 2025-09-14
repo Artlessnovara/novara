@@ -429,12 +429,6 @@ def suggestions():
                            suggested_communities=suggested_communities,
                            suggested_projects=suggested_projects)
 
-@feed_bp.route('/more')
-@login_required
-def more():
-    """More options page."""
-    return render_template('feed/more.html')
-
 @feed_bp.route('/follow/<int:user_id>', methods=['POST'])
 @login_required
 def follow(user_id):

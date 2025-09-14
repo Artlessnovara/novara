@@ -1,0 +1,28 @@
+{% extends "feed/base.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}Report a Problem{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="form-container">
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Report a Problem</legend>
+                <p>Please provide as much detail as possible so we can help you.</p>
+                {{ render_field(form.subject, class="form-control") }}
+                {{ render_field(form.details, class="form-control", rows="8") }}
+            </fieldset>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

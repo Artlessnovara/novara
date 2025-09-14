@@ -1,0 +1,30 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Explore Pages{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/more.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Explore Pages</h1>
+
+    {% if pages %}
+        <div class="list-group">
+            {% for page in pages %}
+                <a href="#" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ page.title }}</h5>
+                        <small>by {{ page.owner.name }}</small>
+                    </div>
+                    <p class="mb-1">{{ page.description[:150] }}...</p>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No pages to explore right now.</p>
+    {% endif %}
+</div>
+{% endblock %}
