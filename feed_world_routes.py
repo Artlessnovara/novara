@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, ChallengeSubmission, Bookmark, Vote
+from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, Vote, Bookmark
 from extensions import db
 from utils import save_post_media, save_community_cover_image
-from sqlalchemy.sql import func, desc
+from sqlalchemy import or_
+from sqlalchemy.sql import func
 from datetime import datetime, date, timedelta
 
 feed_bp = Blueprint('feed', __name__, url_prefix='/feed')
@@ -201,61 +202,89 @@ def view_project(project_id):
     project = Project.query.get_or_404(project_id)
     return render_template('feed/view_project.html', project=project)
 
-@feed_bp.route('/creativity', defaults={'category': 'all'})
-@feed_bp.route('/creativity/<category>')
+@feed_bp.route('/creativity')
 @login_required
-def creativity(category):
-    """Creativity page with categories."""
-    categories = ["all", "art_design", "writing", "music_audio", "reels", "challenges", "top_creators"]
-    if category not in categories:
-        return redirect(url_for('feed.creativity', category='all'))
+def creativity():
+    """Creativity page with filtering and search."""
+    category = request.args.get('category', 'all')
+    query = request.args.get('q', '')
+    tag = request.args.get('tag', '')
 
     works = []
-    if category == 'all':
-        creative_works = CreativeWork.query.all()
-        reels = Reel.query.all()
-        works = sorted(creative_works + reels, key=lambda x: x.timestamp, reverse=True)
-    elif category == 'art_design':
-        query = CreativeWork.query.filter_by(work_type='image')
-        sub_cat_filter = request.args.get('filter')
-        if sub_cat_filter and sub_cat_filter != 'all':
-            query = query.filter_by(sub_category=sub_cat_filter)
-        works = query.order_by(CreativeWork.timestamp.desc()).all()
+    reels = []
+    challenges = []
+    top_creators = {}
+
+    # Base query for creative works
+    works_query = CreativeWork.query.order_by(CreativeWork.timestamp.desc())
+
+    # Category filtering
+    if category == 'art_design':
+        works_query = works_query.filter(CreativeWork.work_type.in_(['image', 'video']))
     elif category == 'writing':
-        query = CreativeWork.query.filter_by(work_type='writing')
-        sub_cat_filter = request.args.get('filter')
-        if sub_cat_filter and sub_cat_filter != 'all':
-            query = query.filter_by(sub_category=sub_cat_filter)
-        works = query.order_by(CreativeWork.timestamp.desc()).all()
+        works_query = works_query.filter_by(work_type='writing')
     elif category == 'music_audio':
-        works = CreativeWork.query.filter_by(work_type='audio').order_by(CreativeWork.timestamp.desc()).all()
-    elif category == 'reels':
-        works = Reel.query.order_by(Reel.timestamp.desc()).all()
+        works_query = works_query.filter_by(work_type='audio')
+
+    # Search query filtering
+    if query:
+        search_term = f"%{query}%"
+        works_query = works_query.filter(
+            or_(
+                CreativeWork.title.ilike(search_term),
+                CreativeWork.description.ilike(search_term),
+                CreativeWork.tags.ilike(search_term)
+            )
+        )
+
+    # Tag filtering
+    if tag:
+        works_query = works_query.filter(CreativeWork.tags.ilike(f"%{tag}%"))
+
+    works = works_query.all()
+
+    # Special handling for other tabs
+    if category == 'reels':
+        reels_query = Reel.query.order_by(Reel.timestamp.desc())
+        if query:
+            reels_query = reels_query.filter(Reel.caption.ilike(f"%{query}%"))
+        reels = reels_query.all()
+
     elif category == 'challenges':
-        works = Challenge.query.order_by(Challenge.deadline.desc()).all()
+        challenges = Challenge.query.order_by(Challenge.end_date.desc()).all()
+
     elif category == 'top_creators':
+        # Most Liked Creators
         most_liked = db.session.query(
             User, func.count(Like.id).label('total_likes')
         ).join(CreativeWork, User.id == CreativeWork.user_id)\
          .join(Like, Like.target_id == CreativeWork.id)\
          .filter(Like.target_type == 'creative_work')\
-         .group_by(User.id)\
-         .order_by(desc('total_likes'))\
+         .group_by(User)\
+         .order_by(func.count(Like.id).desc())\
          .limit(10).all()
+
+        # Most Active Creators
         most_active = db.session.query(
-            User, func.count(CreativeWork.id).label('work_count')
+            User, func.count(CreativeWork.id).label('total_works')
         ).join(CreativeWork, User.id == CreativeWork.user_id)\
-         .group_by(User.id)\
-         .order_by(desc('work_count'))\
+         .group_by(User)\
+         .order_by(func.count(CreativeWork.id).desc())\
          .limit(10).all()
-        spotlight_creators = [user for user, likes in most_liked[:3]]
-        works = {
+
+        top_creators = {
             'most_liked': most_liked,
-            'most_active': most_active,
-            'spotlight': spotlight_creators
+            'most_active': most_active
         }
 
-    return render_template('feed/creativity.html', works=works, active_category=category)
+    return render_template('feed/creativity.html',
+                           works=works,
+                           reels=reels,
+                           challenges=challenges,
+                           top_creators=top_creators,
+                           active_category=category,
+                           search_query=query,
+                           active_tag=tag)
 
 @feed_bp.route('/creative_work/create', methods=['POST'])
 @login_required
@@ -264,6 +293,8 @@ def create_creative_work():
     title = request.form.get('title')
     description = request.form.get('description')
     category = request.form.get('category')
+    sub_category = request.form.get('sub_category')
+    tags = request.form.get('tags')
 
     if not title:
         flash('Title is required.', 'danger')
@@ -286,9 +317,9 @@ def create_creative_work():
             title=title,
             description=description,
             work_type='writing',
-            sub_category=request.form.get('sub_category'),
+            sub_category=sub_category,
             style_options=style_map.get(bg_style),
-            tags=request.form.get('tags'),
+            tags=tags,
             user_id=current_user.id
         )
     elif category == 'music_audio':
@@ -314,10 +345,10 @@ def create_creative_work():
             work_type='audio',
             genre=request.form.get('genre'),
             cover_image_url=cover_image_url,
-            tags=request.form.get('tags'),
+            tags=tags,
             user_id=current_user.id
         )
-    else: # Assumes art_design or other file-based types
+    else: # Assumes art_design
         media_file = request.files.get('media')
         if not media_file:
             flash('A media file is required.', 'danger')
@@ -336,8 +367,8 @@ def create_creative_work():
             description=description,
             media_url=media_url,
             work_type=media_type,
-            sub_category=request.form.get('sub_category'),
-            tags=request.form.get('tags'),
+            sub_category=sub_category,
+            tags=tags,
             user_id=current_user.id
         )
 
@@ -353,57 +384,6 @@ def view_creative_work(work_id):
     """View a single creative work."""
     work = CreativeWork.query.get_or_404(work_id)
     return render_template('feed/view_creative_work.html', work=work)
-
-@feed_bp.route('/challenge/<int:challenge_id>')
-@login_required
-def view_challenge(challenge_id):
-    """View a single challenge and its submissions."""
-    challenge = Challenge.query.get_or_404(challenge_id)
-    # A more complex app might paginate submissions
-    return render_template('feed/challenge_detail.html', challenge=challenge)
-
-@feed_bp.route('/challenge/<int:challenge_id>/submit', methods=['POST'])
-@login_required
-def submit_to_challenge(challenge_id):
-    """Submit a creative work to a challenge."""
-    challenge = Challenge.query.get_or_404(challenge_id)
-    creative_work_id = request.form.get('creative_work_id', type=int)
-
-    if not challenge.is_active:
-        flash("This challenge has ended and is no longer accepting submissions.", "danger")
-        return redirect(url_for('feed.view_challenge', challenge_id=challenge_id))
-
-    if not creative_work_id:
-        flash("You must select one of your creative works to submit.", "danger")
-        return redirect(url_for('feed.view_challenge', challenge_id=challenge_id))
-
-    work = CreativeWork.query.get_or_404(creative_work_id)
-    if work.user_id != current_user.id:
-        flash("You can only submit your own creative works.", "danger")
-        return redirect(url_for('feed.view_challenge', challenge_id=challenge_id))
-
-    # Check if the user has already submitted this work to this challenge
-    existing_submission = ChallengeSubmission.query.filter_by(
-        challenge_id=challenge.id,
-        submission_id=work.id,
-        submission_type='creative_work'
-    ).first()
-
-    if existing_submission:
-        flash("You have already submitted this work to this challenge.", "info")
-        return redirect(url_for('feed.view_challenge', challenge_id=challenge_id))
-
-    new_submission = ChallengeSubmission(
-        challenge_id=challenge.id,
-        user_id=current_user.id,
-        submission_id=work.id,
-        submission_type='creative_work'
-    )
-    db.session.add(new_submission)
-    db.session.commit()
-
-    flash("Your work has been submitted to the challenge!", "success")
-    return redirect(url_for('feed.view_challenge', challenge_id=challenge_id))
 
 @feed_bp.route('/profile/')
 @feed_bp.route('/profile/<int:user_id>')
@@ -454,25 +434,6 @@ def suggestions():
 def more():
     """More options page."""
     return render_template('feed/more.html')
-
-@feed_bp.route('/saved')
-@login_required
-def saved():
-    """Display user's saved/bookmarked items."""
-    bookmarks = current_user.bookmarks.order_by(Bookmark.timestamp.desc()).all()
-
-    saved_items = []
-    for bookmark in bookmarks:
-        item = None
-        if bookmark.target_type == 'creative_work':
-            item = CreativeWork.query.get(bookmark.target_id)
-        elif bookmark.target_type == 'reel':
-            item = Reel.query.get(bookmark.target_id)
-
-        if item:
-            saved_items.append(item)
-
-    return render_template('feed/saved.html', items=saved_items)
 
 @feed_bp.route('/follow/<int:user_id>', methods=['POST'])
 @login_required
@@ -565,60 +526,25 @@ def reels_viewer():
 @feed_bp.route('/search')
 @login_required
 def search():
-    """Search for users, posts, communities, and creative content."""
+    """Search for users, posts, and communities."""
     query = request.args.get('q', '')
-    category = request.args.get('c', None) # Creativity category
-
     if not query:
         return redirect(url_for('feed.home'))
 
-    results = {}
-    if category:
-        if category == 'all':
-            results['art_design'] = CreativeWork.query.filter(
-                CreativeWork.work_type == 'image',
-                CreativeWork.title.ilike(f'%{query}%')
-            ).limit(10).all()
-            results['writing'] = CreativeWork.query.filter(
-                CreativeWork.work_type == 'writing',
-                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.description.ilike(f'%{query}%'))
-            ).limit(10).all()
-            results['music_audio'] = CreativeWork.query.filter(
-                CreativeWork.work_type == 'audio',
-                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.genre.ilike(f'%{query}%'))
-            ).limit(10).all()
-            results['reels'] = Reel.query.filter(Reel.caption.ilike(f'%{query}%')).limit(10).all()
-        elif category == 'art_design':
-            results['art_design'] = CreativeWork.query.filter(
-                CreativeWork.work_type == 'image',
-                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.tags.ilike(f'%{query}%'))
-            ).limit(20).all()
-        elif category == 'writing':
-            results['writing'] = CreativeWork.query.filter(
-                CreativeWork.work_type == 'writing',
-                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.description.ilike(f'%{query}%') | CreativeWork.tags.ilike(f'%{query}%'))
-            ).limit(20).all()
-        elif category == 'music_audio':
-            results['music_audio'] = CreativeWork.query.filter(
-                CreativeWork.work_type == 'audio',
-                (CreativeWork.title.ilike(f'%{query}%') | CreativeWork.genre.ilike(f'%{query}%') | CreativeWork.tags.ilike(f'%{query}%'))
-            ).limit(20).all()
-        elif category == 'reels':
-            results['reels'] = Reel.query.filter(
-                (Reel.caption.ilike(f'%{query}%') | Reel.tags.ilike(f'%{query}%'))
-            ).limit(20).all()
-        elif category == 'challenges':
-            results['challenges'] = Challenge.query.filter(Challenge.title.ilike(f'%{query}%')).limit(20).all()
-    else:
-        # Generic search
-        results['users'] = User.query.filter(User.name.ilike(f'%{query}%')).limit(10).all()
-        results['posts'] = Post.query.filter(Post.content.ilike(f'%{query}%')).limit(10).all()
-        results['communities'] = Community.query.filter(Community.name.ilike(f'%{query}%')).limit(10).all()
+    # Search users
+    users = User.query.filter(User.name.ilike(f'%{query}%')).limit(10).all()
+
+    # Search posts
+    posts = Post.query.filter(Post.content.ilike(f'%{query}%')).limit(10).all()
+
+    # Search communities
+    communities = Community.query.filter(Community.name.ilike(f'%{query}%')).limit(10).all()
 
     return render_template('feed/search_results.html',
                            query=query,
-                           results=results,
-                           category=category)
+                           users=users,
+                           posts=posts,
+                           communities=communities)
 
 @feed_bp.route('/create_reel', methods=['POST'])
 @login_required
@@ -626,7 +552,6 @@ def create_reel():
     """Create a new reel."""
     caption = request.form.get('caption')
     video_file = request.files.get('video')
-    tags = request.form.get('tags')
 
     if not video_file:
         flash('A video file is required to create a reel.', 'danger')
@@ -641,8 +566,7 @@ def create_reel():
     new_reel = Reel(
         user_id=current_user.id,
         caption=caption,
-        video_url=video_url,
-        tags=tags
+        video_url=video_url
     )
     db.session.add(new_reel)
     db.session.commit()
@@ -789,112 +713,6 @@ def add_comment(post_id):
     }
 
     return jsonify({'status': 'success', 'comment': comment_data}), 201
-
-@feed_bp.route('/api/bookmark', methods=['POST'])
-@login_required
-def bookmark():
-    """Toggles a bookmark on an item."""
-    data = request.get_json()
-    target_id = data.get('target_id')
-    target_type = data.get('target_type')
-
-    if not target_id or not target_type:
-        return jsonify({'status': 'error', 'message': 'Missing target information.'}), 400
-
-    existing_bookmark = Bookmark.query.filter_by(
-        user_id=current_user.id,
-        target_type=target_type,
-        target_id=target_id
-    ).first()
-
-    if existing_bookmark:
-        db.session.delete(existing_bookmark)
-        bookmarked = False
-        message = 'Bookmark removed.'
-    else:
-        new_bookmark = Bookmark(
-            user_id=current_user.id,
-            target_type=target_type,
-            target_id=target_id
-        )
-        db.session.add(new_bookmark)
-        bookmarked = True
-        message = 'Item bookmarked.'
-
-    db.session.commit()
-
-    return jsonify({'status': 'success', 'bookmarked': bookmarked, 'message': message})
-
-@feed_bp.route('/api/share', methods=['POST'])
-@login_required
-def share():
-    """Shares a creative work or reel."""
-    data = request.get_json()
-    target_id = data.get('target_id')
-    target_type = data.get('target_type')
-
-    if not target_id or not target_type:
-        return jsonify({'status': 'error', 'message': 'Missing target information.'}), 400
-
-    shared_creative_work_id = None
-    shared_reel_id = None
-
-    if target_type == 'creative_work':
-        shared_creative_work_id = target_id
-    elif target_type == 'reel':
-        shared_reel_id = target_id
-    else:
-        return jsonify({'status': 'error', 'message': 'Invalid target type.'}), 400
-
-    new_post = Post(
-        user_id=current_user.id,
-        content=data.get('content', ''), # Optional comment
-        shared_creative_work_id=shared_creative_work_id,
-        shared_reel_id=shared_reel_id,
-        privacy='public' # Shares are always public
-    )
-    db.session.add(new_post)
-    db.session.commit()
-
-    return jsonify({'status': 'success', 'message': 'Successfully shared.'})
-
-@feed_bp.route('/api/vote', methods=['POST'])
-@login_required
-def vote():
-    """Toggles a vote on a challenge submission."""
-    data = request.get_json()
-    submission_id = data.get('submission_id')
-
-    if not submission_id:
-        return jsonify({'status': 'error', 'message': 'Missing submission information.'}), 400
-
-    submission = ChallengeSubmission.query.get_or_404(submission_id)
-
-    # Users cannot vote for their own submissions
-    if submission.user_id == current_user.id:
-        return jsonify({'status': 'error', 'message': 'You cannot vote for your own submission.'}), 403
-
-    existing_vote = Vote.query.filter_by(
-        user_id=current_user.id,
-        submission_id=submission_id
-    ).first()
-
-    if existing_vote:
-        db.session.delete(existing_vote)
-        voted = False
-        message = 'Vote removed.'
-    else:
-        new_vote = Vote(
-            user_id=current_user.id,
-            submission_id=submission_id
-        )
-        db.session.add(new_vote)
-        voted = True
-        message = 'Vote cast.'
-
-    db.session.commit()
-
-    return jsonify({'status': 'success', 'voted': voted, 'message': message, 'vote_count': submission.votes.count()})
 
 # --- API Route for Reels ---
 
@@ -1051,7 +869,192 @@ def add_creative_work_comment(work_id):
 
     return jsonify({'status': 'success', 'comment': comment_data}), 201
 
+
+# --- Creativity Hub: Challenges, Voting, Bookmarking, Sharing ---
+
+@feed_bp.route('/challenge/<int:challenge_id>')
+@login_required
+def view_challenge(challenge_id):
+    """View a single challenge and its submissions."""
+    challenge = Challenge.query.get_or_404(challenge_id)
+    # Submissions are accessed via challenge.submissions relationship
+    return render_template('feed/challenge_detail.html', challenge=challenge)
+
+@feed_bp.route('/saved')
+@login_required
+def saved_items():
+    """Display the user's saved/bookmarked items."""
+    bookmarks = Bookmark.query.filter_by(user_id=current_user.id).order_by(Bookmark.timestamp.desc()).all()
+
+    saved_items = []
+    for bookmark in bookmarks:
+        item = None
+        if bookmark.target_type == 'creative_work':
+            item = CreativeWork.query.get(bookmark.target_id)
+        elif bookmark.target_type == 'reel':
+            item = Reel.query.get(bookmark.target_id)
+        elif bookmark.target_type == 'post':
+            item = Post.query.get(bookmark.target_id)
+
+        if item:
+            # Add the type to the item so the template knows how to render it
+            item.saved_item_type = bookmark.target_type
+            saved_items.append(item)
+
+    return render_template('feed/saved_items.html', saved_items=saved_items)
+
+@feed_bp.route('/api/challenge/<int:challenge_id>/submit', methods=['POST'])
+@login_required
+def submit_to_challenge(challenge_id):
+    """Submit a creative work to a challenge."""
+    challenge = Challenge.query.get_or_404(challenge_id)
+    data = request.get_json()
+    work_id = data.get('work_id')
+
+    if not work_id:
+        return jsonify({'status': 'error', 'message': 'Work ID is required.'}), 400
+
+    work = CreativeWork.query.get_or_404(work_id)
+
+    if work.user_id != current_user.id:
+        return jsonify({'status': 'error', 'message': 'You can only submit your own work.'}), 403
+
+    if work in challenge.submissions:
+        return jsonify({'status': 'error', 'message': 'This work has already been submitted to this challenge.'}), 400
+
+    challenge.submissions.append(work)
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Work submitted to challenge successfully.'})
+
+@feed_bp.route('/api/vote', methods=['POST'])
+@login_required
+def cast_vote():
+    """Vote for a submission in a challenge."""
+    data = request.get_json()
+    challenge_id = data.get('challenge_id')
+    submission_id = data.get('submission_id')
+
+    if not challenge_id or not submission_id:
+        return jsonify({'status': 'error', 'message': 'Challenge ID and Submission ID are required.'}), 400
+
+    existing_vote = Vote.query.filter_by(
+        user_id=current_user.id,
+        challenge_id=challenge_id,
+        submission_id=submission_id
+    ).first()
+
+    if existing_vote:
+        # For simplicity, we don't allow changing votes. Could be extended.
+        return jsonify({'status': 'error', 'message': 'You have already voted for this submission.'}), 400
+
+    new_vote = Vote(
+        user_id=current_user.id,
+        challenge_id=challenge_id,
+        submission_id=submission_id
+    )
+    db.session.add(new_vote)
+    db.session.commit()
+
+    # Return new vote count for the submission
+    vote_count = Vote.query.filter_by(submission_id=submission_id).count()
+
+    return jsonify({'status': 'success', 'message': 'Vote cast successfully.', 'vote_count': vote_count})
+
+
+@feed_bp.route('/api/bookmark', methods=['POST'])
+@login_required
+def toggle_bookmark():
+    """Toggles a bookmark on an item (CreativeWork, Reel, etc.)."""
+    data = request.get_json()
+    target_type = data.get('target_type')
+    target_id = data.get('target_id')
+
+    if not target_type or not target_id:
+        return jsonify({'status': 'error', 'message': 'Target type and ID are required.'}), 400
+
+    bookmark = Bookmark.query.filter_by(
+        user_id=current_user.id,
+        target_type=target_type,
+        target_id=target_id
+    ).first()
+
+    if bookmark:
+        db.session.delete(bookmark)
+        bookmarked = False
+        message = 'Bookmark removed.'
+    else:
+        new_bookmark = Bookmark(
+            user_id=current_user.id,
+            target_type=target_type,
+            target_id=target_id
+        )
+        db.session.add(new_bookmark)
+        bookmarked = True
+        message = 'Item bookmarked.'
+
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': message, 'bookmarked': bookmarked})
+
+
+@feed_bp.route('/api/creative_work/<int:work_id>/share', methods=['POST'])
+@login_required
+def share_creative_work(work_id):
+    """Shares a creative work to the main feed by creating a new Post."""
+    work = CreativeWork.query.get_or_404(work_id)
+    data = request.get_json()
+    content = data.get('content', '')  # Optional comment from the user sharing
+
+    # Create a new Post that references the creative work
+    # We can create a rich content string for the post
+    share_content = f"""
+    <div class="shared-creative-work">
+        <p>Shared from the Creativity Hub:</p>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{work.title}</h5>
+                <p class="card-text">by {work.artist.name}</p>
+                <a href="{url_for('feed.view_creative_work', work_id=work.id)}" class="btn btn-primary">View Original</a>
+            </div>
+        </div>
+    </div>
+    """
+
+    if content:
+        # Prepend the user's personal comment to the shared content
+        content = f"<p>{content}</p><hr>{share_content}"
+    else:
+        content = share_content
+
+    new_post = Post(
+        user_id=current_user.id,
+        content=content,
+        privacy='public', # Shares are typically public
+    )
+    db.session.add(new_post)
+    db.session.commit()
+
+    flash('Successfully shared to your feed!', 'success')
+    return jsonify({'status': 'success', 'message': 'Work shared successfully.'})
+
+
 # --- API Routes for Project Likes and Comments ---
+
+@feed_bp.route('/api/get_form/<category>', methods=['GET'])
+@login_required
+def get_form(category):
+    """Returns the HTML for the specified upload form."""
+    if category == 'art_design':
+        return render_template('feed/forms/art_design.html')
+    elif category == 'writing':
+        return render_template('feed/forms/writing.html')
+    elif category == 'music_audio':
+        return render_template('feed/forms/music_audio.html')
+    elif category == 'reels':
+        return render_template('feed/forms/reels.html')
+    else:
+        return '', 404
 
 @feed_bp.route('/api/project/<int:project_id>/like', methods=['POST'])
 @login_required

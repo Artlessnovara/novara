@@ -1,0 +1,29 @@
+<h3>Upload Your Music & Audio</h3>
+<form action="{{ url_for('feed.create_creative_work') }}" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="category" value="music_audio">
+    <div>
+        <label for="title">Track Title</label>
+        <input type="text" id="title" name="title" required>
+    </div>
+    <div style="margin-top: 1rem;">
+        <label for="description">Description (optional)</label>
+        <textarea name="description" id="description" rows="3"></textarea>
+    </div>
+    <div style="margin-top: 1rem;">
+        <label for="genre">Genre</label>
+        <input type="text" id="genre" name="genre" placeholder="e.g., Lo-fi, Podcast, Rock">
+    </div>
+    <div style="margin-top: 1rem;">
+        <label for="media">Audio File (MP3, WAV, etc.)</label>
+        <input type="file" id="media" name="media" accept="audio/*" required>
+    </div>
+    <div style="margin-top: 1rem;">
+        <label for="tags">Tags (comma-separated)</label>
+        <input type="text" id="tags" name="tags" placeholder="e.g., lofi, podcast, instrumental">
+    </div>
+    <div style="margin-top: 1rem;">
+        <label for="cover_image">Cover Image (optional)</label>
+        <input type="file" id="cover_image" name="cover_image" accept="image/*">
+    </div>
+    <button type="submit">Upload Track</button>
+</form>

@@ -1,0 +1,63 @@
+{% extends "feed/base.html" %}
+{% from "feed/_post_content.html" import render_post_content with context %}
+
+{% block title %}Saved Items{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/creativity.css') }}">
+<style>
+    .saved-item-list .card {
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Your Saved Items</h1>
+
+    <div class="saved-item-list">
+        {% if saved_items %}
+            {% for item in saved_items %}
+                <div class="card">
+                    <div class="card-body">
+                        {% if item.saved_item_type == 'creative_work' %}
+                            <h5 class="card-title"><a href="{{ url_for('feed.view_creative_work', work_id=item.id) }}">{{ item.title }}</a></h5>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    A {{ item.work_type }} by <a href="{{ url_for('feed.profile', user_id=item.artist.id) }}">{{ item.artist.name }}</a>
+                                </small>
+                            </p>
+                            <p>{{ item.description[:200] }}{% if item.description|length > 200 %}...{% endif %}</p>
+                            {% if item.media_url and item.work_type == 'image' %}
+                                <img src="{{ url_for('static', filename=item.media_url) }}" class="img-fluid rounded" alt="{{ item.title }}">
+                            {% endif %}
+                        {% elif item.saved_item_type == 'reel' %}
+                            <h5 class="card-title">Reel by <a href="{{ url_for('feed.profile', user_id=item.author.id) }}">{{ item.author.name }}</a></h5>
+                            <p class="card-text">{{ item.caption }}</p>
+                            <video width="320" height="240" controls>
+                                <source src="{{ url_for('static', filename=item.video_url) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        {% elif item.saved_item_type == 'post' %}
+                             <div class="post-header d-flex align-items-center mb-3">
+                                <img src="{{ url_for('static', filename='profile_pics/' + item.author.profile_pic) }}" class="rounded-circle" width="50" height="50">
+                                <div class="ms-3">
+                                    <a href="{{ url_for('feed.profile', user_id=item.author.id) }}" class="fw-bold text-dark text-decoration-none">{{ item.author.name }}</a>
+                                    <div class="text-muted small">{{ item.timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
+                                </div>
+                            </div>
+                            <div class="post-content">
+                                {{ render_post_content(item) }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>You haven't saved any items yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

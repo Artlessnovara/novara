@@ -1,0 +1,48 @@
+<div class="creative-card">
+    <div class="card-media">
+        {% if work.work_type == 'image' %}
+            <img src="{{ url_for('static', filename=work.media_url) }}" alt="{{ work.title }}" class="zoomable-image">
+        {% elif work.work_type == 'audio' %}
+            <div class="audio-player">
+                {% if work.cover_image_url %}
+                    <img src="{{ url_for('static', filename=work.cover_image_url) }}" alt="{{ work.title }} cover art">
+                {% else %}
+                    <div class="audio-placeholder"><i class="fas fa-music"></i></div>
+                {% endif %}
+                <audio controls src="{{ url_for('static', filename=work.media_url) }}"></audio>
+            </div>
+        {% elif work.work_type == 'writing' %}
+            <div class="writing-display" style="background-color: {{ work.style_options.bg_color|default('#fff') }}; color: {{ work.style_options.text_color|default('#000') }};">
+                <p>{{ work.description }}</p>
+            </div>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <h5 class="card-title">{{ work.title }}</h5>
+        <p class="card-subtitle">by <a href="{{ url_for('feed.profile', user_id=work.artist.id) }}">{{ work.artist.name }}</a></p>
+        {% if work.work_type != 'writing' %}
+            <p class="card-text">{{ work.description }}</p>
+        {% endif %}
+        {% if work.tags %}
+            <div class="card-tags">
+                {% for tag in work.tags.split(',') %}
+                    <a href="{{ url_for('feed.creativity', tag=tag.strip()) }}" class="tag">#{{ tag.strip() }}</a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+    <div class="card-footer">
+        <div class="card-actions">
+            <button class="btn-action like-btn" data-target-type="creative_work" data-target-id="{{ work.id }}">
+                <i class="far fa-heart"></i> <span class="like-count">{{ work.likes.count() }}</span>
+            </button>
+            <button class="btn-action bookmark-btn" data-target-type="creative_work" data-target-id="{{ work.id }}">
+                <i class="far fa-bookmark"></i>
+            </button>
+            <button class="btn-action share-btn" data-target-type="creative_work" data-target-id="{{ work.id }}">
+                <i class="fas fa-share"></i>
+            </button>
+        </div>
+        <small class="text-muted">{{ work.timestamp.strftime('%Y-%m-%d') }}</small>
+    </div>
+</div>

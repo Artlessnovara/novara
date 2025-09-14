@@ -1,0 +1,16 @@
+<h3>Upload a Reel</h3>
+<form action="{{ url_for('feed.create_reel') }}" method="POST" enctype="multipart/form-data">
+    <div>
+        <label for="video">Video File</label>
+        <input type="file" name="video" accept="video/*" required>
+    </div>
+    <div>
+        <label for="caption">Caption</label>
+        <textarea name="caption" rows="3" placeholder="Write a caption..."></textarea>
+    </div>
+    <div>
+        <label for="tags">Tags (comma-separated)</label>
+        <input type="text" id="tags" name="tags" placeholder="e.g., comedy, tutorial, dance">
+    </div>
+    <button type="submit">Upload Reel</button>
+</form>
