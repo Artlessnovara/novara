@@ -1,0 +1,33 @@
+{% extends "feed/base.html" %}
+{% import "templates/_form_helpers.html" as forms %}
+
+{% block title %}Give Feedback{% endblock %}
+
+{% block content %}
+<div class="more-container">
+    <div class="more-section">
+        <div class="more-section-header">
+            <a href="{{ url_for('more.more_page') }}" class="back-link"><i class="fas fa-arrow-left"></i></a>
+            Give Feedback
+        </div>
+        <div class="form-container" style="padding: 1rem;">
+            <p>We value your feedback! Let us know how we can improve.</p>
+            <form method="POST" action="{{ url_for('more.give_feedback') }}">
+                {{ form.hidden_tag() }}
+                {{ forms.render_field(form.feedback_text, rows=6) }}
+                {{ forms.render_field(form.submit, class="btn btn-primary") }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.back-link {
+    margin-right: 15px;
+    color: var(--text-color);
+}
+</style>
+{% endblock %}

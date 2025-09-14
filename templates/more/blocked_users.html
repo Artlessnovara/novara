@@ -1,0 +1,58 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Blocked Users{% endblock %}
+
+{% block content %}
+<div class="more-container">
+    <div class="more-section">
+        <div class="more-section-header">
+            <a href="{{ url_for('more.settings') }}" class="back-link"><i class="fas fa-arrow-left"></i></a>
+            Blocked Users
+        </div>
+        <ul class="more-menu-list">
+            {% if blocked_list %}
+                {% for blocked_entry in blocked_list %}
+                <li class="more-menu-item blocked-user-item">
+                    <div class="blocked-user-info">
+                        <img src="{{ url_for('static', filename='profile_pics/' + blocked_entry.blocked.profile_pic) }}" alt="Profile Picture" class="blocked-user-avatar">
+                        <span class="label">{{ blocked_entry.blocked.name }}</span>
+                    </div>
+                    <form action="{{ url_for('more.unblock_user', user_id=blocked_entry.blocked.id) }}" method="POST" style="display: inline;">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Unblock</button>
+                    </form>
+                </li>
+                {% endfor %}
+            {% else %}
+                <li class="more-menu-item">
+                    <p>You haven't blocked any users.</p>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.blocked-user-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.blocked-user-info {
+    display: flex;
+    align-items: center;
+}
+.blocked-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 15px;
+}
+.back-link {
+    margin-right: 15px;
+    color: var(--text-color);
+}
+</style>
+{% endblock %}

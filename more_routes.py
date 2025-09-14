@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+import secrets
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
 from flask_login import login_required, current_user
-from models import User, UserPage, Draft, Wallet, Subscription
+from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral
 from extensions import db
-from forms import UserPageForm, ReportProblemForm, ContactForm
+from forms import UserPageForm, ReportProblemForm, ContactForm, FeedbackForm
 
 more_bp = Blueprint('more', __name__, url_prefix='/more')
 
@@ -129,6 +130,21 @@ def contact_support():
         return redirect(url_for('more.more_page'))
     return render_template('more/contact_support.html', form=form)
 
+@more_bp.route('/support/feedback', methods=['GET', 'POST'])
+@login_required
+def give_feedback():
+    form = FeedbackForm()
+    if form.validate_on_submit():
+        new_feedback = Feedback(
+            user_id=current_user.id,
+            feedback_text=form.feedback_text.data
+        )
+        db.session.add(new_feedback)
+        db.session.commit()
+        flash('Thank you for your feedback!', 'success')
+        return redirect(url_for('more.more_page'))
+    return render_template('more/give_feedback.html', form=form)
+
 # --- Legal & Info ---
 @more_bp.route('/about')
 def about():
@@ -137,3 +153,76 @@ def about():
 @more_bp.route('/terms')
 def terms():
     return render_template('more/terms.html')
+
+# --- Blocked Users ---
+@more_bp.route('/settings/blocked_users')
+@login_required
+def blocked_users():
+    """Page to view and manage blocked users."""
+    blocked_list = BlockedUser.query.filter_by(blocker_id=current_user.id).all()
+    return render_template('more/blocked_users.html', blocked_list=blocked_list)
+
+@more_bp.route('/settings/unblock_user/<int:user_id>', methods=['POST'])
+@login_required
+def unblock_user(user_id):
+    """Endpoint to unblock a user."""
+    user_to_unblock = User.query.get_or_404(user_id)
+    blocked_entry = BlockedUser.query.filter_by(
+        blocker_id=current_user.id,
+        blocked_id=user_to_unblock.id
+    ).first()
+
+    if blocked_entry:
+        db.session.delete(blocked_entry)
+        db.session.commit()
+        flash(f'You have unblocked {user_to_unblock.name}.', 'success')
+    else:
+        flash('You had not blocked this user.', 'info')
+
+    return redirect(url_for('more.blocked_users'))
+
+# --- Manage Communities ---
+@more_bp.route('/communities/manage')
+@login_required
+def managed_communities():
+    """Page to view and manage communities run by the user."""
+    # Find communities created by the user
+    created_communities = Community.query.filter_by(created_by_id=current_user.id).all()
+
+    # Find communities where the user is an admin or moderator
+    managed_memberships = CommunityMembership.query.filter(
+        CommunityMembership.user_id == current_user.id,
+        CommunityMembership.role.in_(['admin', 'moderator'])
+    ).all()
+
+    # Get the community objects from the memberships
+    managed_communities_from_role = [membership.community for membership in managed_memberships]
+
+    # Combine the lists and remove duplicates using a dictionary
+    all_managed_communities_dict = {comm.id: comm for comm in created_communities}
+    all_managed_communities_dict.update({comm.id: comm for comm in managed_communities_from_role})
+
+    all_managed_communities = list(all_managed_communities_dict.values())
+
+    return render_template('more/managed_communities.html', communities=all_managed_communities)
+
+# --- Invite Friends ---
+@more_bp.route('/invite')
+@login_required
+def invite_friends():
+    """Page to display user's referral code."""
+    referral = Referral.query.filter_by(user_id=current_user.id).first()
+    if not referral:
+        # Generate a new unique code
+        while True:
+            new_code = secrets.token_hex(8)
+            if not Referral.query.filter_by(code=new_code).first():
+                break
+
+        referral = Referral(user_id=current_user.id, code=new_code)
+        db.session.add(referral)
+        db.session.commit()
+
+    referral_link = url_for('main.register', ref=referral.code, _external=True)
+
+    return render_template('more/invite_friends.html', referral_code=referral.code, referral_link=referral_link)

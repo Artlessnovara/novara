@@ -1,0 +1,62 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Manage Communities{% endblock %}
+
+{% block content %}
+<div class="more-container">
+    <div class="more-section">
+        <div class="more-section-header">
+            <a href="{{ url_for('more.more_page') }}" class="back-link"><i class="fas fa-arrow-left"></i></a>
+            Manage Communities
+        </div>
+        <ul class="more-menu-list">
+            {% if communities %}
+                {% for community in communities %}
+                <li class="more-menu-item managed-community-item">
+                    <a href="{{ url_for('feed.view_community', community_id=community.id) }}" class="managed-community-link">
+                        <div class="managed-community-info">
+                            <img src="{{ url_for('static', filename='uploads/images/' + community.cover_image) if community.cover_image else url_for('static', filename='images/course_placeholder.jpg') }}" alt="Community Cover Image" class="managed-community-avatar">
+                            <span class="label">{{ community.name }}</span>
+                        </div>
+                        <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                    </a>
+                </li>
+                {% endfor %}
+            {% else %}
+                <li class="more-menu-item">
+                    <p>You do not manage any communities.</p>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.managed-community-item a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    text-decoration: none;
+    color: inherit;
+}
+.managed-community-info {
+    display: flex;
+    align-items: center;
+}
+.managed-community-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px; /* Squared with rounded corners */
+    margin-right: 15px;
+    object-fit: cover;
+}
+.back-link {
+    margin-right: 15px;
+    color: var(--text-color);
+}
+</style>
+{% endblock %}

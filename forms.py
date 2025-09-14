@@ -17,3 +17,7 @@ class ContactForm(FlaskForm):
     email = StringField('Your Email', validators=[DataRequired(), Email()])
     message = TextAreaField('Message', validators=[DataRequired()])
     submit = SubmitField('Send Message')
+
+class FeedbackForm(FlaskForm):
+    feedback_text = TextAreaField('Your Feedback', validators=[DataRequired()], render_kw={"placeholder": "Tell us what you think..."})
+    submit = SubmitField('Submit Feedback')

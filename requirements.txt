@@ -9,3 +9,4 @@ beautifulsoup4
 Flask-Migrate
 firebase-admin
 requests
+Flask-WTF
