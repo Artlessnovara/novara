@@ -1,0 +1,34 @@
+{% extends "feed/base.html" %}
+
+{% block title %}My Subscriptions{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>My Subscriptions</h1>
+
+    {% if subscription and subscription.is_active %}
+        <div class="card">
+            <div class="card-header">
+                Current Plan
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ subscription.plan_name }}</h5>
+                <p class="card-text">
+                    Active since: {{ subscription.start_date.strftime('%Y-%m-%d') }}<br>
+                    {% if subscription.end_date %}
+                        Renews on: {{ subscription.end_date.strftime('%Y-%m-%d') }}
+                    {% else %}
+                        Plan renews automatically.
+                    {% endif %}
+                </p>
+                <a href="#" class="btn btn-secondary">Manage Subscription</a>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            You do not have an active subscription.
+        </div>
+        <a href="#" class="btn btn-success">Upgrade to Pro</a>
+    {% endif %}
+</div>
+{% endblock %}

@@ -46,6 +46,7 @@ class User(UserMixin, db.Model):
     privacy_last_seen = db.Column(db.String(50), default='everyone', nullable=False)
     privacy_profile_pic = db.Column(db.String(50), default='everyone', nullable=False)
     privacy_about = db.Column(db.String(50), default='everyone', nullable=False)
+    is_premium = db.Column(db.Boolean, default=False, nullable=False)
 
     courses_taught = db.relationship('Course', backref='instructor', lazy='dynamic')
     enrollments = db.relationship('Enrollment', back_populates='student', lazy='dynamic')
@@ -830,6 +831,46 @@ class ReportedPost(db.Model):
 
     post = db.relationship('Post', backref='reports')
     reporter = db.relationship('User', foreign_keys=[reported_by_id])
+
+
+# --- "More" Page Feature Models ---
+
+class UserPage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    cover_image = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    owner = db.relationship('User', backref=db.backref('pages', lazy='dynamic', cascade="all, delete-orphan"))
+
+class Draft(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    draft_type = db.Column(db.String(50), nullable=False) # 'post', 'creative_work'
+    content = db.Column(JSON, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    author = db.relationship('User', backref=db.backref('drafts', lazy='dynamic', cascade="all, delete-orphan"))
+
+class Wallet(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    balance = db.Column(db.Float, nullable=False, default=0.0)
+
+    user = db.relationship('User', backref=db.backref('wallet', uselist=False))
+
+class Subscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    plan_name = db.Column(db.String(50), nullable=False) # e.g., 'pro_monthly', 'pro_yearly'
+    start_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    end_date = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('subscription', uselist=False))
 
 
 class FCMToken(db.Model):

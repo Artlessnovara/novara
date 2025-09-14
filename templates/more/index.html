@@ -1,0 +1,236 @@
+{% extends "feed/base.html" %}
+
+{% block title %}More Options{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/more.css') }}">
+<!-- Assuming Font Awesome is available, if not, it should be added to base.html -->
+{% endblock %}
+
+{% block content %}
+<div class="more-container">
+    <!-- User Header -->
+    <div class="more-header">
+        <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Your Profile Picture">
+        <div class="user-info">
+            <h4>{{ current_user.name }}</h4>
+            <p>View your profile</p>
+        </div>
+    </div>
+
+    <!-- Premium/Pro Card or Badge -->
+    {% if not current_user.is_premium %}
+    <div class="pro-card">
+        <h5>Upgrade to Pro</h5>
+        <p>Unlock exclusive creator tools and features!</p>
+        <a href="#" class="btn btn-upgrade">Become a Pro Creator</a>
+    </div>
+    {% else %}
+    <div class="more-section">
+        <div class="more-menu-list">
+            <div class="more-menu-item">
+                <a href="#">
+                    <span class="icon"><i class="fas fa-check-circle" style="color: green;"></i></span>
+                    <span class="label">Pro Creator</span>
+                    <span class="chevron">Manage Subscription</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Creator Tools Section -->
+    <div class="more-section">
+        <div class="more-section-header">Creator Tools</div>
+        <ul class="more-menu-list">
+            <li class="more-menu-item">
+                <a href="{{ url_for('feed.communities') }}">
+                    <span class="icon"><i class="fas fa-users"></i></span>
+                    <span class="label">Communities</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+            <li class="more-menu-item">
+                <a href="{{ url_for('feed.innovation') }}">
+                    <span class="icon"><i class="fas fa-lightbulb"></i></span>
+                    <span class="label">Innovation Projects</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- My Pages Section -->
+    <div class="more-section">
+        <div class="more-section-header">My Pages</div>
+        <ul class="more-menu-list">
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.my_pages') }}">
+                    <span class="icon"><i class="fas fa-file-alt"></i></span>
+                    <span class="label">My Pages</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.create_page') }}">
+                    <span class="icon"><i class="fas fa-plus-circle"></i></span>
+                    <span class="label">Create New Page</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.explore_pages') }}">
+                    <span class="icon"><i class="fas fa-compass"></i></span>
+                    <span class="label">Explore Pages</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Account & Settings Section -->
+    <div class="more-section">
+        <div class="more-section-header">Account & Settings</div>
+        <ul class="more-menu-list">
+            <li class="more-menu-item">
+                <a href="{{ url_for('feed.profile', user_id=current_user.id) }}">
+                    <span class="icon"><i class="fas fa-user-edit"></i></span>
+                    <span class="label">Edit Profile</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.settings') }}">
+                    <span class="icon"><i class="fas fa-cog"></i></span>
+                    <span class="label">Account Settings</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+            <li class="more-menu-item">
+                <div class="theme-toggle-container">
+                    <div style="display: flex; align-items: center;">
+                        <span class="icon"><i class="fas fa-palette"></i></span>
+                        <span class="label">Dark Mode</span>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="theme-toggle-switch" {% if current_user.theme == 'dark' %}checked{% endif %}>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Your Stuff Section -->
+    <div class="more-section">
+        <div class="more-section-header">Your Stuff</div>
+        <ul class="more-menu-list">
+            <li class="more-menu-item">
+                <a href="{{ url_for('feed.saved_items') }}">
+                    <span class="icon"><i class="fas fa-bookmark"></i></span>
+                    <span class="label">Bookmarked</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.drafts') }}">
+                    <span class="icon"><i class="fas fa-pencil-ruler"></i></span>
+                    <span class="label">Drafts</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+             <li class="more-menu-item">
+                <a href="{{ url_for('more.subscriptions') }}">
+                    <span class="icon"><i class="fas fa-receipt"></i></span>
+                    <span class="label">Your Purchases</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+             <li class="more-menu-item">
+                <a href="{{ url_for('more.wallet') }}">
+                    <span class="icon"><i class="fas fa-wallet"></i></span>
+                    <span class="label">Wallet</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Support Section -->
+    <div class="more-section">
+        <div class="more-section-header">Support</div>
+        <ul class="more-menu-list">
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.help_center') }}">
+                    <span class="icon"><i class="fas fa-question-circle"></i></span>
+                    <span class="label">Help / FAQ</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.report_problem') }}">
+                    <span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+                    <span class="label">Report a Problem</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.contact_support') }}">
+                    <span class="icon"><i class="fas fa-headset"></i></span>
+                    <span class="label">Contact Support</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+     <!-- Legal & Info Section -->
+    <div class="more-section">
+        <div class="more-section-header">Legal & Info</div>
+        <ul class="more-menu-list">
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.about') }}">
+                    <span class="icon"><i class="fas fa-info-circle"></i></span>
+                    <span class="label">About Nova</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.terms') }}">
+                    <span class="icon"><i class="fas fa-shield-alt"></i></span>
+                    <span class="label">Terms of Service / Privacy</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const themeToggle = document.getElementById('theme-toggle-switch');
+    if (themeToggle) {
+        themeToggle.addEventListener('change', function() {
+            fetch('/more/api/toggle_theme', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // You might want to reload or dynamically change the theme stylesheet
+                    window.location.reload();
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    }
+});
+</script>
+{% endblock %}
