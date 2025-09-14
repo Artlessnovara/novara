@@ -1,0 +1,136 @@
+{% extends "admin/dashboard.html" %}
+
+{% block admin_content %}
+<div class="container-fluid">
+    <h1 class="mt-4">Premium Subscription Requests</h1>
+
+    <!-- Pending Requests -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-user-clock mr-1"></i>
+            Pending Requests
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Requested At</th>
+                            <th>Proof of Payment</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in pending_requests %}
+                        <tr>
+                            <td>{{ req.user.name }}</td>
+                            <td>{{ req.user.email }}</td>
+                            <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <a href="{{ url_for('static', filename=req.proof_of_payment_path) }}" target="_blank" class="btn btn-info btn-sm">View Proof</a>
+                            </td>
+                            <td>
+                                <form action="{{ url_for('admin.approve_premium_request', request_id=req.id) }}" method="POST" style="display: inline-block;">
+                                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                </form>
+                                <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#rejectModal-{{ req.id }}">
+                                    Reject
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">No pending requests.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Tabs -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="historyTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="approved-tab" data-toggle="tab" href="#approved" role="tab" aria-controls="approved" aria-selected="true">Approved</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="rejected-tab" data-toggle="tab" href="#rejected" role="tab" aria-controls="rejected" aria-selected="false">Rejected</a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="historyTabsContent">
+                <!-- Approved Tab -->
+                <div class="tab-pane fade show active" id="approved" role="tabpanel" aria-labelledby="approved-tab">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <!-- table headers -->
+                        <tbody>
+                            {% for req in approved_requests %}
+                            <tr>
+                                <td>{{ req.user.name }}</td>
+                                <td>{{ req.user.email }}</td>
+                                <td>{{ req.reviewed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td><span class="badge badge-success">Approved</span></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center">No approved requests yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Rejected Tab -->
+                <div class="tab-pane fade" id="rejected" role="tabpanel" aria-labelledby="rejected-tab">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <!-- table headers -->
+                        <tbody>
+                            {% for req in rejected_requests %}
+                            <tr>
+                                <td>{{ req.user.name }}</td>
+                                <td>{{ req.user.email }}</td>
+                                <td>{{ req.reviewed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td><span class="badge badge-danger">Rejected</span> - {{ req.rejection_reason }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center">No rejected requests yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Modals -->
+{% for req in pending_requests %}
+<div class="modal fade" id="rejectModal-{{ req.id }}" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel-{{ req.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectModalLabel-{{ req.id }}">Reject Request for {{ req.user.name }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ url_for('admin.reject_premium_request', request_id=req.id) }}" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="rejection_reason-{{ req.id }}">Reason for Rejection</label>
+                        <textarea class="form-control" id="rejection_reason-{{ req.id }}" name="rejection_reason" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Confirm Rejection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

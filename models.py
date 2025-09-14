@@ -47,6 +47,7 @@ class User(UserMixin, db.Model):
     privacy_profile_pic = db.Column(db.String(50), default='everyone', nullable=False)
     privacy_about = db.Column(db.String(50), default='everyone', nullable=False)
     is_premium = db.Column(db.Boolean, default=False, nullable=False)
+    premium_expires_at = db.Column(db.DateTime, nullable=True)
 
     courses_taught = db.relationship('Course', backref='instructor', lazy='dynamic')
     enrollments = db.relationship('Enrollment', back_populates='student', lazy='dynamic')
@@ -895,6 +896,21 @@ class Referral(db.Model):
 
     def __repr__(self):
         return f'<Referral {self.code} for User {self.user_id}>'
+
+
+class PremiumSubscriptionRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    proof_of_payment_path = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(50), default='pending', nullable=False) # pending, approved, rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    rejection_reason = db.Column(db.String(255), nullable=True)
+
+    user = db.relationship('User', backref=db.backref('premium_subscription_requests', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<PremiumSubscriptionRequest {self.id} for User {self.user_id}>'
 
 
 class FCMToken(db.Model):

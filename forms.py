@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SubmitField
 from wtforms.validators import DataRequired, Email
+from flask_wtf.file import FileField, FileRequired
 
 class UserPageForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
@@ -21,3 +22,7 @@ class ContactForm(FlaskForm):
 class FeedbackForm(FlaskForm):
     feedback_text = TextAreaField('Your Feedback', validators=[DataRequired()], render_kw={"placeholder": "Tell us what you think..."})
     submit = SubmitField('Submit Feedback')
+
+class PremiumUpgradeForm(FlaskForm):
+    proof_of_payment = FileField('Proof of Payment', validators=[FileRequired()])
+    submit = SubmitField('Submit for Review')
