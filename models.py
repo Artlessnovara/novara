@@ -869,6 +869,50 @@ class PostImpression(db.Model):
         return f'<PostImpression on Post {self.post_id} by User {self.viewer_id}>'
 
 
+class CommunityAnalytics(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=False, index=True)
+    date = db.Column(db.Date, nullable=False, index=True)
+    member_count = db.Column(db.Integer, default=0)
+    daily_posts = db.Column(db.Integer, default=0)
+    daily_comments = db.Column(db.Integer, default=0)
+
+    community = db.relationship('Community', backref=db.backref('analytics_snapshots', lazy='dynamic'))
+
+    __table_args__ = (db.UniqueConstraint('community_id', 'date', name='_community_date_uc'),)
+
+    def __repr__(self):
+        return f'<CommunityAnalytics for {self.community_id} on {self.date}>'
+
+
+class BannedFromCommunity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    banned_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    community = db.relationship('Community', backref='banned_users')
+    user = db.relationship('User', foreign_keys=[user_id], backref='banned_from_communities')
+    banned_by = db.relationship('User', foreign_keys=[banned_by_id])
+
+    __table_args__ = (db.UniqueConstraint('community_id', 'user_id', name='_community_user_ban_uc'),)
+
+
+class MutedInCommunity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    muted_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    community = db.relationship('Community', backref='muted_users')
+    user = db.relationship('User', foreign_keys=[user_id], backref='muted_in_communities')
+    muted_by = db.relationship('User', foreign_keys=[muted_by_id])
+
+    __table_args__ = (db.UniqueConstraint('community_id', 'user_id', name='_community_user_mute_uc'),)
+
+
 # --- "More" Page Feature Models ---
 
 class UserPage(db.Model):

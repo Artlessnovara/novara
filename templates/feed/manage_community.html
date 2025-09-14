@@ -1,0 +1,98 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Manage {{ community.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Manage Members for {{ community.name }}</h1>
+    <a href="{{ url_for('feed.view_community', community_id=community.id) }}">&larr; Back to Community</a>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            Community Members
+        </div>
+        <div class="list-group list-group-flush">
+            {% for member in members %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <img src="{{ url_for('static', filename='profile_pics/' + member.user.profile_pic) }}" class="profile-pic-small mr-2" style="width: 40px; height: 40px; border-radius: 50%;">
+                        <strong>{{ member.user.name }}</strong> ({{ member.role }})
+                    </div>
+                    <div>
+                        {% if member.user != current_user and member.role != 'admin' %}
+                            <button class="btn btn-warning btn-sm mute-btn" data-user-id="{{ member.user_id }}">Mute</button>
+                            <button class="btn btn-danger btn-sm remove-btn" data-user-id="{{ member.user_id }}">Remove</button>
+                            <button class="btn btn-dark btn-sm ban-btn" data-user-id="{{ member.user_id }}">Ban</button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const communityId = {{ community.id }};
+
+    document.querySelectorAll('.mute-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            if (confirm(`Are you sure you want to mute this user?`)) {
+                performAction('mute', userId, this);
+            }
+        });
+    });
+
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            if (confirm(`Are you sure you want to remove this user from the community?`)) {
+                performAction('remove', userId, this);
+            }
+        });
+    });
+
+    document.querySelectorAll('.ban-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            if (confirm(`Are you sure you want to BAN this user? This will also remove them and prevent them from rejoining.`)) {
+                performAction('ban', userId, this);
+            }
+        });
+    });
+
+    function performAction(action, userId, buttonEl) {
+        fetch(`/feed/api/community/${communityId}/${action}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                if (action === 'remove' || action === 'ban') {
+                    // Remove the user's row from the list
+                    buttonEl.closest('.list-group-item').remove();
+                }
+                // Optionally, change the state of the mute button
+                if (action === 'mute') {
+                    buttonEl.textContent = 'Muted';
+                    buttonEl.disabled = true;
+                }
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Action failed:', err);
+            alert('An unexpected error occurred.');
+        });
+    }
+});
+</script>
+{% endblock %}
