@@ -1,11 +1,12 @@
 import secrets
 import os
+import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest
+from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post
 from extensions import db
-from forms import UserPageForm, ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm
+from forms import UserPageForm, ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm
 from utils import get_or_create_platform_setting
 
 more_bp = Blueprint('more', __name__, url_prefix='/more')
@@ -293,3 +294,81 @@ def upgrade_premium():
          return redirect(url_for('more.more_page'))
 
     return render_template('more/upgrade.html', form=form, settings=settings)
+
+
+def save_profile_banner(file):
+    filename = secure_filename(file.filename)
+    random_hex = secrets.token_hex(16)
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+    banners_dir = os.path.join(current_app.root_path, 'static/profile_banners')
+    os.makedirs(banners_dir, exist_ok=True)
+    filepath = os.path.join(banners_dir, new_filename)
+
+    # Resize image here if needed using Pillow
+
+    file.save(filepath)
+    return os.path.join('profile_banners', new_filename)
+
+
+@more_bp.route('/settings/appearance', methods=['GET', 'POST'])
+@login_required
+def profile_appearance_settings():
+    if not current_user.is_premium:
+        flash('This feature is for premium members only.', 'warning')
+        return redirect(url_for('more.more_page'))
+
+    form = ProfileAppearanceForm()
+
+    user_posts = Post.query.filter_by(user_id=current_user.id).order_by(Post.timestamp.desc()).all()
+    form.pinned_post.choices = [(0, '--- None ---')] + [(post.id, post.content[:50] + '...') for post in user_posts if post.content]
+
+    if form.validate_on_submit():
+        if form.profile_banner.data:
+            banner_path = save_profile_banner(form.profile_banner.data)
+            current_user.profile_banner_url = banner_path
+
+        current_user.profile_theme = form.profile_theme.data
+
+        try:
+            links_text = form.bio_links.data
+            if links_text and links_text.strip():
+                links = json.loads(links_text)
+                if isinstance(links, list) and all(isinstance(i, dict) and 'title' in i and 'url' in i for i in links):
+                    current_user.bio_links = links
+                else:
+                    flash('Bio links must be a valid JSON list of objects with "title" and "url" keys.', 'danger')
+                    return redirect(url_for('more.profile_appearance_settings'))
+            else:
+                current_user.bio_links = None
+        except json.JSONDecodeError:
+            flash('Invalid JSON format for bio links.', 'danger')
+            return redirect(url_for('more.profile_appearance_settings'))
+
+        pinned_post_id = form.pinned_post.data
+        existing_pin = PinnedPost.query.filter_by(user_id=current_user.id).first()
+
+        if pinned_post_id and pinned_post_id != 0:
+            if existing_pin:
+                existing_pin.post_id = pinned_post_id
+            else:
+                new_pin = PinnedPost(user_id=current_user.id, post_id=pinned_post_id)
+                db.session.add(new_pin)
+        elif existing_pin:
+            db.session.delete(existing_pin)
+
+        db.session.commit()
+        flash('Your profile appearance has been updated!', 'success')
+        return redirect(url_for('more.profile_appearance_settings'))
+
+    # Populate form for GET request
+    form.profile_theme.data = current_user.profile_theme or 'default'
+    if current_user.bio_links:
+        form.bio_links.data = json.dumps(current_user.bio_links, indent=2)
+    else:
+        form.bio_links.data = ''
+
+    if current_user.pinned_post:
+        form.pinned_post.data = current_user.pinned_post.post_id
+
+    return render_template('more/profile_appearance.html', form=form)

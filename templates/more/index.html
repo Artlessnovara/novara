@@ -114,6 +114,15 @@
                     <span class="chevron"><i class="fas fa-chevron-right"></i></span>
                 </a>
             </li>
+            {% if current_user.is_premium %}
+            <li class="more-menu-item">
+                <a href="{{ url_for('more.profile_appearance_settings') }}">
+                    <span class="icon"><i class="fas fa-paint-brush"></i></span>
+                    <span class="label">Profile Appearance</span>
+                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
+                </a>
+            </li>
+            {% endif %}
             <li class="more-menu-item">
                 <div class="theme-toggle-container">
                     <div style="display: flex; align-items: center;">

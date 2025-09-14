@@ -49,6 +49,11 @@ class User(UserMixin, db.Model):
     is_premium = db.Column(db.Boolean, default=False, nullable=False)
     premium_expires_at = db.Column(db.DateTime, nullable=True)
 
+    # Custom Profile Appearance
+    profile_banner_url = db.Column(db.String(255), nullable=True)
+    profile_theme = db.Column(db.String(50), nullable=True)
+    bio_links = db.Column(db.JSON, nullable=True)
+
     courses_taught = db.relationship('Course', backref='instructor', lazy='dynamic')
     enrollments = db.relationship('Enrollment', back_populates='student', lazy='dynamic')
     course_comments = db.relationship('CourseComment', backref='author', lazy='dynamic')
@@ -832,6 +837,18 @@ class ReportedPost(db.Model):
 
     post = db.relationship('Post', backref='reports')
     reporter = db.relationship('User', foreign_keys=[reported_by_id])
+
+
+class PinnedPost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False, unique=True)
+
+    user = db.relationship('User', backref=db.backref('pinned_post', uselist=False, cascade="all, delete-orphan"))
+    post = db.relationship('Post', backref=db.backref('pinned_by_user', uselist=False, cascade="all, delete-orphan"))
+
+    def __repr__(self):
+        return f'<PinnedPost for User {self.user_id} - Post {self.post_id}>'
 
 
 # --- "More" Page Feature Models ---

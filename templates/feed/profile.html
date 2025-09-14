@@ -2,13 +2,84 @@
 
 {% block title %}{{ user.name }}'s Profile{% endblock %}
 
+{% block head %}
+{{ super() }}
+{# Inject theme styles if the user is premium and has a theme set #}
+{% if user.is_premium and user.profile_theme and user.profile_theme != 'default' %}
+    {% set themes = {
+        'ocean': {'primary': '#007bff', 'gradient_start': '#1e3c72', 'gradient_end': '#2a5298', 'text': '#ffffff'},
+        'forest': {'primary': '#28a745', 'gradient_start': '#233329', 'gradient_end': '#414d3f', 'text': '#ffffff'},
+        'sunset': {'primary': '#fd7e14', 'gradient_start': '#ff7e5f', 'gradient_end': '#feb47b', 'text': '#000000'}
+    } %}
+    {% set theme = themes.get(user.profile_theme) %}
+    {% if theme %}
+    <style>
+        .profile-theme-active {
+            --theme-primary: {{ theme.primary }};
+            --theme-gradient-start: {{ theme.gradient_start }};
+            --theme-gradient-end: {{ theme.gradient_end }};
+            --theme-text: {{ theme.text }};
+        }
+        .profile-header.has-theme {
+            background: linear-gradient(135deg, var(--theme-gradient-start), var(--theme-gradient-end));
+            color: var(--theme-text);
+        }
+        .profile-header.has-theme .profile-info p,
+        .profile-header.has-theme .profile-stats,
+        .profile-header.has-theme .bio-links a {
+            color: var(--theme-text);
+            opacity: 0.9;
+        }
+        .profile-header.has-theme .premium-badge {
+            background-color: var(--theme-text);
+            color: var(--theme-gradient-end);
+        }
+    </style>
+    {% endif %}
+{% endif %}
+{% endblock %}
+
 {% block styles %}
 <style>
     .profile-container { max-width: 900px; margin: auto; }
-    .profile-header { display: flex; align-items: center; gap: 2rem; background: var(--card-bg-light); padding: 2rem; border-radius: var(--border-radius); margin-bottom: 2rem; }
-    .profile-pic-large { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; }
+    .profile-header {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        background: var(--card-bg-light);
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
+    }
+    .profile-header::before { /* Overlay for text readability on banners */
+        content: '';
+        position: absolute;
+        top: 0; right: 0; bottom: 0; left: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 1;
+        display: none; /* Hidden by default */
+    }
+    .profile-header.has-banner::before { display: block; }
+    .profile-header.has-banner .profile-info,
+    .profile-header.has-banner .profile-pic-large {
+        z-index: 2;
+        position: relative;
+    }
+    .profile-header.has-banner .profile-info h1,
+    .profile-header.has-banner .profile-info p,
+    .profile-header.has-banner .profile-stats {
+        color: white;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    }
+    .profile-pic-large { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid white; }
     .profile-info h1 { margin: 0 0 0.5rem 0; }
     .profile-stats { display: flex; gap: 1.5rem; margin: 1rem 0; }
+    .bio-links { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; }
+    .bio-links a { color: var(--primary-color); text-decoration: none; font-weight: 600; }
     .profile-actions button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
     .profile-tabs { display: flex; border-bottom: 1px solid var(--border-color-light); margin-bottom: 1.5rem; }
     .tab-link { padding: 1rem 1.5rem; cursor: pointer; border-bottom: 2px solid transparent; }
@@ -17,16 +88,31 @@
     .tab-content.active { display: block; }
     .posts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
     .post-grid-item img, .post-grid-item video { width: 100%; height: 250px; object-fit: cover; border-radius: var(--border-radius); }
+    .pinned-post-section { margin-bottom: 2rem; }
+    .pinned-post-section h3 { border-bottom: 1px solid var(--border-color-light); padding-bottom: 0.5rem; margin-bottom: 1rem; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="profile-container">
-    <div class="profile-header">
+<div class="profile-container {% if user.is_premium and user.profile_theme %}profile-theme-active{% endif %}">
+    <div class="profile-header
+        {% if user.is_premium and user.profile_banner_url %}has-banner{% endif %}
+        {% if user.is_premium and user.profile_theme and user.profile_theme != 'default' %}has-theme{% endif %}"
+        style="{% if user.is_premium and user.profile_banner_url %}background-image: url({{ url_for('static', filename=user.profile_banner_url) }});{% endif %}">
+
         <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}" class="profile-pic-large">
         <div class="profile-info">
             <h1>{{ user.name }}{% if user.is_premium %}<span class="premium-badge" title="Premium Member"><i class="fas fa-check-circle"></i> Pro</span>{% endif %}</h1>
             <p>{{ user.bio or 'No bio yet.' }}</p>
+
+            {% if user.is_premium and user.bio_links %}
+            <div class="bio-links">
+                {% for link in user.bio_links %}
+                    <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"><i class="fas fa-link"></i> {{ link.title }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <div class="profile-stats">
                 <div><strong>{{ posts|length }}</strong> posts</div>
                 <div><strong>{{ user.followers.count() }}</strong> followers</div>
@@ -49,11 +135,22 @@
                         </form>
                     </div>
                 {% else %}
-                    <button>Edit Profile</button>
+                    <a href="{{ url_for('more.settings') }}" class="btn">Edit Profile</a>
                 {% endif %}
             </div>
         </div>
     </div>
+
+    {% if user.is_premium and user.pinned_post %}
+    <div class="pinned-post-section">
+        <h3><i class="fas fa-thumbtack"></i> Pinned Post</h3>
+        <div class="post-container" data-post-id="{{ user.pinned_post.post.id }}">
+            {% with post=user.pinned_post.post %}
+                {% include 'feed/_post_content.html' %}
+            {% endwith %}
+        </div>
+    </div>
+    {% endif %}
 
     <div class="profile-tabs">
         <div class="tab-link active" onclick="showTab('posts')">Posts</div>
@@ -64,15 +161,18 @@
     <div id="posts" class="tab-content active">
         <div class="posts-grid">
             {% for post in posts %}
-                <div class="post-grid-item">
-                    {% if post.media_type == 'image' %}
-                        <img src="{{ url_for('static', filename=post.media_url) }}" alt="Post by {{ user.name }}">
-                    {% elif post.media_type == 'video' %}
-                        <video src="{{ url_for('static', filename=post.media_url) }}"></video>
-                    {% else %}
-                        <div style="padding:1rem; background: #eee; height: 100%; border-radius: var(--border-radius);">{{ post.content|truncate(100) }}</div>
-                    {% endif %}
-                </div>
+                {# Do not show the pinned post again in the grid #}
+                {% if not user.pinned_post or user.pinned_post.post_id != post.id %}
+                    <div class="post-grid-item">
+                        {% if post.media_type == 'image' %}
+                            <img src="{{ url_for('static', filename=post.media_url) }}" alt="Post by {{ user.name }}">
+                        {% elif post.media_type == 'video' %}
+                            <video src="{{ url_for('static', filename=post.media_url) }}"></video>
+                        {% else %}
+                            <div style="padding:1rem; background: #eee; height: 100%; border-radius: var(--border-radius);">{{ post.content|truncate(100) }}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
             {% else %}
                 <p>No posts yet.</p>
             {% endfor %}
