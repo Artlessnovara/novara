@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+import random
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
 from flask_login import login_required, current_user
 from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, Vote, Bookmark, PostImpression
 from extensions import db
@@ -12,23 +13,46 @@ feed_bp = Blueprint('feed', __name__, url_prefix='/feed')
 @feed_bp.route('/')
 @login_required
 def home():
-    """Main feed page."""
+    """Main feed page with boosted posts."""
     following_ids = [u.id for u in current_user.followed]
+    feed_user_ids = following_ids + [current_user.id]
 
-    # Also include the user's own ID to see their own posts
-    following_ids.append(current_user.id)
-
-    posts = Post.query.filter(
+    # 1. Fetch regular posts from followed users and self, respecting privacy
+    regular_posts = Post.query.filter(
         Post.post_status == 'published',
+        Post.is_boosted == False,
         (
             (Post.privacy == 'public') |
-            ( (Post.privacy == 'followers') & (Post.user_id.in_(following_ids)) ) |
-            ( (Post.privacy == 'private') & (Post.user_id == current_user.id) )
-        )
+            (Post.privacy == 'followers')
+        ),
+        Post.user_id.in_(feed_user_ids)
     ).order_by(Post.timestamp.desc()).all()
 
+    # 2. Fetch boosted posts from users not followed (must be public)
+    boosted_posts = Post.query.filter(
+        Post.post_status == 'published',
+        Post.is_boosted == True,
+        Post.privacy == 'public',
+        Post.user_id.notin_(feed_user_ids)
+    ).all()
+    random.shuffle(boosted_posts)
+
+    # 3. Inject boosted posts into the feed
+    final_feed = []
+    boost_interval = 5  # Inject a boosted post every 5 regular posts
+    boosted_post_iterator = iter(boosted_posts)
+
+    for i, post in enumerate(regular_posts):
+        final_feed.append(post)
+        if (i + 1) % boost_interval == 0:
+            try:
+                boosted_post = next(boosted_post_iterator)
+                final_feed.append(boosted_post)
+            except StopIteration:
+                pass  # No more boosted posts to inject
+
     # Pre-process posts to include reaction data
-    for post in posts:
+    for post in final_feed:
         # Get reaction counts
         reaction_counts = db.session.query(
             Like.reaction_type, func.count(Like.reaction_type)
@@ -785,6 +809,25 @@ def get_post_analytics(post_id):
         'comments': comments,
         'demographics': demographics_data
     })
+
+
+@feed_bp.route('/api/post/<int:post_id>/boost', methods=['POST'])
+@login_required
+def boost_post(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    # Security checks
+    if not current_user.is_premium:
+        return jsonify({'status': 'error', 'message': 'This feature is for premium members only.'}), 403
+    if post.user_id != current_user.id:
+        return jsonify({'status': 'error', 'message': 'You can only boost your own posts.'}), 403
+    if post.is_boosted:
+        return jsonify({'status': 'error', 'message': 'This post is already boosted.'}), 400
+
+    post.is_boosted = True
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Post boosted successfully!'})
 
 # --- API Route for Reels ---
 
