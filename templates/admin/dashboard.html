@@ -113,6 +113,20 @@
             <h3 class="card-title">Manage Communities</h3>
             <p class="card-subtitle">Create and manage communities.</p>
         </a>
+
+        <!-- Payment Settings -->
+        <a href="{{ url_for('admin.admin_payment_settings') }}" class="glass-card glow-pink">
+            <div class="card-icon"><i class="fas fa-money-check-alt"></i></div>
+            <h3 class="card-title">Payment Settings</h3>
+            <p class="card-subtitle">Set account details for premium payments.</p>
+        </a>
+
+        <!-- Premium Requests -->
+        <a href="{{ url_for('admin.manage_premium_requests') }}" class="glass-card glow-gold">
+            <div class="card-icon"><i class="fas fa-star"></i></div>
+            <h3 class="card-title">Premium Requests</h3>
+            <p class="card-subtitle">Review and approve premium subscriptions.</p>
+        </a>
     </div>
 </div>
 {% endblock %}

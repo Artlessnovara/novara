@@ -24,13 +24,13 @@
     <div class="pro-card">
         <h5>Upgrade to Pro</h5>
         <p>Unlock exclusive creator tools and features!</p>
-        <a href="#" class="btn btn-upgrade">Become a Pro Creator</a>
+        <a href="{{ url_for('more.upgrade_premium') }}" class="btn btn-upgrade">Become a Pro Creator</a>
     </div>
     {% else %}
     <div class="more-section">
         <div class="more-menu-list">
             <div class="more-menu-item">
-                <a href="#">
+                <a href="{{ url_for('more.upgrade_premium') }}">
                     <span class="icon"><i class="fas fa-check-circle" style="color: green;"></i></span>
                     <span class="label">Pro Creator</span>
                     <span class="chevron">Manage Subscription</span>

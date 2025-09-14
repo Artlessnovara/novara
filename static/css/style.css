@@ -142,3 +142,23 @@ footer {
 .footer-links a:hover, .social-media a:hover {
     text-decoration: underline;
 }
+
+/* Premium Badge */
+.premium-badge {
+    display: inline-block;
+    margin-left: 8px;
+    background-color: #007bff; /* A nice blue color */
+    color: #fff;
+    padding: 2px 6px;
+    font-size: 0.75em;
+    font-weight: bold;
+    border-radius: 4px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* A little icon inside the badge */
+.premium-badge .fa-check-circle {
+    margin-right: 4px;
+}

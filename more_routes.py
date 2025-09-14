@@ -1,9 +1,12 @@
 import secrets
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
+import os
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app
 from flask_login import login_required, current_user
-from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral
+from werkzeug.utils import secure_filename
+from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest
 from extensions import db
-from forms import UserPageForm, ReportProblemForm, ContactForm, FeedbackForm
+from forms import UserPageForm, ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm
+from utils import get_or_create_platform_setting
 
 more_bp = Blueprint('more', __name__, url_prefix='/more')
 
@@ -226,3 +229,67 @@ def invite_friends():
     referral_link = url_for('main.register', ref=referral.code, _external=True)
 
     return render_template('more/invite_friends.html', referral_code=referral.code, referral_link=referral_link)
+
+
+def save_premium_proof(file):
+    filename = secure_filename(file.filename)
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'pdf'}
+    if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+        return None
+
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+
+    # Ensure the directory exists
+    proofs_dir = os.path.join(current_app.root_path, 'static/premium_proofs')
+    os.makedirs(proofs_dir, exist_ok=True)
+
+    filepath = os.path.join(proofs_dir, new_filename)
+    file.save(filepath)
+    # Return the path relative to the static folder for storage in DB
+    return os.path.join('premium_proofs', new_filename)
+
+
+@more_bp.route('/upgrade', methods=['GET', 'POST'])
+@login_required
+def upgrade_premium():
+    form = PremiumUpgradeForm()
+
+    # Check if user already has a pending or active request
+    existing_request = PremiumSubscriptionRequest.query.filter_by(user_id=current_user.id).filter(PremiumSubscriptionRequest.status.in_(['pending', 'approved'])).first()
+    if existing_request:
+        if existing_request.status == 'pending':
+            flash('You already have a premium subscription request pending review.', 'info')
+        else: # approved
+            flash('You are already a premium member.', 'info')
+        return redirect(url_for('more.more_page'))
+
+    if form.validate_on_submit():
+        file = form.proof_of_payment.data
+        saved_path = save_premium_proof(file)
+
+        if saved_path:
+            new_request = PremiumSubscriptionRequest(
+                user_id=current_user.id,
+                proof_of_payment_path=saved_path
+            )
+            db.session.add(new_request)
+            db.session.commit()
+            flash('Your request to upgrade to Premium has been submitted for review.', 'success')
+            return redirect(url_for('more.more_page'))
+        else:
+            flash('Invalid file type. Please upload a PNG, JPG, or PDF.', 'danger')
+
+    settings = {
+        'bank_name': get_or_create_platform_setting('premium_bank_name', '').value,
+        'account_number': get_or_create_platform_setting('premium_account_number', '').value,
+        'account_name': get_or_create_platform_setting('premium_account_name', '').value
+    }
+
+    # Check if settings are configured
+    if not all(settings.values()):
+         flash('The premium upgrade system is not yet configured by the administrator. Please check back later.', 'warning')
+         return redirect(url_for('more.more_page'))
+
+    return render_template('more/upgrade.html', form=form, settings=settings)

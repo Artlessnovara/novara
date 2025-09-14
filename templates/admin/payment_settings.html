@@ -1,0 +1,32 @@
+{% extends "admin/dashboard.html" %}
+
+{% block admin_content %}
+<div class="container-fluid">
+    <h1 class="mt-4">Premium Payment Settings</h1>
+    <p>Set the bank account details that will be displayed to users when they upgrade to Premium.</p>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-university mr-1"></i>
+            Bank Account Details
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.admin_payment_settings') }}">
+                <div class="form-group">
+                    <label for="bank_name">Bank Name</label>
+                    <input type="text" class="form-control" id="bank_name" name="bank_name" value="{{ settings.bank_name }}">
+                </div>
+                <div class="form-group">
+                    <label for="account_number">Account Number</label>
+                    <input type="text" class="form-control" id="account_number" name="account_number" value="{{ settings.account_number }}">
+                </div>
+                <div class="form-group">
+                    <label for="account_name">Account Name</label>
+                    <input type="text" class="form-control" id="account_name" name="account_name" value="{{ settings.account_name }}">
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Save Settings</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

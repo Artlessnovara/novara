@@ -669,7 +669,8 @@ def get_comments(post_id):
             'author': {
                 'id': comment.author.id,
                 'name': comment.author.name,
-                'profile_pic': url_for('static', filename='profile_pics/' + comment.author.profile_pic)
+                'profile_pic': url_for('static', filename='profile_pics/' + comment.author.profile_pic),
+                'is_premium': comment.author.is_premium
             }
         })
 

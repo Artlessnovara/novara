@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, abort, flash, redirect, url_for, r
 from flask_login import login_required, current_user
 import os
 
-from models import User, Course, Category, LibraryMaterial, PlatformSetting, Enrollment, CertificateRequest, Certificate, LibraryPurchase, ChatRoom, ChatRoomMember, MutedUser, ReportedMessage, ReportedGroup, AdminLog, GroupRequest, Community, ReportedPost
+from models import User, Course, Category, LibraryMaterial, PlatformSetting, Enrollment, CertificateRequest, Certificate, LibraryPurchase, ChatRoom, ChatRoomMember, MutedUser, ReportedMessage, ReportedGroup, AdminLog, GroupRequest, Community, ReportedPost, PremiumSubscriptionRequest
 from extensions import db
 from pdf_generator import generate_certificate_pdf
 from utils import save_chat_room_cover_image, get_or_create_platform_setting
@@ -456,6 +456,99 @@ def status_permissions():
     instructor_setting = get_or_create_platform_setting('instructor_status_posting_enabled', 'true')
 
     return render_template('admin/status_permissions.html', student_setting=student_setting, instructor_setting=instructor_setting)
+
+
+# --- Admin Settings ---
+@admin_bp.route('/settings/payment', methods=['GET', 'POST'])
+@login_required
+def admin_payment_settings():
+    if current_user.role != 'admin':
+        abort(403)
+
+    if request.method == 'POST':
+        get_or_create_platform_setting('premium_bank_name', request.form.get('bank_name', ''))
+        get_or_create_platform_setting('premium_account_number', request.form.get('account_number', ''))
+        get_or_create_platform_setting('premium_account_name', request.form.get('account_name', ''))
+        flash('Payment settings have been updated.', 'success')
+        return redirect(url_for('admin.admin_payment_settings'))
+
+    settings = {
+        'bank_name': get_or_create_platform_setting('premium_bank_name', '').value,
+        'account_number': get_or_create_platform_setting('premium_account_number', '').value,
+        'account_name': get_or_create_platform_setting('premium_account_name', '').value
+    }
+    return render_template('admin/payment_settings.html', settings=settings)
+
+
+@admin_bp.route('/premium_requests')
+@login_required
+def manage_premium_requests():
+    if current_user.role != 'admin':
+        abort(403)
+
+    pending_requests = PremiumSubscriptionRequest.query.filter_by(status='pending').order_by(PremiumSubscriptionRequest.created_at.asc()).all()
+    approved_requests = PremiumSubscriptionRequest.query.filter_by(status='approved').order_by(PremiumSubscriptionRequest.reviewed_at.desc()).limit(20).all()
+    rejected_requests = PremiumSubscriptionRequest.query.filter_by(status='rejected').order_by(PremiumSubscriptionRequest.reviewed_at.desc()).limit(20).all()
+
+    return render_template('admin/premium_requests.html',
+                           pending_requests=pending_requests,
+                           approved_requests=approved_requests,
+                           rejected_requests=rejected_requests)
+
+
+@admin_bp.route('/premium_request/<int:request_id>/approve', methods=['POST'])
+@login_required
+def approve_premium_request(request_id):
+    if current_user.role != 'admin':
+        abort(403)
+
+    req = PremiumSubscriptionRequest.query.get_or_404(request_id)
+
+    # Update user's premium status
+    user = req.user
+    user.is_premium = True
+    user.premium_expires_at = datetime.utcnow() + timedelta(days=30)
+
+    # Update request status
+    req.status = 'approved'
+    req.reviewed_at = datetime.utcnow()
+
+    db.session.commit()
+
+    flash(f"Premium subscription for {user.name} has been approved.", 'success')
+    return redirect(url_for('admin.manage_premium_requests'))
+
+
+@admin_bp.route('/premium_request/<int:request_id>/reject', methods=['POST'])
+@login_required
+def reject_premium_request(request_id):
+    if current_user.role != 'admin':
+        abort(403)
+
+    req = PremiumSubscriptionRequest.query.get_or_404(request_id)
+    reason = request.form.get('rejection_reason')
+
+    if not reason:
+        flash('A reason is required for rejection.', 'danger')
+        return redirect(url_for('admin.manage_premium_requests'))
+
+    # Update request status
+    req.status = 'rejected'
+    req.rejection_reason = reason
+    req.reviewed_at = datetime.utcnow()
+
+    # Ensure user is not premium - this is important if they were previously approved
+    if req.user.premium_expires_at and req.user.premium_expires_at > datetime.utcnow():
+        # This case is unlikely if we only show pending, but good for robustness
+        pass
+    else:
+        req.user.is_premium = False
+        req.user.premium_expires_at = None
+
+    db.session.commit()
+
+    flash(f"Premium subscription for {req.user.name} has been rejected.", 'success')
+    return redirect(url_for('admin.manage_premium_requests'))
 
 import secrets
 
