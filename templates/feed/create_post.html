@@ -78,6 +78,14 @@
             </select>
         </div>
 
+        {% if current_user.is_premium %}
+        <div class="form-group">
+            <label for="schedule_time">Schedule Post (Optional):</label>
+            <input type="datetime-local" id="schedule_time" name="schedule_time" class="form-control">
+            <small class="form-text text-muted">Leave blank to post immediately.</small>
+        </div>
+        {% endif %}
+
         <div class="form-actions">
             <button type="submit" class="post-btn">Post</button>
         </div>

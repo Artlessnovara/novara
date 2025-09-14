@@ -10,6 +10,9 @@ from bs4 import BeautifulSoup
 from markupsafe import Markup
 from flask_migrate import Migrate
 from push_notifications import initialize_firebase
+from apscheduler.schedulers.background import BackgroundScheduler
+from tasks import publish_scheduled_posts
+import atexit
 
 def secure_embeds_filter(html_content):
     if not html_content:
@@ -156,6 +159,16 @@ def create_app(config_object=None):
         db.session.add(admin)
         db.session.commit()
         print(f"Admin user {name} ({email}) created successfully.")
+
+    # --- Background Scheduler for Scheduled Posts ---
+    # This check prevents the scheduler from running twice in debug mode
+    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        scheduler = BackgroundScheduler(daemon=True)
+        scheduler.add_job(func=publish_scheduled_posts, args=[app], trigger='interval', minutes=1)
+        scheduler.start()
+
+        # Shut down the scheduler when exiting the app
+        atexit.register(lambda: scheduler.shutdown())
 
     return app
 

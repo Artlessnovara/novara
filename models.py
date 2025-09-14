@@ -655,6 +655,10 @@ class Post(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     privacy = db.Column(db.String(50), nullable=False, default='public') # public, followers, private
 
+    # New columns for scheduled posting
+    post_status = db.Column(db.String(50), nullable=False, default='published') # published, scheduled
+    scheduled_for = db.Column(db.DateTime, nullable=True)
+
     likes = db.relationship('Like',
                             primaryjoin="and_(Like.target_type=='post', foreign(Like.target_id)==Post.id)",
                             lazy='dynamic',
