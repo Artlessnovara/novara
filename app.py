@@ -11,7 +11,7 @@ from markupsafe import Markup
 from flask_migrate import Migrate
 from push_notifications import initialize_firebase
 from apscheduler.schedulers.background import BackgroundScheduler
-from tasks import publish_scheduled_posts
+from tasks import publish_scheduled_posts, snapshot_community_analytics
 import atexit
 
 def secure_embeds_filter(html_content):
@@ -165,6 +165,7 @@ def create_app(config_object=None):
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         scheduler = BackgroundScheduler(daemon=True)
         scheduler.add_job(func=publish_scheduled_posts, args=[app], trigger='interval', minutes=1)
+        scheduler.add_job(func=snapshot_community_analytics, args=[app], trigger='cron', hour=0) # Run daily at midnight
         scheduler.start()
 
         # Shut down the scheduler when exiting the app

@@ -343,6 +343,22 @@
         </div>
     </div>
 </div>
+
+<!-- Boost Post Modal -->
+<div id="boost-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn boost-close">&times;</span>
+        <h2>Boost Post</h2>
+        <p>Are you sure you want to boost this post? This will increase its visibility to a wider audience.</p>
+        <form id="boost-form" method="POST">
+            <input type="hidden" id="boost-post-id" name="post_id">
+            <div class="form-actions" style="justify-content: flex-end; gap: 1rem;">
+                <button type="button" class="btn btn-secondary boost-cancel-btn">Cancel</button>
+                <button type="submit" class="btn btn-primary">Confirm Boost</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -700,6 +716,70 @@ document.addEventListener('DOMContentLoaded', function() {
             if (event.target == analyticsModal) {
                 analyticsModal.style.display = 'none';
             }
+        });
+    }
+
+    // --- Boost Post Modal Logic ---
+    const boostModal = document.getElementById('boost-modal');
+    if (boostModal) {
+        const boostCloseBtn = boostModal.querySelector('.boost-close');
+        const boostCancelBtn = boostModal.querySelector('.boost-cancel-btn');
+        const boostForm = document.getElementById('boost-form');
+        const boostPostIdInput = document.getElementById('boost-post-id');
+
+        document.querySelectorAll('.boost-post-btn').forEach(btn => {
+            btn.addEventListener('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const postId = this.dataset.postId;
+                boostPostIdInput.value = postId;
+                boostModal.style.display = 'block';
+                this.closest('.more-options-menu').style.display = 'none';
+            });
+        });
+
+        const closeBoostModal = () => {
+            boostModal.style.display = 'none';
+        }
+
+        boostCloseBtn.addEventListener('click', closeBoostModal);
+        boostCancelBtn.addEventListener('click', closeBoostModal);
+
+        // This was already in the analytics modal logic, but it's fine to have it again
+        // It will just add another listener for the same event
+        window.addEventListener('click', (event) => {
+            if (event.target == boostModal) {
+                closeBoostModal();
+            }
+        });
+
+        boostForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const postId = boostPostIdInput.value;
+
+            fetch(`/feed/api/post/${postId}/boost`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    // Hide the boost button for this post since it's now boosted
+                    const boostButtonLi = document.querySelector(`.boost-post-btn[data-post-id="${postId}"]`);
+                    if (boostButtonLi) {
+                        boostButtonLi.parentElement.style.display = 'none';
+                    }
+                    closeBoostModal();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error('Boost failed:', err);
+                alert('An unexpected error occurred. Please try again.');
+            });
         });
     }
 

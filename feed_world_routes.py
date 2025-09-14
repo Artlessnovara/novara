@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+import random
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
 from flask_login import login_required, current_user
-from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, Vote, Bookmark, PostImpression
+from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, Vote, Bookmark, PostImpression, BannedFromCommunity, MutedInCommunity, CommunityAnalytics
 from extensions import db
 from utils import save_post_media, save_community_cover_image
 from sqlalchemy import or_
@@ -12,23 +13,46 @@ feed_bp = Blueprint('feed', __name__, url_prefix='/feed')
 @feed_bp.route('/')
 @login_required
 def home():
-    """Main feed page."""
+    """Main feed page with boosted posts."""
     following_ids = [u.id for u in current_user.followed]
+    feed_user_ids = following_ids + [current_user.id]
 
-    # Also include the user's own ID to see their own posts
-    following_ids.append(current_user.id)
-
-    posts = Post.query.filter(
+    # 1. Fetch regular posts from followed users and self, respecting privacy
+    regular_posts = Post.query.filter(
         Post.post_status == 'published',
+        Post.is_boosted == False,
         (
             (Post.privacy == 'public') |
-            ( (Post.privacy == 'followers') & (Post.user_id.in_(following_ids)) ) |
-            ( (Post.privacy == 'private') & (Post.user_id == current_user.id) )
-        )
+            (Post.privacy == 'followers')
+        ),
+        Post.user_id.in_(feed_user_ids)
     ).order_by(Post.timestamp.desc()).all()
 
+    # 2. Fetch boosted posts from users not followed (must be public)
+    boosted_posts = Post.query.filter(
+        Post.post_status == 'published',
+        Post.is_boosted == True,
+        Post.privacy == 'public',
+        Post.user_id.notin_(feed_user_ids)
+    ).all()
+    random.shuffle(boosted_posts)
+
+    # 3. Inject boosted posts into the feed
+    final_feed = []
+    boost_interval = 5  # Inject a boosted post every 5 regular posts
+    boosted_post_iterator = iter(boosted_posts)
+
+    for i, post in enumerate(regular_posts):
+        final_feed.append(post)
+        if (i + 1) % boost_interval == 0:
+            try:
+                boosted_post = next(boosted_post_iterator)
+                final_feed.append(boosted_post)
+            except StopIteration:
+                pass  # No more boosted posts to inject
+
     # Pre-process posts to include reaction data
-    for post in posts:
+    for post in final_feed:
         # Get reaction counts
         reaction_counts = db.session.query(
             Like.reaction_type, func.count(Like.reaction_type)
@@ -159,7 +183,29 @@ def view_community(community_id):
     """View a single community and its posts."""
     community = Community.query.get_or_404(community_id)
     posts = community.posts.order_by(Post.timestamp.desc()).all()
-    return render_template('feed/view_community.html', community=community, posts=posts)
+
+    # Check if the current user is a premium admin of this community
+    is_premium_admin = False
+    if current_user.is_premium:
+        membership = CommunityMembership.query.filter_by(user_id=current_user.id, community_id=community.id).first()
+        if membership and membership.role in ['admin', 'moderator']:
+            is_premium_admin = True
+
+    return render_template('feed/view_community.html', community=community, posts=posts, is_premium_admin=is_premium_admin)
+
+@feed_bp.route('/community/<int:community_id>/manage')
+@login_required
+def manage_community_members(community_id):
+    community = Community.query.get_or_404(community_id)
+
+    # Security check: must be an admin of the community and a premium user
+    membership = CommunityMembership.query.filter_by(user_id=current_user.id, community_id=community.id).first()
+    if not (membership and membership.role in ['admin', 'moderator'] and current_user.is_premium):
+        flash('You do not have permission to access this page.', 'danger')
+        return redirect(url_for('feed.view_community', community_id=community.id))
+
+    members = community.memberships.all() # This gets the CommunityMembership objects
+    return render_template('feed/manage_community.html', community=community, members=members)
 
 @feed_bp.route('/community/<int:community_id>/join', methods=['POST'])
 @login_required
@@ -784,6 +830,140 @@ def get_post_analytics(post_id):
         'likes': likes,
         'comments': comments,
         'demographics': demographics_data
+    })
+
+
+@feed_bp.route('/api/post/<int:post_id>/boost', methods=['POST'])
+@login_required
+def boost_post(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    # Security checks
+    if not current_user.is_premium:
+        return jsonify({'status': 'error', 'message': 'This feature is for premium members only.'}), 403
+    if post.user_id != current_user.id:
+        return jsonify({'status': 'error', 'message': 'You can only boost your own posts.'}), 403
+    if post.is_boosted:
+        return jsonify({'status': 'error', 'message': 'This post is already boosted.'}), 400
+
+    post.is_boosted = True
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Post boosted successfully!'})
+
+
+# --- Community Moderation API ---
+
+@feed_bp.route('/api/community/<int:community_id>/mute', methods=['POST'])
+@login_required
+def mute_community_member(community_id):
+    community = Community.query.get_or_404(community_id)
+    membership = CommunityMembership.query.filter_by(user_id=current_user.id, community_id=community.id).first()
+    if not (membership and membership.role in ['admin', 'moderator'] and current_user.is_premium):
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+
+    user_id_to_mute = request.json.get('user_id')
+    if not user_id_to_mute:
+        return jsonify({'status': 'error', 'message': 'User ID is required.'}), 400
+
+    # Prevent muting other admins or self
+    target_membership = CommunityMembership.query.filter_by(user_id=user_id_to_mute, community_id=community.id).first()
+    if not target_membership or target_membership.role == 'admin':
+        return jsonify({'status': 'error', 'message': 'Cannot mute this user.'}), 400
+
+    existing_mute = MutedInCommunity.query.filter_by(community_id=community.id, user_id=user_id_to_mute).first()
+    if existing_mute:
+        return jsonify({'status': 'info', 'message': 'User is already muted.'}), 200
+
+    new_mute = MutedInCommunity(
+        community_id=community.id,
+        user_id=user_id_to_mute,
+        muted_by_id=current_user.id
+    )
+    db.session.add(new_mute)
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'User has been muted in this community.'})
+
+
+@feed_bp.route('/api/community/<int:community_id>/remove', methods=['POST'])
+@login_required
+def remove_community_member(community_id):
+    community = Community.query.get_or_404(community_id)
+    membership = CommunityMembership.query.filter_by(user_id=current_user.id, community_id=community.id).first()
+    if not (membership and membership.role in ['admin', 'moderator'] and current_user.is_premium):
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+
+    user_id_to_remove = request.json.get('user_id')
+    if not user_id_to_remove:
+        return jsonify({'status': 'error', 'message': 'User ID is required.'}), 400
+
+    target_membership = CommunityMembership.query.filter_by(user_id=user_id_to_remove, community_id=community.id).first()
+    if not target_membership or target_membership.role == 'admin':
+        return jsonify({'status': 'error', 'message': 'Cannot remove this user.'}), 400
+
+    db.session.delete(target_membership)
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'User has been removed from the community.'})
+
+
+@feed_bp.route('/api/community/<int:community_id>/ban', methods=['POST'])
+@login_required
+def ban_community_member(community_id):
+    community = Community.query.get_or_404(community_id)
+    membership = CommunityMembership.query.filter_by(user_id=current_user.id, community_id=community.id).first()
+    if not (membership and membership.role in ['admin', 'moderator'] and current_user.is_premium):
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+
+    user_id_to_ban = request.json.get('user_id')
+    if not user_id_to_ban:
+        return jsonify({'status': 'error', 'message': 'User ID is required.'}), 400
+
+    target_membership = CommunityMembership.query.filter_by(user_id=user_id_to_ban, community_id=community.id).first()
+    if target_membership and target_membership.role == 'admin':
+        return jsonify({'status': 'error', 'message': 'Cannot ban an admin.'}), 400
+
+    # First, ban the user
+    existing_ban = BannedFromCommunity.query.filter_by(community_id=community.id, user_id=user_id_to_ban).first()
+    if not existing_ban:
+        new_ban = BannedFromCommunity(
+            community_id=community.id,
+            user_id=user_id_to_ban,
+            banned_by_id=current_user.id
+        )
+        db.session.add(new_ban)
+
+    # Then, remove their membership if it exists
+    if target_membership:
+        db.session.delete(target_membership)
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'User has been banned from the community.'})
+
+
+@feed_bp.route('/api/community/<int:community_id>/analytics')
+@login_required
+def get_community_analytics(community_id):
+    community = Community.query.get_or_404(community_id)
+    membership = CommunityMembership.query.filter_by(user_id=current_user.id, community_id=community.id).first()
+    if not (membership and membership.role in ['admin', 'moderator'] and current_user.is_premium):
+        return jsonify({'status': 'error', 'message': 'Permission denied.'}), 403
+
+    thirty_days_ago = date.today() - timedelta(days=30)
+    analytics_data = CommunityAnalytics.query.filter(
+        CommunityAnalytics.community_id == community_id,
+        CommunityAnalytics.date >= thirty_days_ago
+    ).order_by(CommunityAnalytics.date.asc()).all()
+
+    labels = [d.date.strftime('%b %d') for d in analytics_data]
+    member_counts = [d.member_count for d in analytics_data]
+    daily_posts = [d.daily_posts for d in analytics_data]
+    daily_comments = [d.daily_comments for d in analytics_data]
+
+    return jsonify({
+        'labels': labels,
+        'member_counts': member_counts,
+        'daily_posts': daily_posts,
+        'daily_comments': daily_comments
     })
 
 # --- API Route for Reels ---

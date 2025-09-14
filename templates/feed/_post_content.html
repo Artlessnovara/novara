@@ -21,6 +21,9 @@
     <div class="post-more-options">
         <button class="icon-btn more-options-btn"><i class="fas fa-ellipsis-h"></i></button>
         <ul class="more-options-menu">
+            {% if post.author == current_user and current_user.is_premium and not post.is_boosted %}
+            <li><a href="#" class="boost-post-btn" data-post-id="{{ post.id }}">Boost Post</a></li>
+            {% endif %}
             {% if post.author == current_user and current_user.is_premium %}
             <li><a href="#" class="view-analytics-btn" data-post-id="{{ post.id }}">View Analytics</a></li>
             {% endif %}
