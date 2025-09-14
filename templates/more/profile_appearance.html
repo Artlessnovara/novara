@@ -1,0 +1,48 @@
+{% extends "feed/base.html" %}
+{% import "templates/_form_helpers.html" as forms %}
+
+{% block title %}Edit Profile Appearance{% endblock %}
+
+{% block content %}
+<div class="more-container">
+    <div class="more-section">
+        <div class="more-section-header">
+            <a href="{{ url_for('more.more_page') }}" class="back-link"><i class="fas fa-arrow-left"></i></a>
+            Edit Profile Appearance
+        </div>
+        <div class="form-container" style="padding: 1rem;">
+            <form method="POST" action="{{ url_for('more.profile_appearance_settings') }}" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+
+                <fieldset class="form-group">
+                    <legend class="border-bottom mb-4">Profile Banner</legend>
+                    {% if current_user.profile_banner_url %}
+                        <img src="{{ url_for('static', filename=current_user.profile_banner_url) }}" alt="Current Banner" style="max-width: 100%; border-radius: 8px; margin-bottom: 1rem;">
+                    {% endif %}
+                    {{ forms.render_field(form.profile_banner) }}
+                </fieldset>
+
+                <fieldset class="form-group">
+                    <legend class="border-bottom mb-4">Profile Theme</legend>
+                    {{ forms.render_field(form.profile_theme) }}
+                </fieldset>
+
+                <fieldset class="form-group">
+                    <legend class="border-bottom mb-4">Bio Links</legend>
+                    <p class="text-muted">{{ form.bio_links.description }}</p>
+                    {{ forms.render_field(form.bio_links, rows=5) }}
+                </fieldset>
+
+                <fieldset class="form-group">
+                    <legend class="border-bottom mb-4">Pin a Post to Your Profile</legend>
+                    {{ forms.render_field(form.pinned_post) }}
+                </fieldset>
+
+                <div class="form-group">
+                    {{ forms.render_field(form.submit, class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
