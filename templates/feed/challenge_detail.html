@@ -1,113 +1,123 @@
 {% extends "feed/base.html" %}
 
-{% block title %}Challenge: {{ challenge.title }}{% endblock %}
+{% block title %}{{ challenge.title }} - Challenge Details{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/creativity.css') }}">
+<style>
+    .challenge-header {
+        background-color: #f8f9fa;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+    }
+    .submissions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+    .submission-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        overflow: hidden;
+    }
+    .submission-card img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+    }
+    .submission-card .card-body {
+        padding: 1rem;
+    }
+    .vote-btn {
+        width: 100%;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="challenge-detail-container" style="max-width: 1200px; margin: auto; padding: 1rem;">
-
-    <div class="challenge-header-main">
+<div class="container mt-4">
+    <div class="challenge-header text-center">
         <h1>{{ challenge.title }}</h1>
-        {% if challenge.is_active %}
-            <span class="status-badge active">Active</span>
-        {% else %}
-            <span class="status-badge past">Finished</span>
-        {% endif %}
+        <p class="lead">{{ challenge.description }}</p>
+        <p class="text-muted">
+            Challenge runs from {{ challenge.start_date.strftime('%Y-%m-%d') }} to {{ challenge.end_date.strftime('%Y-%m-%d') }}
+        </p>
     </div>
-    <p class="challenge-meta">Hosted by {{ challenge.creator.name }} | Deadline: {{ challenge.deadline.strftime('%B %d, %Y at %I:%M %p') }}</p>
 
-    <div class="challenge-body">
-        <div class="challenge-info-panel">
-            <h3>About this Challenge</h3>
-            <p>{{ challenge.description }}</p>
-
-            <h4>Rules</h4>
-            <p>{{ challenge.rules or 'No specific rules provided.' }}</p>
-
-            <h4>Prize</h4>
-            <p>{{ challenge.prize or 'Bragging rights and glory!' }}</p>
-
-            {% if challenge.is_active %}
-            <div class="submit-to-challenge">
-                <h3>Submit Your Entry</h3>
-                <form action="{{ url_for('feed.submit_to_challenge', challenge_id=challenge.id) }}" method="POST">
-                    <p>Select one of your existing creative works to submit.</p>
-                    <select name="creative_work_id" class="form-control" required>
-                        <option value="">-- Choose a work --</option>
-                        {% for work in current_user.creative_works.order_by(CreativeWork.timestamp.desc()).all() %}
-                            <option value="{{ work.id }}">{{ work.title }} ({{ work.work_type }})</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Submit to Challenge</button>
-                </form>
-            </div>
+    <h2 class="mb-4">Submissions</h2>
+    <div class="submissions-grid">
+        {% for submission in challenge.submissions %}
+        <div class="submission-card">
+            {% if submission.work_type == 'image' %}
+                <img src="{{ url_for('static', filename=submission.media_url) }}" alt="{{ submission.title }}">
+            {% elif submission.cover_image_url %}
+                 <img src="{{ url_for('static', filename=submission.cover_image_url) }}" alt="{{ submission.title }} cover">
+            {% else %}
+                <div class="text-center p-5 bg-light"><i class="fas fa-music fa-3x"></i></div>
             {% endif %}
-        </div>
 
-        <div class="challenge-submissions-panel">
-            <h3>Submissions ({{ challenge.submissions.count() }})</h3>
-            <div class="works-grid">
-                {% for submission in challenge.submissions %}
-                    {% set work = submission.creative_work %}
-                    <div class="work-item">
-                        <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
-                            <div class="work-item-media">
-                                {% if work.work_type == 'image' %}
-                                    <img src="{{ url_for('static', filename=work.media_url) }}" alt="{{ work.title }}">
-                                {% else %}
-                                     <div style="display:flex; align-items:center; justify-content:center; height:100%; background-color: #f0f0f0;">
-                                         <p style="padding: 1rem; text-align: center;">{{ work.title }}</p>
-                                     </div>
-                                {% endif %}
-                            </div>
-                            <div class="work-item-overlay">
-                                <div class="work-item-info">
-                                    <p>by {{ work.artist.name }}</p>
-                                </div>
-                            </div>
-                        </a>
-                        <div class="submission-vote">
-                            <button class="btn-vote {% if current_user.id in submission.votes|map(attribute='user_id')|list %}voted{% endif %}" data-submission-id="{{ submission.id }}">
-                                <i class="fas fa-star"></i> <span>Vote</span>
-                            </button>
-                            <span class="vote-count">{{ submission.votes.count() }} votes</span>
-                        </div>
-                    </div>
-                {% else %}
-                    <p>No submissions yet. Be the first!</p>
-                {% endfor %}
+            <div class="card-body">
+                <h5 class="card-title">{{ submission.title }}</h5>
+                <p class="card-text">by <a href="{{ url_for('feed.profile', user_id=submission.artist.id) }}">{{ submission.artist.name }}</a></p>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <button class="btn btn-primary vote-btn"
+                            data-challenge-id="{{ challenge.id }}"
+                            data-submission-id="{{ submission.id }}">
+                        Vote
+                    </button>
+                    <span class="vote-count" id="vote-count-{{ submission.id }}">
+                        {{ submission.votes|length }} votes
+                    </span>
+                </div>
             </div>
         </div>
+        {% else %}
+        <div class="col-12">
+            <p>No submissions for this challenge yet.</p>
+        </div>
+        {% endfor %}
     </div>
 </div>
+{% endblock %}
 
-<style>
-.challenge-header-main { display: flex; align-items: center; gap: 1rem; }
-.status-badge { padding: 5px 15px; border-radius: 20px; color: white; font-weight: 600; }
-.status-badge.active { background-color: #28a745; }
-.status-badge.past { background-color: #6c757d; }
-.challenge-meta { color: var(--secondary-text-light); border-bottom: 1px solid var(--border-color-light); padding-bottom: 1rem; margin-bottom: 1.5rem; }
-.challenge-body { display: grid; grid-template-columns: 1fr; gap: 2rem; }
-@media (min-width: 992px) {
-    .challenge-body { grid-template-columns: 1fr 2fr; }
-}
-.challenge-info-panel h3, .challenge-submissions-panel h3 { border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
-.submit-to-challenge { margin-top: 2rem; background: var(--background-color-light); padding: 1.5rem; border-radius: var(--border-radius); }
-.form-control { width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid var(--border-color-light); }
-.btn.btn-primary { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: 600; cursor: pointer; }
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.vote-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const challengeId = this.dataset.challengeId;
+            const submissionId = this.dataset.submissionId;
 
-/* Re-using styles from creativity.html for the grid */
-.works-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
-.work-item { position: relative; overflow: hidden; border-radius: var(--border-radius); background: var(--card-bg-light); box-shadow: var(--shadow-sm); }
-.work-item a { text-decoration: none; color: white; display: block; }
-.work-item-media { height: 220px; background-color: #eee; }
-.work-item-media img { width: 100%; height: 100%; object-fit: cover; }
-.work-item-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); padding: 2rem 1rem 1rem; opacity: 0; transition: opacity 0.3s; }
-.work-item:hover .work-item-overlay { opacity: 1; }
-.work-item-info { font-size: 0.9rem; }
-
-.submission-vote { padding: 0.75rem; text-align: center; }
-.btn-vote { background: var(--hover-overlay-light); border: 1px solid var(--border-color-light); color: var(--primary-text-light); padding: 5px 15px; border-radius: 20px; cursor: pointer; }
-.btn-vote.voted { background: var(--primary-color); color: white; border-color: var(--primary-color); }
-.vote-count { font-size: 0.9rem; margin-left: 10px; color: var(--secondary-text-light); }
-</style>
+            fetch('/api/vote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add CSRF token header if your app uses it
+                },
+                body: JSON.stringify({
+                    challenge_id: challengeId,
+                    submission_id: submissionId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const voteCountSpan = document.getElementById(`vote-count-${submissionId}`);
+                    voteCountSpan.textContent = `${data.vote_count} votes`;
+                    // Optionally disable the button
+                    this.disabled = true;
+                    this.textContent = 'Voted';
+                } else {
+                    alert(data.message); // Simple feedback
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+});
+</script>
 {% endblock %}

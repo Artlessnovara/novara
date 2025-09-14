@@ -10,50 +10,115 @@
 <div class="creativity-container">
     <div class="creativity-header">
         <h2>Creativity Hub</h2>
-        {% if active_category != 'top_creators' %}
-        <form action="{{ url_for('feed.search') }}" method="GET" class="creativity-search">
-            <input type="hidden" name="c" value="{{ active_category }}">
-            <input type="text" name="q" placeholder="Search in {{ active_category.replace('_', ' ')|title }}..." required>
-            <button type="submit" class="search-icon-button"><i class="fas fa-search"></i></button>
-        </form>
-        {% endif %}
+        <div class="creativity-search">
+            <input type="text" placeholder="Search in Creativity...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
     </div>
 
     <nav class="creativity-tabs">
-        <a href="{{ url_for('feed.creativity', category='all') }}" class="tab-link {% if active_category == 'all' %}active{% endif %}">🌐 All</a>
-        <a href="{{ url_for('feed.creativity', category='art_design') }}" class="tab-link {% if active_category == 'art_design' %}active{% endif %}">🖼️ Art & Design</a>
-        <a href="{{ url_for('feed.creativity', category='writing') }}" class="tab-link {% if active_category == 'writing' %}active{% endif %}">✍️ Writing</a>
-        <a href="{{ url_for('feed.creativity', category='music_audio') }}" class="tab-link {% if active_category == 'music_audio' %}active{% endif %}">🎶 Music & Audio</a>
-        <a href="{{ url_for('feed.creativity', category='reels') }}" class="tab-link {% if active_category == 'reels' %}active{% endif %}">🎥 Reels</a>
-        <a href="{{ url_for('feed.creativity', category='challenges') }}" class="tab-link {% if active_category == 'challenges' %}active{% endif %}">🏆 Challenges</a>
-        <a href="{{ url_for('feed.creativity', category='top_creators') }}" class="tab-link {% if active_category == 'top_creators' %}active{% endif %}">🌟 Top Creators</a>
+        <a href="{{ url_for('feed.creativity', category='all') }}" class="tab-link {% if active_category == 'all' %}active{% endif %}" data-category="all">🌐 All</a>
+        <a href="{{ url_for('feed.creativity', category='art_design') }}" class="tab-link {% if active_category == 'art_design' %}active{% endif %}" data-category="art_design">🖼️ Art & Design</a>
+        <a href="{{ url_for('feed.creativity', category='writing') }}" class="tab-link {% if active_category == 'writing' %}active{% endif %}" data-category="writing">✍️ Writing</a>
+        <a href="{{ url_for('feed.creativity', category='music_audio') }}" class="tab-link {% if active_category == 'music_audio' %}active{% endif %}" data-category="music_audio">🎶 Music & Audio</a>
+        <a href="{{ url_for('feed.creativity', category='reels') }}" class="tab-link {% if active_category == 'reels' %}active{% endif %}" data-category="reels">🎥 Reels</a>
+        <a href="{{ url_for('feed.creativity', category='challenges') }}" class="tab-link {% if active_category == 'challenges' %}active{% endif %}" data-category="challenges">🏆 Challenges</a>
+        <a href="{{ url_for('feed.creativity', category='top_creators') }}" class="tab-link {% if active_category == 'top_creators' %}active{% endif %}" data-category="top_creators">🌟 Top Creators</a>
     </nav>
 
-    <div class="tab-content-wrapper">
-        {% if active_category == 'all' %}
-            <div id="all" class="tab-content active">{% include 'feed/tabs/all.html' %}</div>
-        {% elif active_category == 'art_design' %}
-            <div id="art_design" class="tab-content active">{% include 'feed/tabs/art_design.html' %}</div>
-        {% elif active_category == 'writing' %}
-            <div id="writing" class="tab-content active">{% include 'feed/tabs/writing.html' %}</div>
-        {% elif active_category == 'music_audio' %}
-            <div id="music_audio" class="tab-content active">{% include 'feed/tabs/music_audio.html' %}</div>
+    <div class="tab-content-wrapper mt-4">
+        {% if active_category in ['all', 'art_design', 'writing', 'music_audio'] %}
+            <div class="creative-grid">
+                {% for work in works %}
+                    {% include 'feed/cards/_creative_work_card.html' %}
+                {% else %}
+                    <p>No creative works found for this category.</p>
+                {% endfor %}
+            </div>
         {% elif active_category == 'reels' %}
-            <div id="reels" class="tab-content active">{% include 'feed/tabs/reels.html' %}</div>
+            <div class="reels-grid">
+                {% for reel in reels %}
+                    <div class="reel-card">
+                        <video src="{{ url_for('static', filename=reel.video_url) }}" class="reel-video" loop muted></video>
+                        <div class="reel-info">
+                            <p>{{ reel.caption }}</p>
+                            <small>by {{ reel.author.name }}</small>
+                        </div>
+                    </div>
+                {% else %}
+                    <p>No reels found.</p>
+                {% endfor %}
+            </div>
         {% elif active_category == 'challenges' %}
-            <div id="challenges" class="tab-content active">{% include 'feed/tabs/challenges.html' %}</div>
+            <div class="challenge-list">
+                {% for challenge in challenges %}
+                    <div class="challenge-card card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ challenge.title }}</h5>
+                            <p class="card-text">{{ challenge.description }}</p>
+                            <p class="card-text"><small class="text-muted">Ends: {{ challenge.end_date.strftime('%Y-%m-%d') }}</small></p>
+                            <a href="{{ url_for('feed.view_challenge', challenge_id=challenge.id) }}" class="btn btn-primary">View Challenge</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <p>No active challenges right now.</p>
+                {% endfor %}
+            </div>
         {% elif active_category == 'top_creators' %}
-            <div id="top_creators" class="tab-content active">{% include 'feed/tabs/top_creators.html' %}</div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>Most Liked Creators</h3>
+                    <ul class="list-group">
+                        {% for user, total_likes in top_creators.most_liked %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <a href="{{ url_for('feed.profile', user_id=user.id) }}">{{ user.name }}</a>
+                                <span class="badge bg-primary rounded-pill">{{ total_likes }} Likes</span>
+                            </li>
+                        {% else %}
+                            <li class="list-group-item">No likes yet!</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h3>Most Active Creators</h3>
+                    <ul class="list-group">
+                        {% for user, total_works in top_creators.most_active %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <a href="{{ url_for('feed.profile', user_id=user.id) }}">{{ user.name }}</a>
+                                <span class="badge bg-secondary rounded-pill">{{ total_works }} Works</span>
+                            </li>
+                        {% else %}
+                             <li class="list-group-item">No works posted yet!</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
         {% endif %}
     </div>
 
+    <!-- FAB and Modal remain the same -->
+    <button id="fab-create" class="fab">+</button>
+    <div id="create-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal-btn">&times;</span>
+            <h4 id="modal-title">Upload to Creativity Hub</h4>
+            <div id="modal-form-content">
+                <!-- JS will load form here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox Modal for Image Zoom -->
+    <div id="lightbox-modal" class="modal">
+        <span class="close-lightbox-btn">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+        <div id="lightbox-caption"></div>
+    </div>
 </div>
 
-<script>
-// Basic script to handle tab switching without a full page reload,
-// though the current setup reloads the page. This can be enhanced later.
-document.addEventListener('DOMContentLoaded', function() {
-    // The logic is handled by the backend route for now.
-});
-</script>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/creativity.js') }}"></script>
 {% endblock %}

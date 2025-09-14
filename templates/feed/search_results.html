@@ -2,137 +2,119 @@
 
 {% block title %}Search Results for "{{ query }}"{% endblock %}
 
-{% block content %}
-<div class="search-results-container" style="max-width: 900px; margin: auto; padding: 1rem;">
-
-    {% if category %}
-        <h2>Search Results for "{{ query }}" in {{ category.replace('_', ' ')|title }}</h2>
-    {% else %}
-        <h2>Search Results for "{{ query }}"</h2>
-    {% endif %}
-
-    {% if category == 'all' %}
-        {% for type, items in results.items() %}
-            {% if items %}
-            <div class="results-section">
-                <h3>{{ type.replace('_', ' ')|title }}</h3>
-                {% for item in items %}
-                    <p><a href="#">{{ item.title or item.caption }}</a></p>
-                {% endfor %}
-            </div>
-            {% endif %}
-        {% endfor %}
-    {% elif category == 'art_design' %}
-        <div class="results-section">
-            <h3>Art & Design</h3>
-            <div class="works-grid">
-                {% for work in results.art_design %}
-                    <div class="work-item">
-                        <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
-                            <img src="{{ url_for('static', filename=work.media_url) }}" alt="{{ work.title }}">
-                        </a>
-                    </div>
-                {% else %}
-                    <p>No art & design found matching your search.</p>
-                {% endfor %}
-            </div>
-        </div>
-    {% elif category == 'writing' %}
-        <div class="results-section">
-            <h3>Writing</h3>
-            <div class="writing-list">
-                {% for work in results.writing %}
-                    <div class="writing-card" style="background-color: {{ work.style_options.get('bg_color', '#ffffff') }}; color: {{ work.style_options.get('text_color', '#000000') }};">
-                        <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
-                            <h4>{{ work.title }}</h4>
-                            <p>{{ work.description|truncate(150) }}</p>
-                        </a>
-                    </div>
-                {% else %}
-                    <p>No writing found matching your search.</p>
-                {% endfor %}
-            </div>
-        </div>
-    {% elif category == 'music_audio' %}
-        <div class="results-section">
-            <h3>Music & Audio</h3>
-            {% for work in results.music_audio %}
-                <div class="audio-card">
-                    <!-- Using simplified audio card for search results -->
-                    <a href="{{ url_for('feed.view_creative_work', work_id=work.id) }}">
-                        {{ work.title }} by {{ work.artist.name }}
-                    </a>
-                </div>
-            {% else %}
-                <p>No music or audio found matching your search.</p>
-            {% endfor %}
-        </div>
-    {% elif category == 'reels' %}
-         <div class="results-section">
-            <h3>Reels</h3>
-            {% for reel in results.reels %}
-                <div class="reel-search-item">
-                     <a href="#">{{ reel.caption|truncate(80) }} by {{ reel.author.name }}</a>
-                </div>
-            {% else %}
-                <p>No reels found matching your search.</p>
-            {% endfor %}
-        </div>
-    {% elif category == 'challenges' %}
-        <div class="results-section">
-            <h3>Challenges</h3>
-            {% for challenge in results.challenges %}
-                <div class="challenge-search-item">
-                     <a href="{{ url_for('feed.view_challenge', challenge_id=challenge.id) }}">{{ challenge.title }}</a>
-                </div>
-            {% else %}
-                <p>No challenges found matching your search.</p>
-            {% endfor %}
-        </div>
-    {% else %}
-        <!-- Generic Search Results -->
-        <div class="results-section">
-            <h3>Users</h3>
-            {% for user in results.users %}
-                <p><a href="{{ url_for('feed.profile', user_id=user.id) }}">{{ user.name }}</a></p>
-            {% else %}
-                <p>No users found.</p>
-            {% endfor %}
-        </div>
-        <div class="results-section">
-            <h3>Posts</h3>
-            {% for post in results.posts %}
-                <p>"{{ post.content|truncate(80) }}" by {{ post.author.name }}</p>
-            {% else %}
-                <p>No posts found.</p>
-            {% endfor %}
-        </div>
-        <div class="results-section">
-            <h3>Communities</h3>
-            {% for community in results.communities %}
-                <p><a href="{{ url_for('feed.view_community', community_id=community.id) }}">{{ community.name }}</a></p>
-            {% else %}
-                <p>No communities found.</p>
-            {% endfor %}
-        </div>
-    {% endif %}
-
-</div>
-
+{% block styles %}
 <style>
-    /* Add some basic styling for the search results page */
-    .results-section {
-        margin-bottom: 2rem;
-    }
-    .results-section h3 {
+    .search-results-container { max-width: 900px; margin: auto; padding: 1rem; }
+    .tab-nav {
+        display: flex;
         border-bottom: 1px solid var(--border-color-light);
-        padding-bottom: 0.5rem;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
     }
-    /* Using styles from other templates for consistency */
-    .works-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; }
-    .work-item img { width: 100%; height: 150px; object-fit: cover; border-radius: 5px; }
-    .writing-card { padding: 1rem; border-radius: 5px; margin-bottom: 1rem; }
-    .writing-card a { text-decoration: none; color: inherit; }
+    .tab-link {
+        padding: 0.75rem 1.5rem;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        font-weight: 600;
+        color: var(--secondary-text-light);
+    }
+    .tab-link.active {
+        border-bottom-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    .tab-panel {
+        display: none;
+    }
+    .tab-panel.active {
+        display: block;
+    }
+    .result-item {
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--border-color-light);
+    }
+    .result-item:last-child {
+        border-bottom: none;
+    }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="search-results-container">
+    <h1>Search Results for "{{ query }}"</h1>
+
+    <nav class="tab-nav">
+        <div class="tab-link active" data-tab="all">All</div>
+        <div class="tab-link" data-tab="people">People</div>
+        <div class="tab-link" data-tab="posts">Posts</div>
+        <div class="tab-link" data-tab="communities">Communities</div>
+    </nav>
+
+    <div id="all" class="tab-panel active">
+        <h3>All Results</h3>
+        {% if not users and not posts and not communities %}
+            <p>No results found for "{{ query }}".</p>
+        {% else %}
+            {% if users %}
+                <h4>People</h4>
+                {% for user in users|slice(3) %}<div class="result-item"><a href="{{ url_for('feed.profile', user_id=user.id) }}">{{ user.name }}</a></div>{% endfor %}
+            {% endif %}
+            {% if posts %}
+                <h4>Posts</h4>
+                {% for post in posts|slice(3) %}<div class="result-item"><p>"{{ post.content|truncate(100) }}" by {{ post.author.name }}</p></div>{% endfor %}
+            {% endif %}
+            {% if communities %}
+                <h4>Communities</h4>
+                {% for community in communities|slice(3) %}<div class="result-item"><a href="{{ url_for('feed.view_community', community_id=community.id) }}">{{ community.name }}</a></div>{% endfor %}
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div id="people" class="tab-panel">
+        <h3>People</h3>
+        {% for user in users %}
+            <div class="result-item"><a href="{{ url_for('feed.profile', user_id=user.id) }}">{{ user.name }}</a></div>
+        {% else %}
+            <p>No people found matching "{{ query }}".</p>
+        {% endfor %}
+    </div>
+
+    <div id="posts" class="tab-panel">
+        <h3>Posts</h3>
+        {% for post in posts %}
+            <div class="result-item"><p>"{{ post.content|truncate(100) }}" by {{ post.author.name }}</p></div>
+        {% else %}
+            <p>No posts found matching "{{ query }}".</p>
+        {% endfor %}
+    </div>
+
+    <div id="communities" class="tab-panel">
+        <h3>Communities</h3>
+        {% for community in communities %}
+            <div class="result-item"><a href="{{ url_for('feed.view_community', community_id=community.id) }}">{{ community.name }}</a></div>
+        {% else %}
+            <p>No communities found matching "{{ query }}".</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabLinks = document.querySelectorAll('.tab-link');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            // Deactivate all
+            tabLinks.forEach(l => l.classList.remove('active'));
+            tabPanels.forEach(p => p.classList.remove('active'));
+
+            // Activate clicked
+            link.classList.add('active');
+            const tabId = link.dataset.tab;
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -3,6 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from datetime import datetime, timedelta
 from sqlalchemy.orm import synonym, foreign
+from sqlalchemy import JSON
 
 # Define the follow association table before it's used in the User model
 follow = db.Table('follow',
@@ -644,8 +645,6 @@ class Post(db.Model):
     media_type = db.Column(db.String(20), nullable=True) # 'image', 'video'
     media_url = db.Column(db.String(255), nullable=True)
     original_post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=True)
-    shared_creative_work_id = db.Column(db.Integer, db.ForeignKey('creative_work.id'), nullable=True)
-    shared_reel_id = db.Column(db.Integer, db.ForeignKey('reel.id'), nullable=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     privacy = db.Column(db.String(50), nullable=False, default='public') # public, followers, private
 
@@ -658,8 +657,6 @@ class Post(db.Model):
                                lazy='dynamic',
                                cascade="all, delete-orphan")
     original_post = db.relationship('Post', remote_side=[id], backref='reposts')
-    shared_creative_work = db.relationship('CreativeWork', backref='shares')
-    shared_reel = db.relationship('Reel', backref='shares')
 
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -694,7 +691,6 @@ class Reel(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     video_url = db.Column(db.String(255), nullable=False)
     caption = db.Column(db.Text, nullable=True)
-    tags = db.Column(db.String(255), nullable=True) # Comma-separated tags
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     likes = db.relationship('Like',
@@ -736,18 +732,24 @@ class Project(db.Model):
                                cascade="all, delete-orphan",
                                overlaps="generic_comments")
 
+challenge_submissions = db.Table('challenge_submissions',
+    db.Column('challenge_id', db.Integer, db.ForeignKey('challenge.id'), primary_key=True),
+    db.Column('creative_work_id', db.Integer, db.ForeignKey('creative_work.id'), primary_key=True),
+    db.Column('submission_date', db.DateTime, default=datetime.utcnow)
+)
+
 class CreativeWork(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(150), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    media_url = db.Column(db.String(255), nullable=True)
-    work_type = db.Column(db.String(50), nullable=False) # e.g., 'image', 'music', 'video', 'writing'
-    sub_category = db.Column(db.String(50), nullable=True)
-    style_options = db.Column(db.JSON, nullable=True) # For storing text post styles
-    genre = db.Column(db.String(50), nullable=True) # For music
-    cover_image_url = db.Column(db.String(255), nullable=True) # For music/audio
+    media_url = db.Column(db.String(255), nullable=True) # Nullable for writing
+    work_type = db.Column(db.String(50), nullable=False) # e.g., 'image', 'audio', 'video', 'writing'
+    sub_category = db.Column(db.String(50), nullable=True) # e.g., 'poetry', 'digital_art'
+    genre = db.Column(db.String(50), nullable=True) # For music/audio
+    style_options = db.Column(JSON, nullable=True) # For writing post styles
     tags = db.Column(db.String(255), nullable=True) # Comma-separated tags
+    cover_image_url = db.Column(db.String(255), nullable=True) # For audio
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     likes = db.relationship('Like',
@@ -760,6 +762,52 @@ class CreativeWork(db.Model):
                                lazy='dynamic',
                                cascade="all, delete-orphan",
                                overlaps="generic_comments")
+    bookmarks = db.relationship('Bookmark',
+                                primaryjoin="and_(Bookmark.target_type=='creative_work', foreign(Bookmark.target_id)==CreativeWork.id)",
+                                lazy='dynamic',
+                                cascade="all, delete-orphan")
+    submissions = db.relationship('Challenge', secondary=challenge_submissions, back_populates='submissions')
+
+
+class Challenge(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    end_date = db.Column(db.DateTime, nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    creator = db.relationship('User', backref='created_challenges')
+    submissions = db.relationship('CreativeWork', secondary=challenge_submissions, back_populates='submissions')
+
+class Vote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    challenge_id = db.Column(db.Integer, db.ForeignKey('challenge.id'), nullable=False)
+    submission_id = db.Column(db.Integer, db.ForeignKey('creative_work.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='votes')
+    challenge = db.relationship('Challenge', backref='votes')
+    submission = db.relationship('CreativeWork', backref='votes')
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'challenge_id', 'submission_id', name='_user_challenge_submission_vote_uc'),)
+
+class Bookmark(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Polymorphic relationship
+    target_type = db.Column(db.String(50), nullable=False)
+    target_id = db.Column(db.Integer, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('bookmarks', lazy='dynamic'))
+
+    __table_args__ = (
+        db.Index('ix_bookmark_target', 'target_type', 'target_id'),
+        db.UniqueConstraint('user_id', 'target_type', 'target_id', name='_user_target_bookmark_uc')
+    )
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -784,19 +832,6 @@ class ReportedPost(db.Model):
     reporter = db.relationship('User', foreign_keys=[reported_by_id])
 
 
-class Bookmark(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-
-    # Polymorphic relationship
-    target_type = db.Column(db.String(50), nullable=False)
-    target_id = db.Column(db.Integer, nullable=False)
-
-    user = db.relationship('User', backref=db.backref('bookmarks', lazy='dynamic'))
-
-    __table_args__ = (db.Index('ix_bookmark_target', 'target_type', 'target_id'),)
-
 class FCMToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -804,41 +839,3 @@ class FCMToken(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref='fcm_tokens')
-
-class Challenge(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(150), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    rules = db.Column(db.Text, nullable=True)
-    prize = db.Column(db.String(255), nullable=True)
-    deadline = db.Column(db.DateTime, nullable=False)
-    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-
-    creator = db.relationship('User', backref='created_challenges')
-    submissions = db.relationship('ChallengeSubmission', backref='challenge', lazy='dynamic', cascade="all, delete-orphan")
-
-    @property
-    def is_active(self):
-        return datetime.utcnow() < self.deadline
-
-class ChallengeSubmission(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    challenge_id = db.Column(db.Integer, db.ForeignKey('challenge.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-
-    # Polymorphic relationship for submissions
-    submission_type = db.Column(db.String(50))
-    submission_id = db.Column(db.Integer)
-
-    user = db.relationship('User', backref='challenge_submissions')
-    votes = db.relationship('Vote', backref='submission', lazy='dynamic', cascade="all, delete-orphan")
-
-class Vote(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    submission_id = db.Column(db.Integer, db.ForeignKey('challenge_submission.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-
-    user = db.relationship('User', backref='votes')

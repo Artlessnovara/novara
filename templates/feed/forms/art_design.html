@@ -1,0 +1,35 @@
+<h3>Showcase Your Art & Design</h3>
+<form action="{{ url_for('feed.create_creative_work') }}" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="category" value="art_design">
+    <div>
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required>
+    </div>
+    <div style="margin-top: 1rem;">
+        <label for="description">Description</label>
+        <textarea name="description" id="description" rows="3"></textarea>
+    </div>
+    <div style="margin-top: 1rem;">
+        <label for="sub_category">Sub-Category</label>
+        <select name="sub_category" id="sub_category">
+            <option value="">All Art & Design</option>
+            <option value="digital">Digital Art</option>
+            <option value="hand_drawn">Hand-drawn</option>
+            <option value="photography">Photography</option>
+            <option value="crafts">Crafts</option>
+        </select>
+    </div>
+    <div style="margin-top: 1rem;">
+        <label for="media">Media File (Image)</label>
+        <input type="file" id="media" name="media" accept="image/*" required>
+    </div>
+    <div style="margin-top: 1rem;">
+        <label for="tags">Tags (comma-separated)</label>
+        <input type="text" id="tags" name="tags" placeholder="e.g., digitalart, illustration, nature">
+    </div>
+    <div style="margin-top: 1rem;">
+        <input type="checkbox" id="watermark" name="watermark" value="true">
+        <label for="watermark">Add watermark with my username</label>
+    </div>
+    <button type="submit">Upload Art</button>
+</form>
