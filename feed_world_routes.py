@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, Vote, Bookmark
+from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, Vote, Bookmark, PostImpression
 from extensions import db
 from utils import save_post_media, save_community_cover_image
 from sqlalchemy import or_
@@ -727,6 +727,64 @@ def add_comment(post_id):
     }
 
     return jsonify({'status': 'success', 'comment': comment_data}), 201
+
+
+@feed_bp.route('/api/post/<int:post_id>/impression', methods=['POST'])
+@login_required
+def record_impression(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    # Don't record an impression if the user is the author of the post
+    if current_user.id == post.user_id:
+        return jsonify({'status': 'ignored', 'message': 'Author view'}), 200
+
+    # A simple implementation could add a check here to not record an impression
+    # if one was already recorded recently for this user and post.
+    # For now, we record every impression call.
+
+    impression = PostImpression(
+        post_id=post.id,
+        viewer_id=current_user.id
+    )
+    db.session.add(impression)
+    db.session.commit()
+
+    return jsonify({'status': 'success'}), 201
+
+
+@feed_bp.route('/api/post/<int:post_id>/analytics')
+@login_required
+def get_post_analytics(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    # Security check: only the author can view analytics, and they must be premium
+    if post.user_id != current_user.id or not current_user.is_premium:
+        abort(403)
+
+    impressions = post.impressions.count()
+    reach = db.session.query(func.count(PostImpression.viewer_id.distinct())).filter_by(post_id=post.id).scalar()
+    likes = post.likes.count()
+    comments = post.comments.count()
+    engagement = likes + comments
+
+    # Simple demographics based on likers' roles
+    demographics = db.session.query(
+        User.role, func.count(User.role)
+    ).join(Like, User.id == Like.user_id).filter(
+        Like.target_type == 'post',
+        Like.target_id == post.id
+    ).group_by(User.role).all()
+
+    demographics_data = {role: count for role, count in demographics}
+
+    return jsonify({
+        'impressions': impressions,
+        'reach': reach,
+        'engagement': engagement,
+        'likes': likes,
+        'comments': comments,
+        'demographics': demographics_data
+    })
 
 # --- API Route for Reels ---
 
