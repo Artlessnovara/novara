@@ -332,6 +332,17 @@
         </form>
     </div>
 </div>
+
+<!-- Analytics Modal -->
+<div id="analytics-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn analytics-close">&times;</span>
+        <h2>Post Analytics</h2>
+        <div id="analytics-content">
+            <p>Loading analytics...</p>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -613,6 +624,114 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     updateTimestamps();
+
+    // --- Analytics Modal Logic ---
+    const analyticsModal = document.getElementById('analytics-modal');
+    if (analyticsModal) {
+        const analyticsCloseBtn = analyticsModal.querySelector('.analytics-close');
+        const analyticsContent = document.getElementById('analytics-content');
+
+        document.querySelectorAll('.view-analytics-btn').forEach(btn => {
+            btn.addEventListener('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const postId = this.dataset.postId;
+                analyticsModal.style.display = 'block';
+                analyticsContent.innerHTML = '<p>Loading analytics...</p>';
+
+                fetch(`/feed/api/post/${postId}/analytics`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to load analytics.');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        analyticsContent.innerHTML = `
+                            <ul class="list-group">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Impressions
+                                    <span class="badge badge-primary badge-pill">${data.impressions}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Reach (Unique Viewers)
+                                    <span class="badge badge-primary badge-pill">${data.reach}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Total Engagement
+                                    <span class="badge badge-primary badge-pill">${data.engagement}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    &nbsp;&nbsp;&nbsp;Likes
+                                    <span class="badge badge-secondary badge-pill">${data.likes}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    &nbsp;&nbsp;&nbsp;Comments
+                                    <span class="badge badge-secondary badge-pill">${data.comments}</span>
+                                </li>
+                            </ul>
+                            <h5 class="mt-4">Engagement by Role (from Likes)</h5>
+                            <ul class="list-group">
+                                ${Object.entries(data.demographics).map(([role, count]) => `
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        ${role.charAt(0).toUpperCase() + role.slice(1)}s
+                                        <span class="badge badge-info badge-pill">${count}</span>
+                                    </li>
+                                `).join('')}
+                                ${Object.keys(data.demographics).length === 0 ? '<li class="list-group-item">No engagement data by role yet.</li>' : ''}
+                            </ul>
+                        `;
+                    })
+                    .catch(error => {
+                        analyticsContent.innerHTML = `<p class="text-danger">${error.message}</p>`;
+                    });
+
+                this.closest('.more-options-menu').style.display = 'none';
+            });
+        });
+
+        analyticsCloseBtn.onclick = function() {
+            analyticsModal.style.display = 'none';
+        }
+
+        // Also close modal when clicking outside of it
+        window.addEventListener('click', (event) => {
+            if (event.target == analyticsModal) {
+                analyticsModal.style.display = 'none';
+            }
+        });
+    }
+
+    // --- Impression Tracking Logic ---
+    const observerOptions = {
+        root: null, // relative to the viewport
+        rootMargin: '0px',
+        threshold: 0.75 // Trigger when 75% of the post is visible
+    };
+
+    const impressionObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const postContainer = entry.target;
+                const postId = postContainer.dataset.postId;
+
+                if (!postContainer.dataset.impressionSent) {
+                    postContainer.dataset.impressionSent = 'true';
+                    fetch(`/feed/api/post/${postId}/impression`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                    }).catch(err => console.error('Impression tracking failed:', err));
+
+                    observer.unobserve(postContainer);
+                }
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.post-container').forEach(post => {
+        impressionObserver.observe(post);
+    });
 });
 </script>
 {% endblock %}

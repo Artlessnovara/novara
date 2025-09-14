@@ -855,6 +855,19 @@ class PinnedPost(db.Model):
         return f'<PinnedPost for User {self.user_id} - Post {self.post_id}>'
 
 
+class PostImpression(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False, index=True)
+    viewer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True) # Nullable for anonymous viewers
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    post = db.relationship('Post', backref=db.backref('impressions', lazy='dynamic'))
+    viewer = db.relationship('User', backref=db.backref('post_views', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<PostImpression on Post {self.post_id} by User {self.viewer_id}>'
+
+
 # --- "More" Page Feature Models ---
 
 class UserPage(db.Model):
