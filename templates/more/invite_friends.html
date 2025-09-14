@@ -1,0 +1,77 @@
+{% extends "feed/base.html" %}
+
+{% block title %}Invite Friends{% endblock %}
+
+{% block content %}
+<div class="more-container">
+    <div class="more-section">
+        <div class="more-section-header">
+            <a href="{{ url_for('more.more_page') }}" class="back-link"><i class="fas fa-arrow-left"></i></a>
+            Invite Friends
+        </div>
+        <div class="invite-container" style="padding: 1rem; text-align: center;">
+            <h4>Share the love!</h4>
+            <p>Invite your friends to join Nova. Share your unique referral code or link below.</p>
+
+            <div class="referral-code-box">
+                <p>Your Referral Code:</p>
+                <h3 id="referral-code">{{ referral_code }}</h3>
+            </div>
+
+            <div class="referral-link-box">
+                <p>Your Referral Link:</p>
+                <input type="text" value="{{ referral_link }}" id="referral-link-input" readonly>
+                <button class="btn btn-primary" onclick="copyToClipboard()">
+                    <i class="fas fa-copy"></i> Copy Link
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.back-link {
+    margin-right: 15px;
+    color: var(--text-color);
+}
+.invite-container {
+    background-color: var(--secondary-bg-color);
+    border-radius: 8px;
+    margin: 1rem;
+    padding: 2rem;
+}
+.referral-code-box {
+    margin: 2rem 0;
+}
+#referral-code {
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: var(--primary-color);
+}
+.referral-link-box input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+function copyToClipboard() {
+    var copyText = document.getElementById("referral-link-input");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); /* For mobile devices */
+    document.execCommand("copy");
+    alert("Copied to clipboard: " + copyText.value);
+}
+</script>
+{% endblock %}

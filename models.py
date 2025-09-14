@@ -873,6 +873,30 @@ class Subscription(db.Model):
     user = db.relationship('User', backref=db.backref('subscription', uselist=False))
 
 
+class Feedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    feedback_text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('feedback_submissions', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<Feedback {self.id} by User {self.user_id}>'
+
+
+class Referral(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    code = db.Column(db.String(16), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('referral_code', uselist=False))
+
+    def __repr__(self):
+        return f'<Referral {self.code} for User {self.user_id}>'
+
+
 class FCMToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
