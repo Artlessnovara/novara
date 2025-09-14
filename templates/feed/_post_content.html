@@ -2,7 +2,7 @@
     <div class="post-author">
         <img src="{{ url_for('static', filename='profile_pics/' + post.author.profile_pic) }}" alt="{{ post.author.name }}" class="profile-pic-small">
         <div class="post-author-info">
-            <a href="{{ url_for('feed.profile', user_id=post.author.id) }}" style="text-decoration: none; color: inherit;">{{ post.author.name }}</a>
+            <a href="{{ url_for('feed.profile', user_id=post.author.id) }}" style="text-decoration: none; color: inherit;">{{ post.author.name }}</a>{% if post.author.is_premium %}<span class="premium-badge" title="Premium Member"><i class="fas fa-check-circle"></i> Pro</span>{% endif %}
             <div class="post-meta">
                 <span class="post-timestamp" data-timestamp="{{ post.timestamp.isoformat() }}Z">
                     {{ post.timestamp.strftime('%B %d, %Y') }}

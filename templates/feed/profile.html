@@ -25,7 +25,7 @@
     <div class="profile-header">
         <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}" class="profile-pic-large">
         <div class="profile-info">
-            <h1>{{ user.name }}</h1>
+            <h1>{{ user.name }}{% if user.is_premium %}<span class="premium-badge" title="Premium Member"><i class="fas fa-check-circle"></i> Pro</span>{% endif %}</h1>
             <p>{{ user.bio or 'No bio yet.' }}</p>
             <div class="profile-stats">
                 <div><strong>{{ posts|length }}</strong> posts</div>

@@ -498,10 +498,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const commentEl = document.createElement('div');
         commentEl.classList.add('comment');
+
+        const premiumBadge = comment.author.is_premium
+            ? `<span class="premium-badge" title="Premium Member"><i class="fas fa-check-circle"></i> Pro</span>`
+            : '';
+
         commentEl.innerHTML = `
             <img src="${comment.author.profile_pic}" alt="${comment.author.name}" class="profile-pic-small">
             <div class="comment-content">
-                <a href="/feed/profile/${comment.author.id}" style="font-weight: 600; text-decoration: none; color: inherit;">${comment.author.name}</a>
+                <a href="/feed/profile/${comment.author.id}" style="font-weight: 600; text-decoration: none; color: inherit;">${comment.author.name}</a>${premiumBadge}
                 <p style="margin: 0.25rem 0 0;">${comment.content}</p>
             </div>
         `;
