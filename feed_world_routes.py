@@ -19,9 +19,12 @@ def home():
     following_ids.append(current_user.id)
 
     posts = Post.query.filter(
-        (Post.privacy == 'public') |
-        ( (Post.privacy == 'followers') & (Post.user_id.in_(following_ids)) ) |
-        ( (Post.privacy == 'private') & (Post.user_id == current_user.id) )
+        Post.post_status == 'published',
+        (
+            (Post.privacy == 'public') |
+            ( (Post.privacy == 'followers') & (Post.user_id.in_(following_ids)) ) |
+            ( (Post.privacy == 'private') & (Post.user_id == current_user.id) )
+        )
     ).order_by(Post.timestamp.desc()).all()
 
     # Pre-process posts to include reaction data
@@ -50,26 +53,40 @@ def create_post_page():
 @feed_bp.route('/create_post', methods=['POST'])
 @login_required
 def create_post():
-    """Create a new post."""
+    """Create a new post, with scheduling for premium users."""
     content = request.form.get('content')
     privacy = request.form.get('privacy', 'public')
     media_file = request.files.get('media')
     community_id = request.form.get('community_id', type=int)
+    schedule_time_str = request.form.get('schedule_time')
 
     if not content:
         flash('Content is required to create a post.', 'danger')
-        if community_id:
-            return redirect(url_for('feed.view_community', community_id=community_id))
-        return redirect(url_for('feed.home'))
+        return redirect(url_for('feed.create_post_page'))
 
     media_url = None
     media_type = None
-
     if media_file:
         media_url, media_type = save_post_media(media_file)
         if not media_url:
             flash('Invalid file type or size for media.', 'danger')
-            return redirect(url_for('feed.home'))
+            return redirect(url_for('feed.create_post_page'))
+
+    scheduled_for_dt = None
+    post_status = 'published'
+    flash_message = 'Your post has been created!'
+
+    if current_user.is_premium and schedule_time_str:
+        try:
+            scheduled_for_dt = datetime.strptime(schedule_time_str, '%Y-%m-%dT%H:%M')
+            if scheduled_for_dt > datetime.utcnow():
+                post_status = 'scheduled'
+                flash_message = f"Your post has been scheduled for {scheduled_for_dt.strftime('%B %d, %Y at %I:%M %p')}."
+            else:
+                flash('Scheduled time is in the past. Posting immediately.', 'info')
+        except ValueError:
+            flash('Invalid date format for scheduling.', 'danger')
+            return redirect(url_for('feed.create_post_page'))
 
     new_post = Post(
         user_id=current_user.id,
@@ -77,12 +94,14 @@ def create_post():
         media_url=media_url,
         media_type=media_type,
         privacy=privacy,
-        community_id=community_id
+        community_id=community_id,
+        post_status=post_status,
+        scheduled_for=scheduled_for_dt
     )
     db.session.add(new_post)
     db.session.commit()
 
-    flash('Your post has been created!', 'success')
+    flash(flash_message, 'success')
     if community_id:
         return redirect(url_for('feed.view_community', community_id=community_id))
     return redirect(url_for('feed.home'))

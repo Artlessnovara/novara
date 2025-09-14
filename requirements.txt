@@ -10,3 +10,4 @@ Flask-Migrate
 firebase-admin
 requests
 Flask-WTF
+APScheduler
