@@ -4,7 +4,7 @@ import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post
+from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post, LoginHistory
 from extensions import db
 from flask_login import logout_user
 from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm, EditProfileForm, ChangePasswordForm, UpdatePhoneNumberForm
@@ -448,7 +448,8 @@ def privacy_security():
         return redirect(url_for('more.privacy_security'))
 
     blocked_users_count = BlockedUser.query.filter_by(blocker_id=current_user.id).count()
-    return render_template('more/privacy_security.html', blocked_users_count=blocked_users_count)
+    login_history = LoginHistory.query.filter_by(user_id=current_user.id).order_by(LoginHistory.timestamp.desc()).limit(5).all()
+    return render_template('more/privacy_security.html', blocked_users_count=blocked_users_count, login_history=login_history)
 
 @more_bp.route('/resend_verification_email')
 @login_required
