@@ -1,0 +1,99 @@
+{% extends "feed/base.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}Privacy & Security{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card settings-card">
+        <div class="card-header">
+            <h1>Privacy & Security</h1>
+            <p class="text-muted mb-0">Control your privacy, manage account security, and view login history.</p>
+        </div>
+        <div class="card-body">
+            <!-- Security Status -->
+            <div class="alert alert-warning" role="alert">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              <strong>Add 2FA for better security.</strong>
+              <a href="#2fa-section" class="alert-link ms-2">Set up now</a>
+            </div>
+
+            <!-- Blocked Users -->
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <h5>Blocked Users</h5>
+                    <small class="text-muted">Manage the accounts you have blocked.</small>
+                </div>
+                <div class="settings-section-content">
+                    <p>You have {{ blocked_users_count }} blocked user(s).</p>
+                    <a href="{{ url_for('more.blocked_users') }}" class="btn btn-sm btn-outline-secondary">View and Manage Blocked Users</a>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Two-Factor Authentication -->
+            <div class="settings-section" id="2fa-section">
+                <div class="settings-section-header">
+                    <h5>Two-Factor Authentication (2FA)</h5>
+                    <small class="text-muted">Add an extra layer of security to your account.</small>
+                </div>
+                <div class="settings-section-content">
+                    <p>2FA is currently <strong>disabled</strong>.</p>
+                    <button class="btn btn-primary" disabled>Enable 2FA (Coming Soon)</button>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Login History / Devices -->
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <h5>Login History</h5>
+                    <small class="text-muted">Review recent login activity on your account. (Feature coming soon)</small>
+                </div>
+                <div class="settings-section-content">
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-desktop me-2 text-muted"></i>
+                                <strong>Chrome on Windows</strong>
+                                <br>
+                                <small class="text-muted">New York, USA (Approx. location)</small>
+                            </div>
+                            <span class="badge bg-light text-dark">Active Now</span>
+                        </li>
+                    </ul>
+                    <button class="btn btn-sm btn-outline-danger mt-3" disabled>Log Out All Other Sessions</button>
+                </div>
+            </div>
+
+             <hr>
+
+            <!-- Who can see my posts -->
+            <div class="settings-section">
+                <div classs="settings-section-header">
+                    <h5>Post Visibility</h5>
+                    <small class="text-muted">Set the default privacy for your new posts. (Feature coming soon)</small>
+                </div>
+                <div class="settings-section-content">
+                    <form>
+                         <select class="form-select" disabled>
+                            <option selected>Public</option>
+                            <option>Followers</option>
+                            <option>Private</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

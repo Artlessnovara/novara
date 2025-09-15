@@ -6,10 +6,33 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post
 from extensions import db
-from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm
+from flask_login import logout_user
+from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm, EditProfileForm, ChangePasswordForm
 from utils import get_or_create_platform_setting
 
 more_bp = Blueprint('more', __name__, url_prefix='/more')
+
+def save_profile_photo(file):
+    filename = secure_filename(file.filename)
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+    pics_dir = os.path.join(current_app.root_path, 'static/profile_pics')
+    os.makedirs(pics_dir, exist_ok=True)
+    filepath = os.path.join(pics_dir, new_filename)
+    file.save(filepath)
+    return os.path.join('profile_pics', new_filename)
+
+def save_cover_photo(file):
+    filename = secure_filename(file.filename)
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+    covers_dir = os.path.join(current_app.root_path, 'static/cover_photos')
+    os.makedirs(covers_dir, exist_ok=True)
+    filepath = os.path.join(covers_dir, new_filename)
+    file.save(filepath)
+    return os.path.join('cover_photos', new_filename)
 
 @more_bp.route('/')
 @login_required
@@ -341,3 +364,69 @@ def profile_appearance_settings():
         form.pinned_post.data = current_user.pinned_post.post_id
 
     return render_template('more/profile_appearance.html', form=form)
+
+@more_bp.route('/settings/edit_profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    form = EditProfileForm(obj=current_user)
+    if form.validate_on_submit():
+        if form.profile_photo.data:
+            profile_pic_path = save_profile_photo(form.profile_photo.data)
+            current_user.profile_pic = profile_pic_path
+
+        if form.cover_photo.data:
+            cover_photo_filename = save_cover_photo(form.cover_photo.data)
+            current_user.cover_photo = cover_photo_filename
+
+        current_user.name = form.name.data
+        current_user.username = form.username.data
+        current_user.website = form.website.data
+        current_user.bio = form.bio.data
+
+        db.session.commit()
+        flash('Your profile has been updated!', 'success')
+        return redirect(url_for('more.edit_profile'))
+
+    return render_template('more/edit_profile.html', form=form)
+
+@more_bp.route('/settings/account', methods=['GET', 'POST'])
+@login_required
+def account_settings():
+    password_form = ChangePasswordForm(prefix='password')
+
+    if password_form.validate_on_submit():
+        if current_user.check_password(password_form.current_password.data):
+            current_user.set_password(password_form.new_password.data)
+            db.session.commit()
+            flash('Your password has been updated successfully.', 'success')
+        else:
+            flash('Incorrect current password.', 'danger')
+        return redirect(url_for('more.account_settings'))
+
+    return render_template('more/account_settings.html', password_form=password_form)
+
+@more_bp.route('/settings/account/delete', methods=['POST'])
+@login_required
+def delete_account():
+    password = request.form.get('password')
+    if current_user.check_password(password):
+        # Log the user out first
+        logout_user()
+
+        # Anonymize or delete user data. For this example, we'll delete.
+        # In a real app, you might want to handle this as a background task.
+        db.session.delete(current_user)
+        db.session.commit()
+
+        flash('Your account has been permanently deleted.', 'success')
+        return redirect(url_for('main.index'))
+    else:
+        flash('Incorrect password. Account deletion failed.', 'danger')
+        return redirect(url_for('more.account_settings'))
+
+@more_bp.route('/settings/privacy_security')
+@login_required
+def privacy_security():
+    blocked_users_count = BlockedUser.query.filter_by(blocker_id=current_user.id).count()
+    # Add logic for login history later
+    return render_template('more/privacy_security.html', blocked_users_count=blocked_users_count)

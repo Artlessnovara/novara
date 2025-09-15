@@ -89,40 +89,31 @@
         </ul>
     </div>
 
-    <!-- Account & Settings Section -->
+    <!-- Profile & Identity Section -->
     <div class="more-section">
-        <div class="more-section-header">Account & Settings</div>
+        <div class="more-section-header">Profile & Identity</div>
         <ul class="more-menu-list">
             <li class="more-menu-item">
-                <a href="{{ url_for('feed.profile', user_id=current_user.id) }}">
+                <a href="{{ url_for('more.edit_profile') }}">
                     <span class="icon"><i class="fas fa-user-edit"></i></span>
                     <span class="label">Edit Profile</span>
                     <span class="chevron"><i class="fas fa-chevron-right"></i></span>
                 </a>
             </li>
             <li class="more-menu-item">
-                <a href="{{ url_for('more.settings') }}">
-                    <span class="icon"><i class="fas fa-cog"></i></span>
+                <a href="{{ url_for('more.account_settings') }}">
+                    <span class="icon"><i class="fas fa-user-cog"></i></span>
                     <span class="label">Account Settings</span>
                     <span class="chevron"><i class="fas fa-chevron-right"></i></span>
                 </a>
             </li>
             <li class="more-menu-item">
-                <a href="{{ url_for('more.blocked_users') }}">
-                    <span class="icon"><i class="fas fa-user-slash"></i></span>
-                    <span class="label">Blocked Users</span>
+                <a href="{{ url_for('more.privacy_security') }}">
+                    <span class="icon"><i class="fas fa-shield-alt"></i></span>
+                    <span class="label">Privacy & Security</span>
                     <span class="chevron"><i class="fas fa-chevron-right"></i></span>
                 </a>
             </li>
-            {% if current_user.is_premium %}
-            <li class="more-menu-item">
-                <a href="{{ url_for('more.profile_appearance_settings') }}">
-                    <span class="icon"><i class="fas fa-paint-brush"></i></span>
-                    <span class="label">Profile Appearance</span>
-                    <span class="chevron"><i class="fas fa-chevron-right"></i></span>
-                </a>
-            </li>
-            {% endif %}
             <li class="more-menu-item">
                 <div class="theme-toggle-container">
                     <div style="display: flex; align-items: center;">
