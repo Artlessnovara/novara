@@ -410,12 +410,13 @@ def account_settings():
 def delete_account():
     password = request.form.get('password')
     if current_user.check_password(password):
-        # Log the user out first
+        # Get user object before logging out
+        user_to_delete = User.query.get(current_user.id)
         logout_user()
 
         # Anonymize or delete user data. For this example, we'll delete.
         # In a real app, you might want to handle this as a background task.
-        db.session.delete(current_user)
+        db.session.delete(user_to_delete)
         db.session.commit()
 
         flash('Your account has been permanently deleted.', 'success')
