@@ -31,6 +31,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     email_verified = db.Column(db.Boolean, default=False, nullable=False)
     phone_number = db.Column(db.String(20), nullable=True, unique=True)
+    phone_number_verified = db.Column(db.Boolean, default=False, nullable=False)
     password_hash = db.Column(db.String(128))
     website = db.Column(db.String(200), nullable=True)
     role = db.Column(db.String(50), nullable=False, default='student')

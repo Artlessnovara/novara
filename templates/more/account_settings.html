@@ -29,7 +29,7 @@
                             <span class="badge bg-success">Verified</span>
                         {% else %}
                             <span class="badge bg-warning text-dark">Not Verified</span>
-                            <a href="{{ url_for('auth.resend_verification_email') }}" class="small ms-2">Resend verification email</a>
+                            <a href="{{ url_for('more.resend_verification_email') }}" class="small ms-2">Resend verification email</a>
                         {% endif %}
                     </p>
                     <small class="text-muted">Your email is used for login, notifications, and account recovery.</small>
@@ -42,13 +42,16 @@
                     <h5>Phone Number</h5>
                 </div>
                 <div class="settings-section-content">
-                    {% if current_user.phone_number %}
-                        <p>{{ current_user.phone_number }} <span class="badge bg-success">Verified</span></p>
-                        <a href="#" class="btn btn-sm btn-outline-secondary">Change Number</a>
-                    {% else %}
+                    {% if not current_user.phone_number %}
                         <p class="text-muted">You have not added a phone number.</p>
-                        <a href="#" class="btn btn-sm btn-outline-primary">Add Phone Number</a>
                     {% endif %}
+                    <form method="POST" action="{{ url_for('more.account_settings') }}" class="d-flex align-items-center gap-2">
+                        {{ phone_form.hidden_tag() }}
+                        <div class="flex-grow-1">
+                           {{ render_field(phone_form.phone_number, class="form-control", placeholder="e.g., +1234567890", value=current_user.phone_number or '') }}
+                        </div>
+                        {{ phone_form.submit(class="btn btn-primary") }}
+                    </form>
                 </div>
             </div>
 

@@ -7,8 +7,10 @@ from werkzeug.utils import secure_filename
 from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post
 from extensions import db
 from flask_login import logout_user
-from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm, EditProfileForm, ChangePasswordForm
+from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm, EditProfileForm, ChangePasswordForm, UpdatePhoneNumberForm
 from utils import get_or_create_platform_setting
+from mail import send_verification_email
+from itsdangerous import URLSafeTimedSerializer
 
 more_bp = Blueprint('more', __name__, url_prefix='/more')
 
@@ -393,8 +395,9 @@ def edit_profile():
 @login_required
 def account_settings():
     password_form = ChangePasswordForm(prefix='password')
+    phone_form = UpdatePhoneNumberForm(prefix='phone')
 
-    if password_form.validate_on_submit():
+    if password_form.validate_on_submit() and password_form.submit.data:
         if current_user.check_password(password_form.current_password.data):
             current_user.set_password(password_form.new_password.data)
             db.session.commit()
@@ -403,7 +406,13 @@ def account_settings():
             flash('Incorrect current password.', 'danger')
         return redirect(url_for('more.account_settings'))
 
-    return render_template('more/account_settings.html', password_form=password_form)
+    if phone_form.validate_on_submit() and phone_form.submit.data:
+        current_user.phone_number = phone_form.phone_number.data
+        db.session.commit()
+        flash('Your phone number has been updated.', 'success')
+        return redirect(url_for('more.account_settings'))
+
+    return render_template('more/account_settings.html', password_form=password_form, phone_form=phone_form)
 
 @more_bp.route('/settings/account/delete', methods=['POST'])
 @login_required
@@ -431,3 +440,37 @@ def privacy_security():
     blocked_users_count = BlockedUser.query.filter_by(blocker_id=current_user.id).count()
     # Add logic for login history later
     return render_template('more/privacy_security.html', blocked_users_count=blocked_users_count)
+
+@more_bp.route('/resend_verification_email')
+@login_required
+def resend_verification_email():
+    if current_user.email_verified:
+        flash('Your email is already verified.', 'info')
+        return redirect(url_for('more.account_settings'))
+
+    send_verification_email(current_user)
+    flash('A new verification email has been sent.', 'success')
+    return redirect(url_for('more.account_settings'))
+
+@more_bp.route('/verify_email/<token>')
+@login_required
+def verify_email(token):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    try:
+        email = s.loads(token, salt='email-verification-salt', max_age=3600)
+    except:
+        flash('The confirmation link is invalid or has expired.', 'danger')
+        return redirect(url_for('main.index'))
+
+    if current_user.email != email:
+        flash('The confirmation link is for a different account.', 'danger')
+        return redirect(url_for('main.index'))
+
+    if current_user.email_verified:
+        flash('Your email is already verified.', 'info')
+        return redirect(url_for('more.account_settings'))
+
+    current_user.email_verified = True
+    db.session.commit()
+    flash('Your email has been verified.', 'success')
+    return redirect(url_for('more.account_settings'))
