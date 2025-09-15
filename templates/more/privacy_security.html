@@ -78,17 +78,20 @@
 
             <!-- Who can see my posts -->
             <div class="settings-section">
-                <div classs="settings-section-header">
+                <div class="settings-section-header">
                     <h5>Post Visibility</h5>
-                    <small class="text-muted">Set the default privacy for your new posts. (Feature coming soon)</small>
+                    <small class="text-muted">Set the default privacy for your new posts.</small>
                 </div>
                 <div class="settings-section-content">
-                    <form>
-                         <select class="form-select" disabled>
-                            <option selected>Public</option>
-                            <option>Followers</option>
-                            <option>Private</option>
-                        </select>
+                    <form method="POST" action="{{ url_for('more.privacy_security') }}">
+                        <div class="input-group">
+                            <select name="default_post_privacy" class="form-select">
+                                <option value="public" {% if current_user.default_post_privacy == 'public' %}selected{% endif %}>Public</option>
+                                <option value="followers" {% if current_user.default_post_privacy == 'followers' %}selected{% endif %}>Followers</option>
+                                <option value="private" {% if current_user.default_post_privacy == 'private' %}selected{% endif %}>Private (Only You)</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
                     </form>
                 </div>
             </div>

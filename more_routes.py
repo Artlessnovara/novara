@@ -434,11 +434,20 @@ def delete_account():
         flash('Incorrect password. Account deletion failed.', 'danger')
         return redirect(url_for('more.account_settings'))
 
-@more_bp.route('/settings/privacy_security')
+@more_bp.route('/settings/privacy_security', methods=['GET', 'POST'])
 @login_required
 def privacy_security():
+    if request.method == 'POST':
+        privacy_setting = request.form.get('default_post_privacy')
+        if privacy_setting in ['public', 'followers', 'private']:
+            current_user.default_post_privacy = privacy_setting
+            db.session.commit()
+            flash('Your default post privacy has been updated.', 'success')
+        else:
+            flash('Invalid privacy setting selected.', 'danger')
+        return redirect(url_for('more.privacy_security'))
+
     blocked_users_count = BlockedUser.query.filter_by(blocker_id=current_user.id).count()
-    # Add logic for login history later
     return render_template('more/privacy_security.html', blocked_users_count=blocked_users_count)
 
 @more_bp.route('/resend_verification_email')

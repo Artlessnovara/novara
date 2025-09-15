@@ -51,6 +51,7 @@ class User(UserMixin, db.Model):
     privacy_last_seen = db.Column(db.String(50), default='everyone', nullable=False)
     privacy_profile_pic = db.Column(db.String(50), default='everyone', nullable=False)
     privacy_about = db.Column(db.String(50), default='everyone', nullable=False)
+    default_post_privacy = db.Column(db.String(50), default='public', nullable=False)
     is_premium = db.Column(db.Boolean, default=False, nullable=False)
     premium_expires_at = db.Column(db.DateTime, nullable=True)
 
