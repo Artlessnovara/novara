@@ -83,6 +83,9 @@ def create_app(config_object=None):
     from more_routes import more_bp
     app.register_blueprint(more_bp)
 
+    from page_routes import page_bp
+    app.register_blueprint(page_bp)
+
     # Register chat events
     from chat_events import register_chat_events
     register_chat_events(socketio)

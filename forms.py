@@ -1,12 +1,31 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SubmitField, SelectField
-from wtforms.validators import DataRequired, Email, Optional
-from flask_wtf.file import FileField, FileRequired, FileAllowed
+from wtforms.validators import DataRequired, Email, Optional, URL, Length
+from flask_wtf.file import FileField, FileAllowed, FileRequired
 
-class UserPageForm(FlaskForm):
-    title = StringField('Title', validators=[DataRequired()])
-    description = TextAreaField('Description')
-    submit = SubmitField('Save Page')
+class PageCreationStep1Form(FlaskForm):
+    name = StringField('Page Name', validators=[DataRequired(), Length(min=3, max=100)])
+    category = StringField('Category', validators=[DataRequired(), Length(max=100)])
+    bio = TextAreaField('Short Bio', validators=[DataRequired(), Length(max=500)])
+    submit = SubmitField('Next Step')
+
+class PageCreationStep2Form(FlaskForm):
+    profile_pic = FileField('Profile Picture', validators=[FileAllowed(['jpg', 'png', 'jpeg'], 'Images only!')])
+    cover_banner = FileField('Cover Banner', validators=[FileAllowed(['jpg', 'png', 'jpeg'], 'Images only!')])
+    submit = SubmitField('Next Step')
+
+class PageCreationStep3Form(FlaskForm):
+    phone_number = StringField('Phone Number', validators=[Optional(), Length(max=20)])
+    email = StringField('Public Email', validators=[Optional(), Email()])
+    website = StringField('Website', validators=[Optional(), URL()])
+    action_button = SelectField('Action Button', choices=[
+        ('', '--- None ---'),
+        ('message', 'Message Us'),
+        ('call', 'Call Now'),
+        ('email', 'Email Us'),
+        ('website', 'Visit Website')
+    ], validators=[Optional()])
+    submit = SubmitField('Next Step')
 
 class ReportProblemForm(FlaskForm):
     subject = StringField('Subject', validators=[DataRequired()])
