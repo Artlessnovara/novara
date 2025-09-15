@@ -648,6 +648,7 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=True)
+    page_id = db.Column(db.Integer, db.ForeignKey('user_page.id'), nullable=True) # Link to a UserPage
     content = db.Column(db.Text, nullable=True) # Nullable for shared posts with no comment
     media_type = db.Column(db.String(20), nullable=True) # 'image', 'video'
     media_url = db.Column(db.String(255), nullable=True)

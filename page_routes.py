@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from flask_login import login_required, current_user
-from models import UserPage, db
+from models import UserPage, db, Post
 from forms import PageCreationStep1Form, PageCreationStep2Form, PageCreationStep3Form
 import os
 import secrets
@@ -121,3 +121,11 @@ def create_page_step4():
         return redirect(url_for('more.my_pages'))
 
     return render_template('pages/create/step4_preview.html', page_data=page_data)
+
+
+@page_bp.route('/<int:page_id>')
+def view_page(page_id):
+    page = UserPage.query.get_or_404(page_id)
+    # Fetch posts specifically for this page
+    posts = Post.query.filter_by(page_id=page.id, post_status='published').order_by(Post.timestamp.desc()).all()
+    return render_template('pages/view_page.html', page=page, posts=posts)
