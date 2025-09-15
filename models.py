@@ -648,6 +648,7 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=True)
+    page_id = db.Column(db.Integer, db.ForeignKey('user_page.id'), nullable=True) # Link to a UserPage
     content = db.Column(db.Text, nullable=True) # Nullable for shared posts with no comment
     media_type = db.Column(db.String(20), nullable=True) # 'image', 'video'
     media_url = db.Column(db.String(255), nullable=True)
@@ -920,7 +921,13 @@ class UserPage(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    cover_image = db.Column(db.String(255), nullable=True)
+    category = db.Column(db.String(100), nullable=True)
+    profile_pic_url = db.Column(db.String(255), nullable=True)
+    cover_banner_url = db.Column(db.String(255), nullable=True)
+    phone_number = db.Column(db.String(20), nullable=True)
+    email = db.Column(db.String(120), nullable=True)
+    website = db.Column(db.String(255), nullable=True)
+    action_button_type = db.Column(db.String(50), nullable=True) # e.g., 'message', 'call', 'email', 'website'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     owner = db.relationship('User', backref=db.backref('pages', lazy='dynamic', cascade="all, delete-orphan"))

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% import "templates/_form_helpers.html" as forms %}
+
+{% block title %}Create a Page - Step 1{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Create a Page (Step 1 of 4)</h4>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 25%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Basic Details</h5>
+                    <p>Start with the basics. You can always change these later.</p>
+                    <form method="POST" action="{{ url_for('pages.create_page_step1') }}">
+                        {{ form.hidden_tag() }}
+                        <div class="form-group">
+                            {{ forms.render_field(form.name, class="form-control form-control-lg") }}
+                        </div>
+                        <div class="form-group">
+                            {{ forms.render_field(form.category, class="form-control form-control-lg") }}
+                        </div>
+                        <div class="form-group">
+                            {{ forms.render_field(form.bio, class="form-control form-control-lg", rows="4") }}
+                        </div>
+                        <div class="text-right">
+                            {{ forms.render_field(form.submit, class="btn btn-primary btn-lg") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

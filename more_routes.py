@@ -6,7 +6,7 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post
 from extensions import db
-from forms import UserPageForm, ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm
+from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm
 from utils import get_or_create_platform_setting
 
 more_bp = Blueprint('more', __name__, url_prefix='/more')
@@ -23,37 +23,6 @@ def more_page():
 def my_pages():
     pages = UserPage.query.filter_by(user_id=current_user.id).order_by(UserPage.created_at.desc()).all()
     return render_template('more/my_pages.html', pages=pages)
-
-@more_bp.route('/page/create', methods=['GET', 'POST'])
-@login_required
-def create_page():
-    form = UserPageForm()
-    if form.validate_on_submit():
-        new_page = UserPage(
-            user_id=current_user.id,
-            title=form.title.data,
-            description=form.description.data
-        )
-        db.session.add(new_page)
-        db.session.commit()
-        flash('Your page has been created!', 'success')
-        return redirect(url_for('more.my_pages'))
-    return render_template('more/create_edit_page.html', form=form, legend='Create New Page')
-
-@more_bp.route('/page/<int:page_id>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_page(page_id):
-    page = UserPage.query.get_or_404(page_id)
-    if page.owner != current_user:
-        abort(403)
-    form = UserPageForm(obj=page)
-    if form.validate_on_submit():
-        page.title = form.title.data
-        page.description = form.description.data
-        db.session.commit()
-        flash('Your page has been updated!', 'success')
-        return redirect(url_for('more.my_pages'))
-    return render_template('more/create_edit_page.html', form=form, legend='Edit Page')
 
 @more_bp.route('/pages/explore')
 @login_required

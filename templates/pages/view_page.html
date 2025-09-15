@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }}{% endblock %}
+
+{% block styles %}
+<style>
+    .page-container { max-width: 1200px; margin: 2rem auto; }
+    .page-header {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    .cover-banner {
+        height: 300px;
+        background-size: cover;
+        background-position: center;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        padding: 0 2rem;
+        border-bottom: 1px solid #eee;
+    }
+    .header-main {
+        display: flex;
+        align-items: flex-end;
+        margin-top: -50px; /* Overlap effect */
+    }
+    .page-profile-pic {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        border: 4px solid #fff;
+        background-color: #fff;
+        object-fit: cover;
+    }
+    .page-title {
+        margin-left: 1rem;
+        margin-bottom: 1rem;
+    }
+    .page-title h1 {
+        margin: 0;
+        font-size: 2rem;
+    }
+    .page-title p {
+        margin: 0;
+        color: #6c757d;
+    }
+    .page-action-button {
+        margin-bottom: 1rem;
+    }
+    .page-navigation {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        background: #fff;
+        padding: 0 2rem;
+    }
+    .nav-tab {
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        color: #6c757d;
+        text-decoration: none;
+        border-bottom: 3px solid transparent;
+    }
+    .nav-tab.active, .nav-tab:hover {
+        color: var(--primary-color);
+        border-bottom: 3px solid var(--primary-color);
+    }
+    .page-body { display: flex; gap: 2rem; margin-top: 2rem; }
+    .page-sidebar { flex: 1; max-width: 300px; }
+    .about-card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+    }
+    .about-card h4 {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .contact-info {
+        list-style: none;
+        padding: 0;
+    }
+    .contact-info li {
+        margin-bottom: 0.5rem;
+        word-wrap: break-word;
+    }
+    .contact-info i {
+        margin-right: 0.5rem;
+        color: #6c757d;
+    }
+    .page-main-content { flex: 2; }
+    .page-post-feed {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .page-post-non-carded {
+        padding: 1rem;
+        border-bottom: 1px solid #e9ebee;
+    }
+    .page-post-non-carded:last-child {
+        border-bottom: none;
+    }
+    /* Override the post-container styles from the included partial */
+    .page-post-non-carded .post-container {
+        background: none;
+        padding: 0;
+        border-bottom: none;
+        box-shadow: none;
+    }
+    /* Copied from home.html for consistency */
+    .create-post-prompt {
+        background: #fff;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .prompt-text {
+        color: #6c757d;
+        cursor: pointer;
+        flex-grow: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <header class="page-header">
+        <div class="cover-banner" style="background-image: url({{ url_for('static', filename=page.cover_banner_url) if page.cover_banner_url else 'https://via.placeholder.com/1200x300' }});">
+        </div>
+        <div class="header-content">
+            <div class="header-main">
+                <img src="{{ url_for('static', filename=page.profile_pic_url) if page.profile_pic_url else 'https://via.placeholder.com/150' }}" alt="{{ page.title }} Profile Picture" class="page-profile-pic">
+                <div class="page-title">
+                    <h1>{{ page.title }}</h1>
+                    <p>{{ page.category }}</p>
+                </div>
+            </div>
+            <div class="page-action-button">
+                {% if page.owner == current_user %}
+                    <a href="{{ url_for('pages.create_page_start') }}" class="btn btn-secondary">Edit Page</a>
+                {% elif page.action_button_type and page.action_button_type != 'none' %}
+                    <a href="#" class="btn btn-primary">{{ page.action_button_type|replace('_', ' ')|title }}</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <div class="page-navigation">
+        <a href="#" class="nav-tab active">Posts</a>
+        <a href="#" class="nav-tab">About</a>
+        <a href="#" class="nav-tab">Photos</a>
+        <a href="#" class="nav-tab">Events</a>
+    </div>
+
+    <div class="page-body">
+        <aside class="page-sidebar">
+            <div class="about-card">
+                <h4>About {% if page.owner == current_user %}<a href="{{ url_for('pages.create_page_step1') }}" class="edit-icon" style="font-size: 0.8em; float: right;"><i class="fas fa-pencil-alt"></i></a>{% endif %}</h4>
+                <p>{{ page.description }}</p>
+                <hr>
+                <ul class="contact-info">
+                    {% if page.phone_number %}
+                        <li><i class="fas fa-phone"></i> {{ page.phone_number }}</li>
+                    {% endif %}
+                    {% if page.email %}
+                        <li><i class="fas fa-envelope"></i> {{ page.email }}</li>
+                    {% endif %}
+                    {% if page.website %}
+                        <li><i class="fas fa-globe"></i> <a href="{{ page.website }}" target="_blank" rel="noopener noreferrer">{{ page.website }}</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </aside>
+
+        <main class="page-main-content">
+            {% if page.owner == current_user %}
+                <div class="create-post-card" style="margin-bottom: 2rem; background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4>Create a Post</h4>
+                    <form id="create-post-form" action="{{ url_for('feed.create_post') }}" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="page_id" value="{{ page.id }}">
+                        <div class="form-group">
+                            <textarea name="content" placeholder="Share something on your page..." required style="width: 100%; min-height: 80px; border-radius: 6px; border: 1px solid #ddd; padding: 10px;"></textarea>
+                        </div>
+                        <div class="form-group d-flex justify-content-between align-items-center">
+                            <input type="file" id="media-input" name="media" accept="image/*,video/*">
+                            <button type="submit" class="btn btn-primary">Post to Page</button>
+                        </div>
+                    </form>
+                </div>
+            {% endif %}
+
+            <div class="page-post-feed">
+                {% if posts %}
+                    {% for post in posts %}
+                        <div class="page-post-non-carded">
+                            {% include 'feed/_post_content.html' %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="padding: 2rem; text-align: center;">No posts on this page yet.</p>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

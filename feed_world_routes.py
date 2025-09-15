@@ -82,11 +82,12 @@ def create_post():
     privacy = request.form.get('privacy', 'public')
     media_file = request.files.get('media')
     community_id = request.form.get('community_id', type=int)
+    page_id = request.form.get('page_id', type=int)
     schedule_time_str = request.form.get('schedule_time')
 
     if not content:
         flash('Content is required to create a post.', 'danger')
-        return redirect(url_for('feed.create_post_page'))
+        return redirect(request.referrer or url_for('feed.home'))
 
     media_url = None
     media_type = None
@@ -119,6 +120,7 @@ def create_post():
         media_type=media_type,
         privacy=privacy,
         community_id=community_id,
+        page_id=page_id,
         post_status=post_status,
         scheduled_for=scheduled_for_dt
     )
@@ -126,6 +128,8 @@ def create_post():
     db.session.commit()
 
     flash(flash_message, 'success')
+    if page_id:
+        return redirect(url_for('pages.view_page', page_id=page_id))
     if community_id:
         return redirect(url_for('feed.view_community', community_id=community_id))
     return redirect(url_for('feed.home'))
