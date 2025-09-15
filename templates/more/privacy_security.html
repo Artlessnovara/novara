@@ -56,20 +56,28 @@
             <div class="settings-section">
                 <div class="settings-section-header">
                     <h5>Login History</h5>
-                    <small class="text-muted">Review recent login activity on your account. (Feature coming soon)</small>
+                    <small class="text-muted">Here are the most recent logins to your account.</small>
                 </div>
                 <div class="settings-section-content">
+                    {% if login_history %}
                     <ul class="list-group">
+                        {% for entry in login_history %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="fas fa-desktop me-2 text-muted"></i>
-                                <strong>Chrome on Windows</strong>
+                                <strong>{{ entry.user_agent }}</strong>
                                 <br>
-                                <small class="text-muted">New York, USA (Approx. location)</small>
+                                <small class="text-muted">{{ entry.ip_address }} - {{ entry.timestamp.strftime('%B %d, %Y at %I:%M %p') }} UTC</small>
                             </div>
+                            {% if loop.first %}
                             <span class="badge bg-light text-dark">Active Now</span>
+                            {% endif %}
                         </li>
+                        {% endfor %}
                     </ul>
+                    {% else %}
+                    <p class="text-muted">No login history found.</p>
+                    {% endif %}
                     <button class="btn btn-sm btn-outline-danger mt-3" disabled>Log Out All Other Sessions</button>
                 </div>
             </div>
