@@ -99,3 +99,16 @@ class ChangePasswordForm(FlaskForm):
         EqualTo('new_password', message='Passwords must match.')
     ])
     submit = SubmitField('Change Password')
+
+class UpdatePhoneNumberForm(FlaskForm):
+    phone_number = StringField('Phone Number', validators=[
+        DataRequired(),
+        Length(min=10, max=20)
+    ])
+    submit = SubmitField('Update')
+
+    def validate_phone_number(self, phone_number):
+        if phone_number.data != current_user.phone_number:
+            user = User.query.filter_by(phone_number=phone_number.data).first()
+            if user:
+                raise ValidationError('That phone number is already in use.')

@@ -1,5 +1,5 @@
 from flask import Flask
-from extensions import db, login_manager, socketio
+from extensions import db, login_manager, socketio, mail
 from models import User, ChatRoom, ChatMessage, Notification
 import os
 import click
@@ -47,7 +47,14 @@ def create_app(config_object=None):
             SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(app.instance_path, 'app.db'),
             SQLALCHEMY_TRACK_MODIFICATIONS = False,
             SECRET_KEY = 'dev', # Change for production
-            MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB
+            MAX_CONTENT_LENGTH = 50 * 1024 * 1024,  # 50 MB
+            MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.googlemail.com'),
+            MAIL_PORT = int(os.environ.get('MAIL_PORT', '587')),
+            MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1'],
+            MAIL_USERNAME = os.environ.get('MAIL_USERNAME'),
+            MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD'),
+            MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER'),
+            MAIL_SUBJECT_PREFIX = '[Your App]',
         )
 
     # Ensure the instance folder exists
@@ -60,6 +67,7 @@ def create_app(config_object=None):
     db.init_app(app)
     login_manager.init_app(app)
     socketio.init_app(app)
+    mail.init_app(app)
     migrate = Migrate(app, db)
     login_manager.login_view = 'main.login'
 
