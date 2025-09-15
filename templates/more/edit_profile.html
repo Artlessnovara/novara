@@ -1,0 +1,142 @@
+{% extends "feed/base.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h1>Edit Profile</h1>
+                    <p class="text-muted mb-0">Changes you make here will be visible to others on your public profile.</p>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('more.edit_profile') }}" enctype="multipart/form-data" class="form-container">
+                        {{ form.hidden_tag() }}
+
+                        <fieldset class="form-group">
+                            <legend class="border-bottom mb-4">Public Information</legend>
+                            {{ render_field(form.name, class="form-control", label_visible=true) }}
+                            {{ render_field(form.username, class="form-control", placeholder="e.g., your_handle", label_visible=true) }}
+                            {{ render_field(form.website, class="form-control", placeholder="https://yourlink.com", label_visible=true) }}
+                            {{ render_field(form.bio, class="form-control", rows="4", label_visible=true) }}
+                        </fieldset>
+
+                        <fieldset class="form-group mt-4">
+                            <legend class="border-bottom mb-4">Profile Media</legend>
+                            <div class="mb-3">
+                                {{ form.profile_photo.label(class="form-label") }}
+                                {{ form.profile_photo(class="form-control") }}
+                                {% if form.profile_photo.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.profile_photo.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                             <div class="mb-3">
+                                {{ form.cover_photo.label(class="form-label") }}
+                                {{ form.cover_photo(class="form-control") }}
+                                {% if form.cover_photo.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.cover_photo.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </fieldset>
+
+                        <div class="form-group mt-4">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="profile-preview-card">
+                <h5 class="card-title">Live Preview</h5>
+                <div class="cover-preview" id="cover-preview-box" style="background-image: url({{ url_for('static', filename=(current_user.cover_photo or 'images/course_placeholder.jpg')) }});">
+                    <img id="profile-pic-preview-img" src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Profile Preview" class="profile-pic-preview">
+                </div>
+                <div class="info-preview">
+                    <h5 id="name-preview">{{ current_user.name }}</h5>
+                    <p id="username-preview">@{{ current_user.username or 'username' }}</p>
+                    <p id="bio-preview" class="text-muted">{{ current_user.bio or 'Your bio will appear here.' }}</p>
+                    <a href="#" id="website-preview" class="website-preview-link" target="_blank">{{ current_user.website or 'yourwebsite.com' }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Live preview for text fields
+    const nameInput = document.getElementById('name');
+    const usernameInput = document.getElementById('username');
+    const bioInput = document.getElementById('bio');
+    const websiteInput = document.getElementById('website');
+
+    const namePreview = document.getElementById('name-preview');
+    const usernamePreview = document.getElementById('username-preview');
+    const bioPreview = document.getElementById('bio-preview');
+    const websitePreview = document.getElementById('website-preview');
+
+    if(nameInput) nameInput.addEventListener('input', () => { namePreview.textContent = nameInput.value; });
+    if(usernameInput) usernameInput.addEventListener('input', () => { usernamePreview.textContent = '@' + usernameInput.value; });
+    if(bioInput) bioInput.addEventListener('input', () => { bioPreview.textContent = bioInput.value; });
+    if(websiteInput) {
+        websiteInput.addEventListener('input', () => {
+            websitePreview.textContent = websiteInput.value || 'yourwebsite.com';
+            websitePreview.href = websiteInput.value;
+        });
+    }
+
+    // Live preview for images
+    const profilePhotoInput = document.getElementById('profile_photo');
+    const coverPhotoInput = document.getElementById('cover_photo');
+    const profilePicPreview = document.getElementById('profile-pic-preview-img');
+    const coverPreviewBox = document.getElementById('cover-preview-box');
+
+    if(profilePhotoInput) {
+        profilePhotoInput.addEventListener('change', function(event) {
+            if(event.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profilePicPreview.src = e.target.result;
+                }
+                reader.readAsDataURL(event.target.files[0]);
+            }
+        });
+    }
+
+    if(coverPhotoInput) {
+        coverPhotoInput.addEventListener('change', function(event) {
+            if(event.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    coverPreviewBox.style.backgroundImage = `url(${e.target.result})`;
+                }
+                reader.readAsDataURL(event.target.files[0]);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

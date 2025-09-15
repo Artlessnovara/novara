@@ -1,0 +1,137 @@
+{% extends "feed/base.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}Account Settings{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card settings-card">
+        <div class="card-header">
+            <h1>Account Settings</h1>
+            <p class="text-muted mb-0">Manage your credentials, contact information, and account status.</p>
+        </div>
+        <div class="card-body">
+            <!-- Email Address -->
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <h5>Email Address</h5>
+                </div>
+                <div class="settings-section-content">
+                    <p>
+                        {{ current_user.email }}
+                        {% if current_user.email_verified %}
+                            <span class="badge bg-success">Verified</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Not Verified</span>
+                            <a href="{{ url_for('auth.resend_verification_email') }}" class="small ms-2">Resend verification email</a>
+                        {% endif %}
+                    </p>
+                    <small class="text-muted">Your email is used for login, notifications, and account recovery.</small>
+                </div>
+            </div>
+
+            <!-- Phone Number -->
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <h5>Phone Number</h5>
+                </div>
+                <div class="settings-section-content">
+                    {% if current_user.phone_number %}
+                        <p>{{ current_user.phone_number }} <span class="badge bg-success">Verified</span></p>
+                        <a href="#" class="btn btn-sm btn-outline-secondary">Change Number</a>
+                    {% else %}
+                        <p class="text-muted">You have not added a phone number.</p>
+                        <a href="#" class="btn btn-sm btn-outline-primary">Add Phone Number</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Change Password -->
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <h5>Change Password</h5>
+                    <small class="text-muted">For your security, we recommend choosing a strong password that you don't use elsewhere.</small>
+                </div>
+                <div class="settings-section-content">
+                    <form method="POST" action="{{ url_for('more.account_settings') }}">
+                        {{ password_form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ render_field(password_form.current_password, class="form-control", placeholder="Enter your current password") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ render_field(password_form.new_password, class="form-control", placeholder="Enter your new password") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ render_field(password_form.confirm_password, class="form-control", placeholder="Confirm your new password") }}
+                        </div>
+                        {{ password_form.submit(class="btn btn-primary") }}
+                    </form>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Linked Accounts -->
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <h5>Linked Accounts</h5>
+                    <small class="text-muted">Connect social accounts for easier login. (Feature coming soon)</small>
+                </div>
+                <div class="settings-section-content">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary" disabled><i class="fab fa-google me-2"></i>Link Google</button>
+                        <button class="btn btn-outline-secondary" disabled><i class="fab fa-facebook me-2"></i>Link Facebook</button>
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Deactivate Account -->
+            <div class="settings-section danger-zone">
+                 <div class="settings-section-header">
+                    <h5>Account Deactivation</h5>
+                </div>
+                <div class="settings-section-content">
+                    <p class="text-muted">This action is irreversible. All your data, including posts, comments, and messages, will be permanently deleted.</p>
+                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deactivateModal">
+                        Deactivate Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deactivate Modal -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deactivateModalLabel">Are you absolutely sure?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>This action <strong>cannot</strong> be undone. This will permanently delete your account, posts, and all other associated data.</p>
+        <p>Please type your password to confirm you want to permanently delete your account.</p>
+        <form method="POST" action="{{ url_for('more.delete_account') }}">
+            <div class="mb-3">
+                <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-danger">I understand the consequences, delete my account</button>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
