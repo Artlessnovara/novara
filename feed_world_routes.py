@@ -68,7 +68,6 @@ def home():
 
     # Fetch stories
     story_user_ids = following_ids + [current_user.id]
-    print(f"Story user IDs: {story_user_ids}")
 
     active_stories = Status.query.filter(
         Status.is_story == True,
@@ -93,9 +92,6 @@ def home():
 
     # Convert to a list of values for the template
     stories_list = list(stories_by_user.values())
-
-    print(f"Active stories: {active_stories}")
-    print(f"Stories list: {stories_list}")
 
     return render_template('feed/home.html', posts=final_feed, stories=stories_list)
 
