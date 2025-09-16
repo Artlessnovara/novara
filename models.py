@@ -55,6 +55,10 @@ class User(UserMixin, db.Model):
     is_premium = db.Column(db.Boolean, default=False, nullable=False)
     premium_expires_at = db.Column(db.DateTime, nullable=True)
 
+    # 2FA
+    otp_secret = db.Column(db.String(16), nullable=True)
+    two_factor_enabled = db.Column(db.Boolean, default=False, nullable=False)
+
     # Custom Profile Appearance
     cover_photo = db.Column(db.String(120), nullable=True, default='images/course_placeholder.jpg')
     profile_banner_url = db.Column(db.String(255), nullable=True)
@@ -1022,3 +1026,11 @@ class LoginHistory(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('login_history', lazy='dynamic'))
+
+class RecoveryCode(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    code_hash = db.Column(db.String(128), nullable=False)
+    used = db.Column(db.Boolean, default=False, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('recovery_codes', lazy='dynamic'))

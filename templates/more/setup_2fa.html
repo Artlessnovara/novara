@@ -1,0 +1,39 @@
+{% extends "feed/base.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}Set Up Two-Factor Authentication{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h1>Set Up Two-Factor Authentication</h1>
+                </div>
+                <div class="card-body">
+                    <p>Scan the QR code below with your authenticator app (like Google Authenticator or Authy), then enter the 6-digit code to verify.</p>
+
+                    <div class="text-center my-4">
+                        <img src="data:image/png;base64,{{ qr_code_image }}" alt="QR Code">
+                    </div>
+
+                    <form method="POST" action="{{ url_for('more.setup_2fa') }}">
+                        <div class="mb-3">
+                            <label for="totp" class="form-label">Verification Code</label>
+                            <input type="text" name="totp" id="totp" class="form-control" required pattern="[0-9]{6}" title="Enter the 6-digit code from your app.">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Verify & Enable</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,16 +1,20 @@
 import secrets
 import os
 import json
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app, session
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post, LoginHistory
+from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post, LoginHistory, RecoveryCode
 from extensions import db
 from flask_login import logout_user
 from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm, EditProfileForm, ChangePasswordForm, UpdatePhoneNumberForm
 from utils import get_or_create_platform_setting
 from mail import send_verification_email
 from itsdangerous import URLSafeTimedSerializer
+import pyotp
+import qrcode
+import io
+import base64
 
 more_bp = Blueprint('more', __name__, url_prefix='/more')
 
@@ -484,3 +488,97 @@ def verify_email(token):
     db.session.commit()
     flash('Your email has been verified.', 'success')
     return redirect(url_for('more.account_settings'))
+
+@more_bp.route('/settings/2fa/', methods=['GET', 'POST'])
+@login_required
+def setup_2fa():
+    if current_user.two_factor_enabled:
+        flash('2FA is already enabled.', 'info')
+        return redirect(url_for('more.privacy_security'))
+
+    if request.method == 'POST':
+        totp_code = request.form.get('totp')
+        # The secret should be stored in the session while setting up
+        otp_secret = session.get('otp_secret')
+        if not otp_secret:
+            flash('Error setting up 2FA. Please try again.', 'danger')
+            return redirect(url_for('more.setup_2fa'))
+
+        totp = pyotp.TOTP(otp_secret)
+        if totp.verify(totp_code):
+            current_user.otp_secret = otp_secret
+            current_user.two_factor_enabled = True
+            db.session.commit()
+            session.pop('otp_secret', None) # Clean up session
+
+            # Generate and show recovery codes
+            recovery_codes = generate_recovery_codes(current_user)
+            flash('2FA has been enabled successfully! Please save your recovery codes.', 'success')
+            return render_template('more/recovery_codes.html', recovery_codes=recovery_codes)
+        else:
+            flash('Invalid verification code.', 'danger')
+            return redirect(url_for('more.setup_2fa'))
+
+    # Generate a new secret for the user
+    otp_secret = pyotp.random_base32()
+    session['otp_secret'] = otp_secret # Store in session temporarily
+
+    # Generate QR code
+    totp_uri = pyotp.totp.TOTP(otp_secret).provisioning_uri(
+        name=current_user.email,
+        issuer_name='Your App Name'
+    )
+    qr = qrcode.make(totp_uri)
+    buf = io.BytesIO()
+    qr.save(buf)
+    buf.seek(0)
+    qr_code_image = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+    return render_template('more/setup_2fa.html', qr_code_image=qr_code_image)
+
+def generate_recovery_codes(user):
+    # Invalidate old codes
+    RecoveryCode.query.filter_by(user_id=user.id).delete()
+
+    # Generate new codes
+    recovery_codes = [secrets.token_hex(8) for _ in range(10)]
+    for code in recovery_codes:
+        recovery_code = RecoveryCode(user_id=user.id, code_hash=generate_password_hash(code))
+        db.session.add(recovery_code)
+
+    db.session.commit()
+    return recovery_codes
+
+@more_bp.route('/settings/2fa/disable', methods=['POST'])
+@login_required
+def disable_2fa():
+    password = request.form.get('password')
+    if current_user.check_password(password):
+        current_user.two_factor_enabled = False
+        current_user.otp_secret = None
+        # It's good practice to also delete any recovery codes
+        RecoveryCode.query.filter_by(user_id=current_user.id).delete()
+        db.session.commit()
+        flash('Two-Factor Authentication has been disabled.', 'success')
+    else:
+        flash('Incorrect password.', 'danger')
+    return redirect(url_for('more.privacy_security'))
+
+@more_bp.route('/settings/2fa/recovery_codes', methods=['GET', 'POST'])
+@login_required
+def recovery_codes():
+    if not current_user.two_factor_enabled:
+        flash('2FA is not enabled.', 'warning')
+        return redirect(url_for('more.privacy_security'))
+
+    if request.method == 'POST':
+        # Regenerate codes
+        recovery_codes = generate_recovery_codes(current_user)
+        flash('New recovery codes have been generated. Your old codes are now invalid.', 'success')
+        return render_template('more/recovery_codes.html', recovery_codes=recovery_codes)
+
+    # This part is tricky because we should not store plain text codes.
+    # For this implementation, we will just show a message. A real implementation
+    # would require the user to re-authenticate to view codes.
+    flash('For security reasons, recovery codes are only shown once upon setup. Please regenerate them if you have lost them.', 'info')
+    return redirect(url_for('more.privacy_security'))
