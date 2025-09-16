@@ -1,6 +1,6 @@
+from app import db
 from models import Post, Community, CommunityAnalytics, GenericComment
 from datetime import datetime, date, time
-from extensions import db
 from sqlalchemy import func
 
 def publish_scheduled_posts(app):
