@@ -1,0 +1,41 @@
+{% extends "feed/base.html" %}
+
+{% block title %}2FA Recovery Codes{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h1>2FA Recovery Codes</h1>
+                </div>
+                <div class="card-body">
+                    <p>Store these recovery codes in a safe place. They can be used to access your account if you lose access to your authenticator app.</p>
+                    <div class="alert alert-warning">Each recovery code can only be used once.</div>
+
+                    <div class="recovery-codes-list my-4">
+                        <ul>
+                        {% for code in recovery_codes %}
+                            <li><code>{{ code }}</code></li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+
+                    <p>If you lose these codes or use them all, you can regenerate new ones. Regenerating will invalidate all old codes.</p>
+
+                    <form method="POST" action="{{ url_for('more.recovery_codes') }}">
+                        <button type="submit" class="btn btn-warning">Regenerate Codes</button>
+                        <a href="{{ url_for('more.privacy_security') }}" class="btn btn-secondary">Back to Privacy & Security</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

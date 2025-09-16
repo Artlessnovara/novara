@@ -45,8 +45,16 @@
                     <small class="text-muted">Add an extra layer of security to your account.</small>
                 </div>
                 <div class="settings-section-content">
-                    <p>2FA is currently <strong>disabled</strong>.</p>
-                    <button class="btn btn-primary" disabled>Enable 2FA (Coming Soon)</button>
+                    {% if not current_user.two_factor_enabled %}
+                        <p>2FA is currently <strong>disabled</strong>.</p>
+                        <a href="{{ url_for('more.setup_2fa') }}" class="btn btn-primary">Enable 2FA</a>
+                    {% else %}
+                        <p>2FA is currently <strong>enabled</strong>.</p>
+                        <a href="{{ url_for('more.recovery_codes') }}" class="btn btn-secondary">View Recovery Codes</a>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#disable2faModal">
+                            Disable 2FA
+                        </button>
+                    {% endif %}
                 </div>
             </div>
 
@@ -106,5 +114,27 @@
 
         </div>
     </div>
+</div>
+
+<!-- Disable 2FA Modal -->
+<div class="modal fade" id="disable2faModal" tabindex="-1" aria-labelledby="disable2faModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="disable2faModalLabel">Disable Two-Factor Authentication</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to disable 2FA? This will reduce the security of your account.</p>
+        <form method="POST" action="{{ url_for('more.disable_2fa') }}">
+            <div class="mb-3">
+                <label for="password_confirm_2fa" class="form-label">Please enter your password to confirm:</label>
+                <input type="password" name="password" id="password_confirm_2fa" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-danger">Yes, Disable 2FA</button>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
