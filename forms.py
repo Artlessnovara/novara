@@ -28,13 +28,13 @@ class PageCreationStep3Form(FlaskForm):
     submit = SubmitField('Next Step')
 
 class ReportProblemForm(FlaskForm):
-    problem_description = TextAreaField('Problem Description', validators=[DataRequired()])
+    subject = StringField('Subject', validators=[DataRequired()])
+    details = TextAreaField('Details', validators=[DataRequired()])
     submit = SubmitField('Submit Report')
 
 class ContactForm(FlaskForm):
     name = StringField('Your Name', validators=[DataRequired()])
     email = StringField('Your Email', validators=[DataRequired(), Email()])
-    subject = StringField('Subject', validators=[DataRequired()])
     message = TextAreaField('Message', validators=[DataRequired()])
     submit = SubmitField('Send Message')
 

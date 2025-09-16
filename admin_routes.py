@@ -2,12 +2,7 @@ from flask import Blueprint, render_template, abort, flash, redirect, url_for, r
 from flask_login import login_required, current_user
 import os
 
-from models import (User, Course, Category, LibraryMaterial, PlatformSetting,
-                    Enrollment, CertificateRequest, Certificate, LibraryPurchase,
-                    ChatRoom, ChatRoomMember, MutedUser, ReportedMessage,
-                    ReportedGroup, AdminLog, GroupRequest, Community,
-                    ReportedPost, PremiumSubscriptionRequest, Feedback,
-                    ProblemReport, ContactMessage)
+from models import User, Course, Category, LibraryMaterial, PlatformSetting, Enrollment, CertificateRequest, Certificate, LibraryPurchase, ChatRoom, ChatRoomMember, MutedUser, ReportedMessage, ReportedGroup, AdminLog, GroupRequest, Community, ReportedPost, PremiumSubscriptionRequest
 from extensions import db
 from pdf_generator import generate_certificate_pdf
 from utils import save_chat_room_cover_image, get_or_create_platform_setting
@@ -37,12 +32,6 @@ def dashboard():
 
     user_roles = db.session.query(User.role, db.func.count(User.role)).group_by(User.role).all()
 
-    # Count new submissions
-    new_feedback_count = Feedback.query.filter_by(status='new').count()
-    new_reports_count = ProblemReport.query.filter_by(status='new').count()
-    new_messages_count = ContactMessage.query.filter_by(status='new').count()
-    total_new_submissions = new_feedback_count + new_reports_count + new_messages_count
-
     # Prepare data for charts
     analytics_data = {
         'user_count': user_count,
@@ -50,8 +39,7 @@ def dashboard():
         'enrollment_count': enrollment_count,
         'new_users_last_7_days': new_users_count,
         'user_roles_labels': [role for role, count in user_roles],
-        'user_roles_values': [count for role, count in user_roles],
-        'total_new_submissions': total_new_submissions
+        'user_roles_values': [count for role, count in user_roles]
     }
 
     general_room = ChatRoom.query.filter_by(name='General').first()
@@ -873,40 +861,3 @@ def view_private_chat(room_id):
 
     messages = room.messages.order_by(ChatMessage.timestamp.asc()).all()
     return render_template('admin/view_private_chat.html', room=room, messages=messages)
-
-
-# --- User Support Submissions ---
-
-@admin_bp.route('/review-submissions')
-@login_required
-def review_submissions():
-    feedback_items = Feedback.query.order_by(Feedback.created_at.desc()).all()
-    problem_reports = ProblemReport.query.order_by(ProblemReport.created_at.desc()).all()
-    contact_messages = ContactMessage.query.order_by(ContactMessage.created_at.desc()).all()
-    return render_template('admin/review_submissions.html',
-                           feedback_items=feedback_items,
-                           problem_reports=problem_reports,
-                           contact_messages=contact_messages)
-
-
-@admin_bp.route('/update-submission-status/<submission_type>/<int:item_id>', methods=['POST'])
-@login_required
-def update_submission_status(submission_type, item_id):
-    new_status = request.form.get('status')
-    model_map = {
-        'feedback': Feedback,
-        'problem_report': ProblemReport,
-        'contact_message': ContactMessage
-    }
-
-    model = model_map.get(submission_type)
-    if not model or not new_status:
-        flash('Invalid request.', 'danger')
-        return redirect(url_for('admin.review_submissions'))
-
-    item = model.query.get_or_404(item_id)
-    item.status = new_status
-    db.session.commit()
-
-    flash(f"{submission_type.replace('_', ' ').title()} (ID: {item_id}) status has been updated to '{new_status}'.", 'success')
-    return redirect(url_for('admin.review_submissions'))
