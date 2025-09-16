@@ -510,6 +510,7 @@ class Status(db.Model):
     background = db.Column(db.String(50), nullable=True) # For text statuses
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False, index=True)
+    is_story = db.Column(db.Boolean, default=False, nullable=False)
 
     user = db.relationship('User', backref=db.backref('statuses', lazy='dynamic'))
     views = db.relationship('StatusView', backref='status', lazy='dynamic', cascade="all, delete-orphan")

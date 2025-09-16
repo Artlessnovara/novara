@@ -2,9 +2,9 @@ import random
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
 from flask_login import login_required, current_user
 from math import radians, sin, cos, sqrt, atan2
-from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, Vote, Bookmark, PostImpression, BannedFromCommunity, MutedInCommunity, CommunityAnalytics
+from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, StatusView, Challenge, Vote, Bookmark, PostImpression, BannedFromCommunity, MutedInCommunity, CommunityAnalytics
 from extensions import db
-from utils import save_post_media, save_community_cover_image
+from utils import save_post_media, save_community_cover_image, save_status_file
 from sqlalchemy import or_
 from sqlalchemy.sql import func
 from datetime import datetime, date, timedelta
@@ -66,14 +66,101 @@ def home():
         ).first()
         post.user_reaction = user_reaction_obj.reaction_type if user_reaction_obj else None
 
+    # Fetch stories
+    story_user_ids = following_ids + [current_user.id]
+    print(f"Story user IDs: {story_user_ids}")
 
-    return render_template('feed/home.html', posts=posts)
+    active_stories = Status.query.filter(
+        Status.is_story == True,
+        Status.expires_at > datetime.utcnow(),
+        Status.user_id.in_(story_user_ids)
+    ).order_by(Status.user_id, Status.created_at).all()
+
+    stories_by_user = {}
+    for story in active_stories:
+        if story.user_id not in stories_by_user:
+            stories_by_user[story.user_id] = {
+                'user': story.user,
+                'stories': [],
+                'all_viewed': True
+            }
+        stories_by_user[story.user_id]['stories'].append(story)
+
+        # Check if the current user has viewed this specific story
+        view = StatusView.query.filter_by(status_id=story.id, user_id=current_user.id).first()
+        if not view:
+            stories_by_user[story.user_id]['all_viewed'] = False
+
+    # Convert to a list of values for the template
+    stories_list = list(stories_by_user.values())
+
+    print(f"Active stories: {active_stories}")
+    print(f"Stories list: {stories_list}")
+
+    return render_template('feed/home.html', posts=final_feed, stories=stories_list)
+
+@feed_bp.route('/story/create', methods=['GET'])
+@login_required
+def create_story_page():
+    """Displays the dedicated page for creating a new story."""
+    return render_template('feed/create_story.html')
 
 @feed_bp.route('/create', methods=['GET'])
 @login_required
 def create_post_page():
     """Displays the dedicated page for creating a new post."""
     return render_template('feed/create_post.html')
+
+@feed_bp.route('/story/create', methods=['POST'])
+@login_required
+def create_story():
+    """Creates a new story."""
+    story_type = request.form.get('story_type')
+
+    if story_type == 'media':
+        media_file = request.files.get('media_file')
+        if not media_file:
+            flash('Media file is required for a media story.', 'danger')
+            return redirect(url_for('feed.create_story_page'))
+
+        saved_path = save_status_file(media_file)
+        if not saved_path:
+            flash('Invalid file type or size for media.', 'danger')
+            return redirect(url_for('feed.create_story_page'))
+
+        media_type = 'image' if saved_path.endswith(('.png', '.jpg', '.jpeg', '.gif')) else 'video'
+
+        new_story = Status(
+            user_id=current_user.id,
+            content_type=media_type,
+            content=saved_path,
+            is_story=True,
+            expires_at=datetime.utcnow() + timedelta(hours=24)
+        )
+
+    elif story_type == 'text':
+        text_content = request.form.get('text_content')
+        background_color = request.form.get('background_color')
+        if not text_content:
+            flash('Text content is required for a text story.', 'danger')
+            return redirect(url_for('feed.create_story_page'))
+
+        new_story = Status(
+            user_id=current_user.id,
+            content_type='text',
+            content=text_content,
+            background=background_color,
+            is_story=True,
+            expires_at=datetime.utcnow() + timedelta(hours=24)
+        )
+    else:
+        flash('Invalid story type.', 'danger')
+        return redirect(url_for('feed.create_story_page'))
+
+    db.session.add(new_story)
+    db.session.commit()
+    flash('Your story has been posted!', 'success')
+    return redirect(url_for('feed.home'))
 
 @feed_bp.route('/create_post', methods=['POST'])
 @login_required
@@ -778,6 +865,58 @@ def add_comment(post_id):
     }
 
     return jsonify({'status': 'success', 'comment': comment_data}), 201
+
+@feed_bp.route('/api/story/<int:story_id>/view', methods=['POST'])
+@login_required
+def view_story(story_id):
+    """Marks a story as viewed by the current user."""
+    story = Status.query.get_or_404(story_id)
+    if not story.is_story:
+        return jsonify({'status': 'error', 'message': 'Not a story.'}), 400
+
+    # Check if already viewed
+    existing_view = StatusView.query.filter_by(
+        user_id=current_user.id,
+        status_id=story.id
+    ).first()
+
+    if not existing_view:
+        new_view = StatusView(
+            user_id=current_user.id,
+            status_id=story.id
+        )
+        db.session.add(new_view)
+        db.session.commit()
+
+    return jsonify({'status': 'success'})
+
+@feed_bp.route('/api/stories/<int:user_id>')
+@login_required
+def get_stories(user_id):
+    """Fetches all active stories for a given user."""
+    user = User.query.get_or_404(user_id)
+    stories = Status.query.filter(
+        Status.user_id == user_id,
+        Status.is_story == True,
+        Status.expires_at > datetime.utcnow()
+    ).order_by(Status.created_at).all()
+
+    stories_data = []
+    for story in stories:
+        stories_data.append({
+            'id': story.id,
+            'content_type': story.content_type,
+            'content': url_for('static', filename=story.content) if story.content_type != 'text' else story.content,
+            'caption': story.caption,
+            'background': story.background,
+        })
+    return jsonify({
+        'user_info': {
+            'name': user.name,
+            'profile_pic': url_for('static', filename='profile_pics/' + user.profile_pic)
+        },
+        'stories': stories_data
+    })
 
 
 @feed_bp.route('/api/user/update_location', methods=['POST'])
