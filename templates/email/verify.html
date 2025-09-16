@@ -1,6 +1,0 @@
-<h3>Dear {{ user.name }},</h3>
-<p>Thank you for registering. Please <a href="{{ url_for('more.verify_email', token=token, _external=True) }}">click here</a> to verify your email address.</p>
-<p>Alternatively, you can paste the following link in your browser's address bar:</p>
-<p>{{ url_for('more.verify_email', token=token, _external=True) }}</p>
-<p>If you did not make this request then please ignore this email.</p>
-<p>Sincerely,<br>The Team</p>

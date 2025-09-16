@@ -27,13 +27,8 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     name = db.Column(db.String(150), nullable=False)
-    username = db.Column(db.String(80), unique=True, nullable=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
-    email_verified = db.Column(db.Boolean, default=False, nullable=False)
-    phone_number = db.Column(db.String(20), nullable=True, unique=True)
-    phone_number_verified = db.Column(db.Boolean, default=False, nullable=False)
     password_hash = db.Column(db.String(128))
-    website = db.Column(db.String(200), nullable=True)
     role = db.Column(db.String(50), nullable=False, default='student')
     approved = db.Column(db.Boolean, default=False)
     is_banned = db.Column(db.Boolean, default=False)
@@ -51,16 +46,10 @@ class User(UserMixin, db.Model):
     privacy_last_seen = db.Column(db.String(50), default='everyone', nullable=False)
     privacy_profile_pic = db.Column(db.String(50), default='everyone', nullable=False)
     privacy_about = db.Column(db.String(50), default='everyone', nullable=False)
-    default_post_privacy = db.Column(db.String(50), default='public', nullable=False)
     is_premium = db.Column(db.Boolean, default=False, nullable=False)
     premium_expires_at = db.Column(db.DateTime, nullable=True)
 
-    # 2FA
-    otp_secret = db.Column(db.String(16), nullable=True)
-    two_factor_enabled = db.Column(db.Boolean, default=False, nullable=False)
-
     # Custom Profile Appearance
-    cover_photo = db.Column(db.String(120), nullable=True, default='images/course_placeholder.jpg')
     profile_banner_url = db.Column(db.String(255), nullable=True)
     profile_theme = db.Column(db.String(50), nullable=True)
     bio_links = db.Column(db.JSON, nullable=True)
@@ -975,12 +964,42 @@ class Feedback(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     feedback_text = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='new') # new, reviewed, archived
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('feedback_submissions', lazy='dynamic'))
 
     def __repr__(self):
         return f'<Feedback {self.id} by User {self.user_id}>'
+
+
+class ProblemReport(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    problem_description = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='new') # new, in_progress, resolved
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('problem_reports', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<ProblemReport {self.id} by User {self.user_id}>'
+
+
+class ContactMessage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Nullable for guests
+    name = db.Column(db.String(150), nullable=False)
+    email = db.Column(db.String(150), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='new') # new, read, replied, archived
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('contact_messages', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<ContactMessage {self.id} from {self.name}>'
 
 
 class Referral(db.Model):
@@ -1017,20 +1036,3 @@ class FCMToken(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref='fcm_tokens')
-
-class LoginHistory(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    ip_address = db.Column(db.String(45))
-    user_agent = db.Column(db.String(255))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
-    user = db.relationship('User', backref=db.backref('login_history', lazy='dynamic'))
-
-class RecoveryCode(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    code_hash = db.Column(db.String(128), nullable=False)
-    used = db.Column(db.Boolean, default=False, nullable=False)
-
-    user = db.relationship('User', backref=db.backref('recovery_codes', lazy='dynamic'))

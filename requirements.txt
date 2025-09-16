@@ -11,6 +11,3 @@ firebase-admin
 requests
 Flask-WTF
 APScheduler
-Flask-Mail
-pyotp
-qrcode

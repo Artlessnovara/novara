@@ -79,7 +79,7 @@ def create_post_page():
 def create_post():
     """Create a new post, with scheduling for premium users."""
     content = request.form.get('content')
-    privacy = request.form.get('privacy', current_user.default_post_privacy or 'public')
+    privacy = request.form.get('privacy', 'public')
     media_file = request.files.get('media')
     community_id = request.form.get('community_id', type=int)
     page_id = request.form.get('page_id', type=int)

@@ -1,44 +1,17 @@
 import secrets
 import os
 import json
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post, LoginHistory, RecoveryCode
+from models import (User, UserPage, Draft, Wallet, Subscription, BlockedUser,
+                    Community, CommunityMembership, Feedback, Referral, PlatformSetting,
+                    PremiumSubscriptionRequest, PinnedPost, Post, ProblemReport, ContactMessage)
 from extensions import db
-from flask_login import logout_user
-from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm, EditProfileForm, ChangePasswordForm, UpdatePhoneNumberForm
+from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm
 from utils import get_or_create_platform_setting
-from mail import send_verification_email
-from itsdangerous import URLSafeTimedSerializer
-import pyotp
-import qrcode
-import io
-import base64
 
 more_bp = Blueprint('more', __name__, url_prefix='/more')
-
-def save_profile_photo(file):
-    filename = secure_filename(file.filename)
-    random_hex = secrets.token_hex(8)
-    _, f_ext = os.path.splitext(filename)
-    new_filename = random_hex + f_ext
-    pics_dir = os.path.join(current_app.root_path, 'static/profile_pics')
-    os.makedirs(pics_dir, exist_ok=True)
-    filepath = os.path.join(pics_dir, new_filename)
-    file.save(filepath)
-    return os.path.join('profile_pics', new_filename)
-
-def save_cover_photo(file):
-    filename = secure_filename(file.filename)
-    random_hex = secrets.token_hex(8)
-    _, f_ext = os.path.splitext(filename)
-    new_filename = random_hex + f_ext
-    covers_dir = os.path.join(current_app.root_path, 'static/cover_photos')
-    os.makedirs(covers_dir, exist_ok=True)
-    filepath = os.path.join(covers_dir, new_filename)
-    file.save(filepath)
-    return os.path.join('cover_photos', new_filename)
 
 @more_bp.route('/')
 @login_required
@@ -118,7 +91,13 @@ def help_center():
 def report_problem():
     form = ReportProblemForm()
     if form.validate_on_submit():
-        # Here you would typically email the report or save it to a database
+        new_report = ProblemReport(
+            user_id=current_user.id,
+            problem_description=form.problem_description.data,
+            status='new'
+        )
+        db.session.add(new_report)
+        db.session.commit()
         flash('Thank you for your report. We will look into it shortly.', 'success')
         return redirect(url_for('more.more_page'))
     return render_template('more/report_problem.html', form=form)
@@ -128,9 +107,24 @@ def report_problem():
 def contact_support():
     form = ContactForm()
     if form.validate_on_submit():
+        new_message = ContactMessage(
+            user_id=current_user.id,
+            name=form.name.data,
+            email=form.email.data,
+            subject=form.subject.data,
+            message=form.message.data,
+            status='new'
+        )
+        db.session.add(new_message)
+        db.session.commit()
         flash('Your message has been sent to our support team.', 'success')
         return redirect(url_for('more.more_page'))
+    # Pre-fill form for logged-in user
+    if request.method == 'GET':
+        form.name.data = current_user.name
+        form.email.data = current_user.email
     return render_template('more/contact_support.html', form=form)
+
 
 @more_bp.route('/support/feedback', methods=['GET', 'POST'])
 @login_required
@@ -139,7 +133,8 @@ def give_feedback():
     if form.validate_on_submit():
         new_feedback = Feedback(
             user_id=current_user.id,
-            feedback_text=form.feedback_text.data
+            feedback_text=form.feedback_text.data,
+            status='new'
         )
         db.session.add(new_feedback)
         db.session.commit()
@@ -370,215 +365,3 @@ def profile_appearance_settings():
         form.pinned_post.data = current_user.pinned_post.post_id
 
     return render_template('more/profile_appearance.html', form=form)
-
-@more_bp.route('/settings/edit_profile', methods=['GET', 'POST'])
-@login_required
-def edit_profile():
-    form = EditProfileForm(obj=current_user)
-    if form.validate_on_submit():
-        if form.profile_photo.data:
-            profile_pic_path = save_profile_photo(form.profile_photo.data)
-            current_user.profile_pic = profile_pic_path
-
-        if form.cover_photo.data:
-            cover_photo_filename = save_cover_photo(form.cover_photo.data)
-            current_user.cover_photo = cover_photo_filename
-
-        current_user.name = form.name.data
-        current_user.username = form.username.data
-        current_user.website = form.website.data
-        current_user.bio = form.bio.data
-
-        db.session.commit()
-        flash('Your profile has been updated!', 'success')
-        return redirect(url_for('more.edit_profile'))
-
-    return render_template('more/edit_profile.html', form=form)
-
-@more_bp.route('/settings/account', methods=['GET', 'POST'])
-@login_required
-def account_settings():
-    password_form = ChangePasswordForm(prefix='password')
-    phone_form = UpdatePhoneNumberForm(prefix='phone')
-
-    if password_form.validate_on_submit() and password_form.submit.data:
-        if current_user.check_password(password_form.current_password.data):
-            current_user.set_password(password_form.new_password.data)
-            db.session.commit()
-            flash('Your password has been updated successfully.', 'success')
-        else:
-            flash('Incorrect current password.', 'danger')
-        return redirect(url_for('more.account_settings'))
-
-    if phone_form.validate_on_submit() and phone_form.submit.data:
-        current_user.phone_number = phone_form.phone_number.data
-        db.session.commit()
-        flash('Your phone number has been updated.', 'success')
-        return redirect(url_for('more.account_settings'))
-
-    return render_template('more/account_settings.html', password_form=password_form, phone_form=phone_form)
-
-@more_bp.route('/settings/account/delete', methods=['POST'])
-@login_required
-def delete_account():
-    password = request.form.get('password')
-    if current_user.check_password(password):
-        # Get user object before logging out
-        user_to_delete = User.query.get(current_user.id)
-        logout_user()
-
-        # Anonymize or delete user data. For this example, we'll delete.
-        # In a real app, you might want to handle this as a background task.
-        db.session.delete(user_to_delete)
-        db.session.commit()
-
-        flash('Your account has been permanently deleted.', 'success')
-        return redirect(url_for('main.index'))
-    else:
-        flash('Incorrect password. Account deletion failed.', 'danger')
-        return redirect(url_for('more.account_settings'))
-
-@more_bp.route('/settings/privacy_security', methods=['GET', 'POST'])
-@login_required
-def privacy_security():
-    if request.method == 'POST':
-        privacy_setting = request.form.get('default_post_privacy')
-        if privacy_setting in ['public', 'followers', 'private']:
-            current_user.default_post_privacy = privacy_setting
-            db.session.commit()
-            flash('Your default post privacy has been updated.', 'success')
-        else:
-            flash('Invalid privacy setting selected.', 'danger')
-        return redirect(url_for('more.privacy_security'))
-
-    blocked_users_count = BlockedUser.query.filter_by(blocker_id=current_user.id).count()
-    login_history = LoginHistory.query.filter_by(user_id=current_user.id).order_by(LoginHistory.timestamp.desc()).limit(5).all()
-    return render_template('more/privacy_security.html', blocked_users_count=blocked_users_count, login_history=login_history)
-
-@more_bp.route('/resend_verification_email')
-@login_required
-def resend_verification_email():
-    if current_user.email_verified:
-        flash('Your email is already verified.', 'info')
-        return redirect(url_for('more.account_settings'))
-
-    send_verification_email(current_user)
-    flash('A new verification email has been sent.', 'success')
-    return redirect(url_for('more.account_settings'))
-
-@more_bp.route('/verify_email/<token>')
-@login_required
-def verify_email(token):
-    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-    try:
-        email = s.loads(token, salt='email-verification-salt', max_age=3600)
-    except:
-        flash('The confirmation link is invalid or has expired.', 'danger')
-        return redirect(url_for('main.index'))
-
-    if current_user.email != email:
-        flash('The confirmation link is for a different account.', 'danger')
-        return redirect(url_for('main.index'))
-
-    if current_user.email_verified:
-        flash('Your email is already verified.', 'info')
-        return redirect(url_for('more.account_settings'))
-
-    current_user.email_verified = True
-    db.session.commit()
-    flash('Your email has been verified.', 'success')
-    return redirect(url_for('more.account_settings'))
-
-@more_bp.route('/settings/2fa/', methods=['GET', 'POST'])
-@login_required
-def setup_2fa():
-    if current_user.two_factor_enabled:
-        flash('2FA is already enabled.', 'info')
-        return redirect(url_for('more.privacy_security'))
-
-    if request.method == 'POST':
-        totp_code = request.form.get('totp')
-        # The secret should be stored in the session while setting up
-        otp_secret = session.get('otp_secret')
-        if not otp_secret:
-            flash('Error setting up 2FA. Please try again.', 'danger')
-            return redirect(url_for('more.setup_2fa'))
-
-        totp = pyotp.TOTP(otp_secret)
-        if totp.verify(totp_code):
-            current_user.otp_secret = otp_secret
-            current_user.two_factor_enabled = True
-            db.session.commit()
-            session.pop('otp_secret', None) # Clean up session
-
-            # Generate and show recovery codes
-            recovery_codes = generate_recovery_codes(current_user)
-            flash('2FA has been enabled successfully! Please save your recovery codes.', 'success')
-            return render_template('more/recovery_codes.html', recovery_codes=recovery_codes)
-        else:
-            flash('Invalid verification code.', 'danger')
-            return redirect(url_for('more.setup_2fa'))
-
-    # Generate a new secret for the user
-    otp_secret = pyotp.random_base32()
-    session['otp_secret'] = otp_secret # Store in session temporarily
-
-    # Generate QR code
-    totp_uri = pyotp.totp.TOTP(otp_secret).provisioning_uri(
-        name=current_user.email,
-        issuer_name='Your App Name'
-    )
-    qr = qrcode.make(totp_uri)
-    buf = io.BytesIO()
-    qr.save(buf)
-    buf.seek(0)
-    qr_code_image = base64.b64encode(buf.getvalue()).decode('utf-8')
-
-    return render_template('more/setup_2fa.html', qr_code_image=qr_code_image)
-
-def generate_recovery_codes(user):
-    # Invalidate old codes
-    RecoveryCode.query.filter_by(user_id=user.id).delete()
-
-    # Generate new codes
-    recovery_codes = [secrets.token_hex(8) for _ in range(10)]
-    for code in recovery_codes:
-        recovery_code = RecoveryCode(user_id=user.id, code_hash=generate_password_hash(code))
-        db.session.add(recovery_code)
-
-    db.session.commit()
-    return recovery_codes
-
-@more_bp.route('/settings/2fa/disable', methods=['POST'])
-@login_required
-def disable_2fa():
-    password = request.form.get('password')
-    if current_user.check_password(password):
-        current_user.two_factor_enabled = False
-        current_user.otp_secret = None
-        # It's good practice to also delete any recovery codes
-        RecoveryCode.query.filter_by(user_id=current_user.id).delete()
-        db.session.commit()
-        flash('Two-Factor Authentication has been disabled.', 'success')
-    else:
-        flash('Incorrect password.', 'danger')
-    return redirect(url_for('more.privacy_security'))
-
-@more_bp.route('/settings/2fa/recovery_codes', methods=['GET', 'POST'])
-@login_required
-def recovery_codes():
-    if not current_user.two_factor_enabled:
-        flash('2FA is not enabled.', 'warning')
-        return redirect(url_for('more.privacy_security'))
-
-    if request.method == 'POST':
-        # Regenerate codes
-        recovery_codes = generate_recovery_codes(current_user)
-        flash('New recovery codes have been generated. Your old codes are now invalid.', 'success')
-        return render_template('more/recovery_codes.html', recovery_codes=recovery_codes)
-
-    # This part is tricky because we should not store plain text codes.
-    # For this implementation, we will just show a message. A real implementation
-    # would require the user to re-authenticate to view codes.
-    flash('For security reasons, recovery codes are only shown once upon setup. Please regenerate them if you have lost them.', 'info')
-    return redirect(url_for('more.privacy_security'))
