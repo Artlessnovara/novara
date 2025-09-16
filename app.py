@@ -1,3 +1,4 @@
+import logging
 from flask import Flask
 from extensions import db, login_manager, socketio
 from models import User, ChatRoom, ChatMessage, Notification
@@ -37,7 +38,9 @@ def secure_embeds_filter(html_content):
     return Markup(str(soup))
 
 def create_app(config_object=None):
+    logging.basicConfig(filename='flask_server.log', level=logging.INFO)
     app = Flask(__name__)
+    app.logger.info("App starting...")
 
     if config_object:
         app.config.from_object(config_object)

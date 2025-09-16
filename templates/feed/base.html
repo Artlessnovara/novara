@@ -78,7 +78,7 @@
             <i class="fas fa-user-plus"></i>
             <span>Suggestions</span>
         </a>
-        <a href="{{ url_for('feed.more') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.more' }}">
+        <a href="{{ url_for('more.more_page') }}" class="nav-item {{ 'active' if request.endpoint == 'more.more_page' or request.endpoint.startswith('more.') }}">
             <i class="fas fa-ellipsis-h"></i>
             <span>More</span>
         </a>

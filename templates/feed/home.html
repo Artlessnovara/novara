@@ -3,6 +3,7 @@
 {% block title %}Home Feed{% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}">
 <style>
     .feed-container { max-width: 800px; margin: auto; }
     .create-post-prompt {
@@ -254,6 +255,25 @@
 
 {% block content %}
 <div class="feed-container">
+    <div class="stories-container">
+        <div class="story-card create-story-card">
+            <a href="{{ url_for('feed.create_story_page') }}">
+                <div class="story-avatar">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <div class="story-user-name">Create Story</div>
+            </a>
+        </div>
+        {% for user_stories in stories %}
+        <div class="story-card" data-user-id="{{ user_stories.user.id }}">
+            <div class="story-avatar {% if not user_stories.all_viewed %}unseen-story{% endif %}">
+                <img src="{{ url_for('static', filename='profile_pics/' + user_stories.user.profile_pic) }}" alt="{{ user_stories.user.name }}'s Story">
+            </div>
+            <div class="story-user-name">{{ user_stories.user.name.split()[0] }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
     <div class="create-post-prompt">
         <a href="{{ url_for('feed.create_post_page') }}" class="create-post-link">
             <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Your Profile Pic" class="profile-pic-small">
@@ -813,5 +833,5 @@ document.addEventListener('DOMContentLoaded', function() {
         impressionObserver.observe(post);
     });
 });
-</script>
+<script src="{{ url_for('static', filename='js/story.js') }}"></script>
 {% endblock %}
