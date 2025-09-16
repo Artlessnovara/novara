@@ -127,18 +127,6 @@
             <h3 class="card-title">Premium Requests</h3>
             <p class="card-subtitle">Review and approve premium subscriptions.</p>
         </a>
-
-        <!-- Review Submissions -->
-        <a href="{{ url_for('admin.review_submissions') }}" class="glass-card glow-red">
-            <div class="card-icon">
-                <i class="fas fa-inbox"></i>
-                {% if analytics.total_new_submissions > 0 %}
-                    <span class="notification-badge">{{ analytics.total_new_submissions }}</span>
-                {% endif %}
-            </div>
-            <h3 class="card-title">User Submissions</h3>
-            <p class="card-subtitle">Review feedback, reports, and messages.</p>
-        </a>
     </div>
 </div>
 {% endblock %}

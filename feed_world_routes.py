@@ -1,6 +1,7 @@
 import random
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
 from flask_login import login_required, current_user
+from math import radians, sin, cos, sqrt, atan2
 from models import Post, Like, GenericComment, Reel, Community, CommunityMembership, User, Project, CreativeWork, follow, Notification, ReportedPost, Status, Challenge, Vote, Bookmark, PostImpression, BannedFromCommunity, MutedInCommunity, CommunityAnalytics
 from extensions import db
 from utils import save_post_media, save_community_cover_image
@@ -777,6 +778,65 @@ def add_comment(post_id):
     }
 
     return jsonify({'status': 'success', 'comment': comment_data}), 201
+
+
+@feed_bp.route('/api/user/update_location', methods=['POST'])
+@login_required
+def update_location():
+    data = request.get_json()
+    lat = data.get('latitude')
+    lon = data.get('longitude')
+
+    if lat is not None and lon is not None:
+        current_user.latitude = lat
+        current_user.longitude = lon
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    return jsonify({'status': 'error', 'message': 'Invalid location data'}), 400
+
+
+@feed_bp.route('/api/suggestions/nearby_users')
+@login_required
+def nearby_users():
+    lat = request.args.get('lat', type=float)
+    lon = request.args.get('lon', type=float)
+
+    if lat is None or lon is None:
+        # If no location is provided, return all users (or a random subset)
+        users = User.query.filter(User.id != current_user.id).limit(20).all()
+        return jsonify([{
+            'id': user.id,
+            'name': user.name,
+            'profile_pic': user.profile_pic
+        } for user in users])
+
+    # Haversine formula to calculate distance
+    def haversine(lat1, lon1, lat2, lon2):
+        R = 6371  # Radius of Earth in kilometers
+        dLat = radians(lat2 - lat1)
+        dLon = radians(lon2 - lon1)
+        a = sin(dLat / 2) * sin(dLat / 2) + cos(radians(lat1)) * cos(radians(lat2)) * sin(dLon / 2) * sin(dLon / 2)
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        distance = R * c
+        return distance
+
+    users = User.query.filter(User.id != current_user.id, User.latitude.isnot(None), User.longitude.isnot(None)).all()
+
+    nearby_users = []
+    for user in users:
+        distance = haversine(lat, lon, user.latitude, user.longitude)
+        if distance < 50:  # 50 km radius
+            nearby_users.append({
+                'id': user.id,
+                'name': user.name,
+                'profile_pic': user.profile_pic,
+                'distance': round(distance, 2)
+            })
+
+    # Sort by distance
+    nearby_users.sort(key=lambda x: x['distance'])
+
+    return jsonify(nearby_users)
 
 
 @feed_bp.route('/api/post/<int:post_id>/impression', methods=['POST'])

@@ -54,6 +54,10 @@ class User(UserMixin, db.Model):
     profile_theme = db.Column(db.String(50), nullable=True)
     bio_links = db.Column(db.JSON, nullable=True)
 
+    # Location
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
+
     courses_taught = db.relationship('Course', backref='instructor', lazy='dynamic')
     enrollments = db.relationship('Enrollment', back_populates='student', lazy='dynamic')
     course_comments = db.relationship('CourseComment', backref='author', lazy='dynamic')
@@ -964,42 +968,12 @@ class Feedback(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     feedback_text = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(50), nullable=False, default='new') # new, reviewed, archived
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('feedback_submissions', lazy='dynamic'))
 
     def __repr__(self):
         return f'<Feedback {self.id} by User {self.user_id}>'
-
-
-class ProblemReport(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    problem_description = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(50), nullable=False, default='new') # new, in_progress, resolved
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    user = db.relationship('User', backref=db.backref('problem_reports', lazy='dynamic'))
-
-    def __repr__(self):
-        return f'<ProblemReport {self.id} by User {self.user_id}>'
-
-
-class ContactMessage(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Nullable for guests
-    name = db.Column(db.String(150), nullable=False)
-    email = db.Column(db.String(150), nullable=False)
-    subject = db.Column(db.String(255), nullable=False)
-    message = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(50), nullable=False, default='new') # new, read, replied, archived
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    user = db.relationship('User', backref=db.backref('contact_messages', lazy='dynamic'))
-
-    def __repr__(self):
-        return f'<ContactMessage {self.id} from {self.name}>'
 
 
 class Referral(db.Model):

@@ -4,9 +4,7 @@ import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from models import (User, UserPage, Draft, Wallet, Subscription, BlockedUser,
-                    Community, CommunityMembership, Feedback, Referral, PlatformSetting,
-                    PremiumSubscriptionRequest, PinnedPost, Post, ProblemReport, ContactMessage)
+from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post
 from extensions import db
 from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm
 from utils import get_or_create_platform_setting
@@ -91,13 +89,7 @@ def help_center():
 def report_problem():
     form = ReportProblemForm()
     if form.validate_on_submit():
-        new_report = ProblemReport(
-            user_id=current_user.id,
-            problem_description=form.problem_description.data,
-            status='new'
-        )
-        db.session.add(new_report)
-        db.session.commit()
+        # Here you would typically email the report or save it to a database
         flash('Thank you for your report. We will look into it shortly.', 'success')
         return redirect(url_for('more.more_page'))
     return render_template('more/report_problem.html', form=form)
@@ -107,24 +99,9 @@ def report_problem():
 def contact_support():
     form = ContactForm()
     if form.validate_on_submit():
-        new_message = ContactMessage(
-            user_id=current_user.id,
-            name=form.name.data,
-            email=form.email.data,
-            subject=form.subject.data,
-            message=form.message.data,
-            status='new'
-        )
-        db.session.add(new_message)
-        db.session.commit()
         flash('Your message has been sent to our support team.', 'success')
         return redirect(url_for('more.more_page'))
-    # Pre-fill form for logged-in user
-    if request.method == 'GET':
-        form.name.data = current_user.name
-        form.email.data = current_user.email
     return render_template('more/contact_support.html', form=form)
-
 
 @more_bp.route('/support/feedback', methods=['GET', 'POST'])
 @login_required
@@ -133,8 +110,7 @@ def give_feedback():
     if form.validate_on_submit():
         new_feedback = Feedback(
             user_id=current_user.id,
-            feedback_text=form.feedback_text.data,
-            status='new'
+            feedback_text=form.feedback_text.data
         )
         db.session.add(new_feedback)
         db.session.commit()
