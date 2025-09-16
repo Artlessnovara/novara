@@ -1,13 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, send_from_directory, jsonify, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, send_from_directory, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
-import pyotp
-from werkzeug.security import check_password_hash
 import random
 import secrets
 import os
 from werkzeug.utils import secure_filename
-from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory, Post, LoginHistory, RecoveryCode
+from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory, Post
 from extensions import db
 from utils import save_chat_file, save_status_file, get_or_create_platform_setting, is_contact, get_or_create_private_room
 from datetime import timedelta
@@ -623,21 +621,7 @@ def login():
                 flash('Your account has been suspended.', 'danger')
                 return redirect(url_for('main.login'))
 
-            if user.two_factor_enabled:
-                session['2fa_user_id'] = user.id
-                return redirect(url_for('main.login_2fa'))
-
             login_user(user)
-
-            # Record login history
-            login_history = LoginHistory(
-                user_id=user.id,
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-            db.session.add(login_history)
-            db.session.commit()
-
             if user.role == 'admin':
                 return redirect(url_for('admin.dashboard'))
             elif user.role == 'instructor':
@@ -652,99 +636,6 @@ def login():
             return redirect(url_for('main.login'))
 
     return render_template('login.html')
-
-@main.route('/login/2fa', methods=['GET', 'POST'])
-def login_2fa():
-    user_id = session.get('2fa_user_id')
-    if not user_id:
-        return redirect(url_for('main.login'))
-
-    user = User.query.get(user_id)
-    if not user:
-        return redirect(url_for('main.login'))
-
-    if request.method == 'POST':
-        totp_code = request.form.get('totp')
-        totp = pyotp.TOTP(user.otp_secret)
-        if totp.verify(totp_code):
-            login_user(user)
-            session.pop('2fa_user_id', None)
-
-            # Record login history
-            login_history = LoginHistory(
-                user_id=user.id,
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-            db.session.add(login_history)
-            db.session.commit()
-
-            if user.role == 'admin':
-                return redirect(url_for('admin.dashboard'))
-            elif user.role == 'instructor':
-                if user.approved:
-                    return redirect(url_for('instructor.dashboard'))
-                else:
-                    return redirect(url_for('main.pending_approval'))
-            else:
-                return redirect(url_for('main.student_dashboard'))
-        else:
-            flash('Invalid 2FA code.', 'danger')
-            return redirect(url_for('main.login_2fa'))
-
-    return render_template('login_2fa.html', user_id=user.id)
-
-@main.route('/login/2fa/recovery', methods=['GET', 'POST'])
-def login_2fa_recovery():
-    user_id = session.get('2fa_user_id')
-    if not user_id:
-        return redirect(url_for('main.login'))
-
-    user = User.query.get(user_id)
-    if not user:
-        return redirect(url_for('main.login'))
-
-    if request.method == 'POST':
-        recovery_code = request.form.get('recovery_code')
-
-        # Find an unused recovery code for the user
-        recovery_codes = RecoveryCode.query.filter_by(user_id=user.id, used=False).all()
-
-        code_valid = False
-        used_code_obj = None
-        for code_obj in recovery_codes:
-            if check_password_hash(code_obj.code_hash, recovery_code):
-                code_valid = True
-                used_code_obj = code_obj
-                break
-
-        if code_valid:
-            # Mark code as used
-            used_code_obj.used = True
-            db.session.commit()
-
-            login_user(user)
-            session.pop('2fa_user_id', None)
-
-            # Record login history
-            login_history = LoginHistory(
-                user_id=user.id,
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-            db.session.add(login_history)
-            db.session.commit()
-
-            flash('Successfully logged in with a recovery code. It is recommended to set up 2FA again.', 'success')
-            if user.role == 'admin':
-                return redirect(url_for('admin.dashboard'))
-            else:
-                return redirect(url_for('main.student_dashboard'))
-        else:
-            flash('Invalid recovery code.', 'danger')
-            return redirect(url_for('main.login_2fa_recovery'))
-
-    return render_template('login_2fa_recovery.html', user_id=user.id)
 
 import os
 from PIL import Image

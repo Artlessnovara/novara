@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Review Submissions{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .tabs {
+        display: flex;
+        border-bottom: 2px solid #dee2e6;
+        margin-bottom: 1.5rem;
+    }
+    .tab-link {
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+        border: none;
+        background-color: transparent;
+        font-size: 1rem;
+        font-weight: 500;
+        color: #495057;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+    }
+    .tab-link.active {
+        color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    .tab-content {
+        display: none;
+    }
+    .tab-content.active {
+        display: block;
+    }
+    .status-badge {
+        padding: .25em .6em;
+        font-size: .75em;
+        font-weight: 700;
+        line-height: 1;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: .25rem;
+    }
+    .status-new { background-color: #0d6efd; }
+    .status-reviewed, .status-read, .status-in_progress { background-color: #ffc107; color: #000; }
+    .status-resolved, .status-replied, .status-archived { background-color: #198754; }
+    .submission-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .submission-table th, .submission-table td {
+        border: 1px solid #dee2e6;
+        padding: .75rem;
+        text-align: left;
+        vertical-align: top;
+    }
+    .submission-table th {
+        background-color: #f8f9fa;
+    }
+    .message-content {
+        white-space: pre-wrap;
+        max-height: 150px;
+        overflow-y: auto;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Review Submissions</h1>
+        <p>Review feedback, problem reports, and contact messages from users.</p>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-link active" onclick="openTab(event, 'feedback')">Feedback ({{ feedback_items|length }})</button>
+        <button class="tab-link" onclick="openTab(event, 'reports')">Problem Reports ({{ problem_reports|length }})</button>
+        <button class="tab-link" onclick="openTab(event, 'messages')">Contact Messages ({{ contact_messages|length }})</button>
+    </div>
+
+    <!-- Feedback Tab -->
+    <div id="feedback" class="tab-content active">
+        <h2>Feedback</h2>
+        <table class="submission-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Feedback</th>
+                    <th>Submitted</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in feedback_items %}
+                <tr>
+                    <td>{{ item.user.name }}<br><small>{{ item.user.email }}</small></td>
+                    <td><pre class="message-content">{{ item.feedback_text }}</pre></td>
+                    <td>{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td><span class="status-badge status-{{ item.status.replace('_', '-') }}">{{ item.status|replace('_', ' ')|title }}</span></td>
+                    <td>
+                        <form action="{{ url_for('admin.update_submission_status', submission_type='feedback', item_id=item.id) }}" method="post">
+                            <select name="status" class="form-control form-control-sm">
+                                <option value="new" {% if item.status == 'new' %}selected{% endif %}>New</option>
+                                <option value="reviewed" {% if item.status == 'reviewed' %}selected{% endif %}>Reviewed</option>
+                                <option value="archived" {% if item.status == 'archived' %}selected{% endif %}>Archived</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm mt-1">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5">No feedback submissions found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Problem Reports Tab -->
+    <div id="reports" class="tab-content">
+        <h2>Problem Reports</h2>
+        <table class="submission-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Description</th>
+                    <th>Submitted</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in problem_reports %}
+                <tr>
+                    <td>{{ item.user.name }}<br><small>{{ item.user.email }}</small></td>
+                    <td><pre class="message-content">{{ item.problem_description }}</pre></td>
+                    <td>{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td><span class="status-badge status-{{ item.status.replace('_', '-') }}">{{ item.status|replace('_', ' ')|title }}</span></td>
+                    <td>
+                        <form action="{{ url_for('admin.update_submission_status', submission_type='problem_report', item_id=item.id) }}" method="post">
+                            <select name="status" class="form-control form-control-sm">
+                                <option value="new" {% if item.status == 'new' %}selected{% endif %}>New</option>
+                                <option value="in_progress" {% if item.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                <option value="resolved" {% if item.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm mt-1">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5">No problem reports found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Contact Messages Tab -->
+    <div id="messages" class="tab-content">
+        <h2>Contact Messages</h2>
+        <table class="submission-table">
+            <thead>
+                <tr>
+                    <th>From</th>
+                    <th>Subject</th>
+                    <th>Message</th>
+                    <th>Submitted</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in contact_messages %}
+                <tr>
+                    <td>{{ item.name }}<br><small>{{ item.email }}</small>{% if item.user %}<br><small>(User ID: {{ item.user_id }})</small>{% endif %}</td>
+                    <td>{{ item.subject }}</td>
+                    <td><pre class="message-content">{{ item.message }}</pre></td>
+                    <td>{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td><span class="status-badge status-{{ item.status.replace('_', '-') }}">{{ item.status|replace('_', ' ')|title }}</span></td>
+                    <td>
+                        <form action="{{ url_for('admin.update_submission_status', submission_type='contact_message', item_id=item.id) }}" method="post">
+                            <select name="status" class="form-control form-control-sm">
+                                <option value="new" {% if item.status == 'new' %}selected{% endif %}>New</option>
+                                <option value="read" {% if item.status == 'read' %}selected{% endif %}>Read</option>
+                                <option value="replied" {% if item.status == 'replied' %}selected{% endif %}>Replied</option>
+                                <option value="archived" {% if item.status == 'archived' %}selected{% endif %}>Archived</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm mt-1">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">No contact messages found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tab-link");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+</script>
+{% endblock %}

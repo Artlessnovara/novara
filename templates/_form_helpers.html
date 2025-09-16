@@ -1,7 +1,8 @@
-{% macro render_field(field, class='', **kwargs) %}
+{% macro render_field(field, **kwargs) %}
   <div class="form-group mb-3">
     {{ field.label(class="form-label") }}
-    {{ field(class="form-control " + class, **kwargs) }}
+    {% set field_class = 'form-control ' + kwargs.pop('class', '') %}
+    {{ field(class=field_class, **kwargs) }}
     {% if field.errors %}
       <div class="invalid-feedback d-block">
           {% for error in field.errors %}
