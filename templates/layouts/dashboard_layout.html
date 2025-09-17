@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %} - Scholars Novara</title>
+
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+    <!-- New Dashboard Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_reborn.css') }}">
+
+    <!-- Page-specific styles -->
+    {% block styles %}{% endblock %}
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <!-- Left Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="#" class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Scholars Novara</span>
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('main.student_dashboard') if current_user.role == 'student' else url_for('instructor.dashboard') }}"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+
+                    <!-- Course Dropdown -->
+                    <li class="nav-item-dropdown">
+                        <a href="#" class="dropdown-toggle"><i class="fas fa-book"></i><span>Courses</span></a>
+                        <ul class="dropdown-menu">
+                            {% if current_user.role == 'student' %}
+                                <li><a href="{{ url_for('main.courses') }}">Explore Courses</a></li>
+                                <li><a href="{{ url_for('main.student_dashboard') }}#my-courses">Enrolled Courses</a></li>
+                            {% elif current_user.role == 'instructor' %}
+                                <li><a href="{{ url_for('instructor.create_course') }}">Create Course</a></li>
+                                <li><a href="{{ url_for('instructor.dashboard') }}">Manage Courses</a></li>
+                                <li><a href="{{ url_for('main.courses') }}">Explore Courses</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+
+                    <li><a href="{{ url_for('main.placeholder') }}"><i class="fas fa-search"></i><span>Discover</span></a></li>
+                    <li><a href="{{ url_for('feed.home') }}"><i class="fas fa-rss"></i><span>Feed</span></a></li>
+                    <li><a href="{{ url_for('main.placeholder') }}"><i class="fas fa-calendar-alt"></i><span>Events</span></a></li>
+                    <li><a href="{{ url_for('main.chat_list') }}"><i class="fas fa-comments"></i><span>Chat</span></a></li>
+
+                    <!-- Library Dropdown -->
+                    <li class="nav-item-dropdown">
+                        <a href="#" class="dropdown-toggle"><i class="fas fa-book-reader"></i><span>Library</span></a>
+                        <ul class="dropdown-menu">
+                             {% if current_user.role == 'student' %}
+                                <li><a href="{{ url_for('main.library') }}">Explore Library</a></li>
+                            {% elif current_user.role == 'instructor' %}
+                                <li><a href="{{ url_for('main.library') }}">Explore Library</a></li>
+                                <li><a href="{{ url_for('instructor.dashboard') }}#library-upload-section">Upload to Library</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+
+                    <li><a href="{{ url_for('main.placeholder') }}"><i class="fas fa-cogs"></i><span>Resources</span></a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                 <a href="{{ url_for('main.logout') }}"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <div class="main-wrapper">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="sidebar-toggle" id="sidebar-toggle-btn"><i class="fas fa-bars"></i></button>
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search...">
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <a href="#" class="icon-btn"><i class="fas fa-bell"></i></a>
+                    <a href="#" class="icon-btn"><i class="fas fa-th"></i></a>
+                    <a href="{{ url_for('main.profile') }}" class="profile-avatar">
+                        <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.profile_pic else 'default.jpg')) }}" alt="Profile Avatar">
+                    </a>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flashes">
+                            <ul>
+                                {% for category, message in messages %}
+                                    <li class="{{ category }}">{{ message }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- New Dashboard JavaScript -->
+    <script src="{{ url_for('static', filename='js/dashboard_reborn.js') }}"></script>
+
+    <!-- Page-specific scripts -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

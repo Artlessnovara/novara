@@ -1351,6 +1351,14 @@ def student_dashboard():
             ChatMessage.user_id != current_user.id
         ).count()
 
+    # Profile Completion
+    profile_fields = ['name', 'email', 'profile_pic', 'bio']
+    completed_fields = 0
+    for field in profile_fields:
+        if getattr(current_user, field):
+            completed_fields += 1
+    profile_completion_percentage = int((completed_fields / len(profile_fields)) * 100)
+
 
     return render_template('student_dashboard.html',
                            enrollment_data=enrollment_data,
@@ -1358,7 +1366,10 @@ def student_dashboard():
                            active_courses_count=active_courses_count,
                            completed_courses_count=completed_courses_count,
                            certificates_count=certificates_count,
-                           unread_messages_count=unread_messages_count)
+                           unread_messages_count=unread_messages_count,
+                           profile_completion_percentage=profile_completion_percentage,
+                           latest_quiz_submission=QuizSubmission.query.filter_by(student_id=current_user.id).order_by(QuizSubmission.id.desc()).first(),
+                           latest_exam_submission=ExamSubmission.query.filter_by(student_id=current_user.id).order_by(ExamSubmission.id.desc()).first())
 
 @main.route('/library/<int:material_id>/download')
 @login_required
@@ -1434,6 +1445,11 @@ def request_certificate(course_id):
 
     flash('Your certificate request has been submitted for approval.', 'success')
     return redirect(url_for('main.student_dashboard'))
+
+@main.route('/placeholder')
+@login_required
+def placeholder():
+    return render_template('placeholder.html')
 
 @main.route('/pending_approval')
 @login_required

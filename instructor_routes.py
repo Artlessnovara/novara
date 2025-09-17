@@ -25,19 +25,26 @@ from werkzeug.utils import secure_filename
 import os
 from utils import save_editor_image
 
+from models import CourseComment
+
 @instructor_bp.route('/dashboard')
 def dashboard():
     # Fetch courses taught by the current instructor
     courses = Course.query.filter_by(instructor_id=current_user.id).order_by(Course.id.desc()).all()
+    course_ids = [c.id for c in courses]
+
+    # Fetch recent reviews for the instructor's courses
+    reviews = CourseComment.query.filter(CourseComment.course_id.in_(course_ids)).order_by(CourseComment.timestamp.desc()).limit(5).all()
 
     # Fetch library materials submitted by the current instructor
     library_materials = LibraryMaterial.query.filter_by(uploader_id=current_user.id).order_by(LibraryMaterial.id.desc()).all()
 
-    # Fetch categories for the form
+    # Fetch categories for the library submission form
     categories = Category.query.all()
 
     return render_template('instructor/dashboard.html',
                            courses=courses,
+                           reviews=reviews,
                            library_materials=library_materials,
                            categories=categories)
 
