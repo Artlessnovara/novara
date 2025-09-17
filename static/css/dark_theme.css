@@ -1,0 +1,65 @@
+/* Dark Theme for Dashboard Reborn */
+
+body.dark-mode {
+    --primary-bg: #1e293b;
+    --secondary-bg: #334155;
+    --content-bg: #0f172a;
+    --card-bg: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-dark: #e2e8f0;
+    --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .top-bar {
+    border-bottom: 1px solid #334155;
+}
+
+.dark-mode .sidebar-header {
+    border-bottom: 1px solid #334155;
+}
+
+.dark-mode .sidebar-footer {
+    border-top: 1px solid #334155;
+}
+
+.dark-mode .search-bar {
+    background-color: #334155;
+    border: 1px solid #475569;
+}
+
+.dark-mode .search-bar input,
+.dark-mode .search-bar input::placeholder {
+    color: var(--text-primary);
+}
+
+.dark-mode .card-header {
+    border-bottom: 1px solid #334155;
+}
+
+.dark-mode .course-list .course-item,
+.dark-mode .review-list .review-item,
+.dark-mode .submission-list .submission-item {
+    border-bottom: 1px solid #334155;
+}
+
+.dark-mode .btn-secondary {
+    background-color: #334155;
+    color: var(--text-primary);
+}
+
+.dark-mode .form-control {
+    background-color: #334155;
+    color: var(--text-primary);
+    border: 1px solid #475569;
+}
+
+.dark-mode .fab {
+    background-color: #e2e8f0;
+    color: #0f172a;
+}
+
+.dark-mode .fab-action-btn {
+    background-color: #e2e8f0;
+    color: #0f172a;
+}

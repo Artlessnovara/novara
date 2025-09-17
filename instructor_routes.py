@@ -20,7 +20,7 @@ from flask import request, flash, redirect, url_for, current_app, jsonify
 from datetime import datetime
 import json
 import bleach
-from models import Category, LibraryMaterial, Module, Lesson, Assignment, AssignmentSubmission, Quiz, FinalExam, ChatRoom, ChatRoomMember, Question, Choice, ExamSubmission
+from models import Category, LibraryMaterial, Module, Lesson, Assignment, AssignmentSubmission, Quiz, FinalExam, ChatRoom, ChatRoomMember, Question, Choice, ExamSubmission, Notification
 from werkzeug.utils import secure_filename
 import os
 from utils import save_editor_image
@@ -42,11 +42,15 @@ def dashboard():
     # Fetch categories for the library submission form
     categories = Category.query.all()
 
+    # Fetch notification count
+    unread_notification_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+
     return render_template('instructor/dashboard.html',
                            courses=courses,
                            reviews=reviews,
                            library_materials=library_materials,
-                           categories=categories)
+                           categories=categories,
+                           unread_notification_count=unread_notification_count)
 
 @instructor_bp.route('/exams')
 def exam_dashboard():
