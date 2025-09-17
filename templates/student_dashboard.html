@@ -1,119 +1,181 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
 
 {% block title %}Student Dashboard{% endblock %}
 
 {% block styles %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    {# Add any page-specific styles if needed #}
+    <style>
+        .welcome-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+        .welcome-banner h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        .typewriter {
+            border-right: .15em solid orange; /* The typwriter cursor */
+            white-space: nowrap; /* Keeps the content on a single line */
+            margin: 0 auto; /* Gives that scrolling effect as the typing happens */
+            letter-spacing: .15em; /* Adjust as needed */
+            animation:
+                typing 3.5s steps(40, end),
+                blink-caret .75s step-end infinite;
+        }
+        /* The typing effect */
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        /* The typewriter cursor effect */
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: orange; }
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 16px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            height: 10px;
+            margin-bottom: 0.5rem;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 5px;
+        }
+        .course-list .course-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .course-list .course-item:last-child {
+            border-bottom: none;
+        }
+        .btn-primary {
+            background-color: #5a67d8;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #2d3748;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
-<div class="ice-sky-content">
-    <!-- Welcome Area -->
-    <section class="welcome-area glassy-card-container">
-        <div class="profile-pic">
-            <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.profile_pic else 'default.jpg')) }}" alt="Profile Picture">
-        </div>
-        <div class="greeting">
-            <h1>Welcome back, {{ current_user.name }}!</h1>
-            <p>"The beautiful thing about learning is that no one can take it away from you." - B.B. King</p>
-        </div>
-    </section>
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+        <h1 class="typewriter">Welcome back, {{ current_user.name }}!</h1>
+        <p>Let's continue your learning journey.</p>
+    </div>
 
-    <!-- Quick Indicators -->
-    <section class="quick-indicators">
-        <div class="glassy-card-container indicator-card">
-            <div class="indicator-icon"><i class="fas fa-book-open"></i></div>
-            <div class="indicator-text">
-                <span class="indicator-value">{{ active_courses_count }}</span>
-                <span class="indicator-label">Active Courses</span>
+    <!-- Profile Completion & Quick Stats -->
+    <div class="dashboard-grid mb-3">
+        <div class="card">
+            <div class="card-header">Profile Completion</div>
+            <p>Complete your profile to get the most out of our platform.</p>
+            <div class="progress-bar-container">
+                <div class="progress-bar" style="width: {{ profile_completion_percentage }}%;"></div>
             </div>
+            <span style="font-size: 0.9rem; color: #64748b;">{{ profile_completion_percentage }}% Complete</span>
         </div>
-        <div class="glassy-card-container indicator-card">
-            <div class="indicator-icon"><i class="fas fa-check-circle"></i></div>
-            <div class="indicator-text">
-                <span class="indicator-value">{{ completed_courses_count }}</span>
-                <span class="indicator-label">Completed Courses</span>
-            </div>
+        <div class="card">
+            <div class="card-header">Quick Stats</div>
+            <p><strong>Active Courses:</strong> {{ active_courses_count }}</p>
+            <p><strong>Completed:</strong> {{ completed_courses_count }}</p>
+            <p><strong>Certificates:</strong> {{ certificates_count }}</p>
         </div>
-        <div class="glassy-card-container indicator-card">
-            <div class="indicator-icon"><i class="fas fa-certificate"></i></div>
-            <div class="indicator-text">
-                <span class="indicator-value">{{ certificates_count }}</span>
-                <span class="indicator-label">Certificates Earned</span>
-            </div>
-        </div>
-        <div class="glassy-card-container indicator-card">
-            <div class="indicator-icon"><i class="fas fa-envelope"></i></div>
-            <div class="indicator-text">
-                <span class="indicator-value">{{ unread_messages_count }}</span>
-                <span class="indicator-label">New Messages</span>
-            </div>
-        </div>
-    </section>
+    </div>
 
-    <!-- Browse Courses Section -->
-    <section class="course-section glassy-card-container">
-        <h2 class="section-title">Browse Your Courses</h2>
-        <div class="dashboard-grid">
-            {% for data in enrollment_data %}
-                {% set enrollment = data.enrollment %}
-                {% set progress = data.progress %}
-                <div class="glassy-card-container course-card">
-                    <div class="course-card-image" style="background-image: url('{{ url_for('static', filename='images/course_placeholder.jpg') }}');"></div>
-                    <div class="course-card-content">
-                        <h3 class="course-title">{{ enrollment.course.title }}</h3>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar" style="width: {{ progress.percentage | default(0) }}%;"></div>
+    <div class="dashboard-grid">
+        <!-- My Courses -->
+        <div class="card col-span-2" id="my-courses">
+            <div class="card-header">My Courses</div>
+            <div class="course-list">
+                {% for data in enrollment_data %}
+                    <div class="course-item">
+                        <div>
+                            <strong>{{ data.enrollment.course.title }}</strong>
+                            <div class="progress-bar-container" style="max-width: 200px; margin-top: 5px;">
+                                <div class="progress-bar" style="width: {{ data.progress.percentage | default(0) }}%;"></div>
+                            </div>
                         </div>
-                        <div class="card-footer">
-                            <span class="status-badge status-{{ 'completed' if progress.can_request_certificate else 'ongoing' }}">
-                                {{ 'Completed' if progress.can_request_certificate else 'Ongoing' }}
-                            </span>
-                            <a href="{{ url_for('main.course_detail', course_id=enrollment.course.id) }}" class="btn-primary compact-btn">View Course</a>
-                            {% if progress.can_request_certificate %}
-                                <form action="{{ url_for('main.request_certificate', course_id=enrollment.course.id) }}" method="POST" style="display: inline;">
-                                    <button type="submit" class="btn-primary compact-btn">Request Certificate</button>
+                        <div>
+                            <a href="{{ url_for('main.course_detail', course_id=data.enrollment.course.id) }}" class="btn-primary">Continue Learning</a>
+                            {% if data.progress.can_request_certificate %}
+                                <form action="{{ url_for('main.request_certificate', course_id=data.enrollment.course.id) }}" method="POST" style="display: inline-block; margin-left: 10px;">
+                                    <button type="submit" class="btn-secondary">Request Certificate</button>
                                 </form>
-                            {% else %}
-                                <a class="btn-primary compact-btn btn-disabled" title="Complete all requirements to unlock. Missing: {{ progress.reasons|join(', ') }}">Request Certificate</a>
                             {% endif %}
                         </div>
                     </div>
-                </div>
-            {% else %}
-                <p>You are not enrolled in any courses yet. <a href="{{ url_for('main.courses') }}">Browse courses</a> to get started.</p>
-            {% endfor %}
+                {% else %}
+                    <p>You are not enrolled in any courses yet. <a href="{{ url_for('main.courses') }}">Browse courses</a>.</p>
+                {% endfor %}
+            </div>
         </div>
-    </section>
 
-    <!-- Browse Library Section -->
-    <section class="library-section glassy-card-container">
-        <h2 class="section-title">Browse Library</h2>
-        <div class="dashboard-grid">
-            {% for purchase in library_purchases %}
-                {% if purchase.status == 'approved' %}
-                <div class="glassy-card-container library-card">
-                    <div class="library-card-icon">
-                        <i class="fas fa-file-pdf"></i>
-                    </div>
-                    <div class="library-card-content">
-                        <h3 class="library-title">{{ purchase.material.title }}</h3>
-                        <p class="library-category">{{ purchase.material.category.name if purchase.material.category else 'General' }}</p>
-                    </div>
-                    <a href="{{ url_for('main.download_library_material', material_id=purchase.material.id) }}" class="btn-primary compact-btn">View / Open</a>
-                </div>
+        <!-- Grades & Performance -->
+        <div class="card">
+            <div class="card-header">Latest Grades</div>
+            {% if latest_quiz_submission or latest_exam_submission %}
+                {% if latest_quiz_submission %}
+                <p><strong>Latest Quiz:</strong> {{ latest_quiz_submission.quiz.module.title }} - {{ "%.2f"|format(latest_quiz_submission.score) }}%</p>
+                {% endif %}
+                {% if latest_exam_submission %}
+                <p><strong>Latest Exam:</strong> {{ latest_exam_submission.final_exam.title }} - {{ "%.2f"|format(latest_exam_submission.score) }}%</p>
                 {% endif %}
             {% else %}
-                <p>You have not purchased any library materials yet. <a href="{{ url_for('main.library') }}">Visit the library</a>.</p>
-            {% endfor %}
+                <p>No grades recorded yet.</p>
+            {% endif %}
+            <p style="font-size: 0.8em; color: #999; margin-top: 1rem;">Note: GPA and charts will be implemented in a future update.</p>
         </div>
-    </section>
-</div>
+    </div>
 {% endblock %}
 
 {% block scripts %}
     {{ super() }}
+    {# We can add Chart.js later if needed #}
     <script>
-        document.body.classList.add('dashboard-body');
+        // Placeholder for chart logic
+        console.log("Student dashboard scripts loaded.");
     </script>
 {% endblock %}

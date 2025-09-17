@@ -1,113 +1,269 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
 
 {% block title %}Instructor Dashboard{% endblock %}
 
 {% block styles %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor_dashboard.css') }}">
+    <style>
+        .welcome-banner {
+            background: linear-gradient(135deg, #007BFF 0%, #0056b3 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+        .welcome-banner h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        .typewriter {
+            border-right: .15em solid orange;
+            white-space: nowrap;
+            overflow: hidden;
+            margin: 0;
+            letter-spacing: .15em;
+            animation:
+                typing 3.5s steps(40, end),
+                blink-caret .75s step-end infinite;
+        }
+        @keyframes typing { from { width: 0 } to { width: 100% } }
+        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: orange; } }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0,0,0,0.08);
+        }
+        .card-header {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #f0f2f5;
+            padding-bottom: 0.75rem;
+        }
+        .course-list .course-item, .review-list .review-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .course-list .course-item:last-child, .review-list .review-item:last-child {
+            border-bottom: none;
+        }
+        .student-count {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .btn-primary {
+            background-color: #007BFF;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .fab-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 100;
+        }
+        .fab {
+            background-color: #0F172A;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        .fab:hover {
+            transform: scale(1.1);
+        }
+        .fab-actions {
+            position: absolute;
+            bottom: 70px;
+            right: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s 0.2s, opacity 0.2s ease-in-out;
+        }
+        .fab-container.open .fab-actions {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .fab-actions a {
+            background-color: #fff;
+            color: #0F172A;
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
-<div class="instructor-container">
-    <div class="instructor-header">
-        <h1>Your Dashboard</h1>
-        <p>Welcome, {{ current_user.name }}. Here you can manage your courses and library submissions.</p>
-    </div>
-
-    <div class="dashboard-actions">
-        <a href="{{ url_for('instructor.create_course') }}" class="btn-primary-glass">Create New Course</a>
-        <a href="{{ url_for('instructor.exam_dashboard') }}" class="btn-secondary-glass">Manage Exams</a>
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+        <h1 class="typewriter">Hello, {{ current_user.name }} 👨‍🏫</h1>
+        <p>Manage your courses and engage with your students.</p>
     </div>
 
     <div class="dashboard-grid">
-        <div class="glassy-card">
-            <h2>Your Courses</h2>
-            <ul class="content-list">
+        <!-- My Courses (Teaching) -->
+        <div class="card col-span-2">
+            <div class="card-header">My Courses</div>
+            <div class="course-list">
                 {% for course in courses %}
-                <li class="content-list-item">
-                    <div class="item-details">
-                        <span class="title">{{ course.title }}</span>
-                        <span class="status {% if course.approved %}approved{% else %}pending{% endif %}">
-                            {% if course.approved %}Approved{% else %}Pending{% endif %}
-                        </span>
+                    <div class="course-item">
+                        <div>
+                            <strong>{{ course.title }}</strong><br>
+                               <span class="student-count"><i class="fas fa-users"></i> {{ course.enrollments.count() }} Students Enrolled</span>
+                        </div>
+                        <a href="{{ url_for('instructor.manage_course', course_id=course.id) }}" class="btn-primary">Manage Course</a>
                     </div>
-                    <div class="item-actions">
-                        <a href="{{ url_for('instructor.manage_course', course_id=course.id) }}" class="btn btn-manage">Manage</a>
-                    </div>
-                </li>
                 {% else %}
-                <li><p>You have not created any courses yet.</p></li>
+                    <p>You have not created any courses yet. <a href="{{ url_for('instructor.create_course') }}">Create one now!</a></p>
                 {% endfor %}
-            </ul>
+            </div>
         </div>
 
-        <div class="glassy-card">
-            <h2>Your Library Submissions</h2>
-            <ul class="content-list">
+        <!-- Your Library Submissions -->
+        <div class="card">
+            <div class="card-header">Your Library Submissions</div>
+            <div class="submission-list">
                 {% for material in library_materials %}
-                <li class="content-list-item">
-                    <div class="item-details">
-                        <span class="title">{{ material.title }}</span>
-                        <span class="status {% if material.approved %}approved{% elif material.rejection_reason %}rejected{% else %}pending{% endif %}">
-                            {% if material.approved %}
-                                Approved
-                            {% elif material.rejection_reason %}
-                            Rejected: <span class="rejection-reason-text">Reason: {{ material.rejection_reason }}</span>
-                            {% else %}
-                                Pending
-                            {% endif %}
-                        </span>
-                    </div>
-                </li>
+                <div class="submission-item" style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                    <span>{{ material.title }}</span>
+                    <span class="status-badge status-{{ 'approved' if material.approved else ('rejected' if material.rejection_reason else 'pending') }}">
+                        {% if material.approved %}
+                            Approved
+                        {% elif material.rejection_reason %}
+                            Rejected: <span style="font-style: italic; font-size: 0.9em;">Reason: {{ material.rejection_reason }}</span>
+                        {% else %}
+                            Pending
+                        {% endif %}
+                    </span>
+                </div>
                 {% else %}
-                <li><p>You have not submitted any library materials yet.</p></li>
+                <p>You have not submitted any library materials yet.</p>
                 {% endfor %}
-            </ul>
+            </div>
+        </div>
+
+        <!-- Student Engagement -->
+        <div class="card">
+            <div class="card-header">Recent Student Reviews</div>
+            <div class="review-list">
+                {% for review in reviews %}
+                    <div class="review-item">
+                        <div>
+                            <strong>{{ review.author.name }}</strong> on <em>{{ review.course.title }}</em>
+                            <p style="margin: 4px 0 0; font-size: 0.9em;">"{{ review.body|truncate(60) }}"</p>
+                        </div>
+                        <div>
+                            {% for i in range(review.rating) %}<i class="fas fa-star" style="color: #ffc107;"></i>{% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <p>No recent reviews from students.</p>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
-    <div class="library-form-container">
-        <div class="library-form-header">
-            <h2>Submit New Library Material</h2>
-        </div>
-        <form action="{{ url_for('instructor.submit_library_material') }}" method="post" enctype="multipart/form-data">
-            <div class="library-form-grid">
-                <div class="library-form-group">
+    <!-- Library Upload Section -->
+    <div class="card mt-3" id="library-upload-section">
+        <div class="card-header">Submit New Library Material</div>
+        <form action="{{ url_for('instructor.submit_library_material') }}" method="post" enctype="multipart/form-data" style="padding-top: 1rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
                     <label for="lib_title">Title</label>
-                    <input type="text" id="lib_title" name="title" required class="library-form-input" placeholder="e.g., Advanced Python Programming">
+                    <input type="text" id="lib_title" name="title" required class="form-control" placeholder="e.g., Advanced Python Programming">
                 </div>
-                <div class="library-form-group">
+                <div class="form-group">
                     <label for="lib_category">Category</label>
-                    <select id="lib_category" name="category_id" required class="library-form-input">
+                    <select id="lib_category" name="category_id" required class="form-control">
                         <option value="">Select a category...</option>
                         {% for category in categories %}
                         <option value="{{ category.id }}">{{ category.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="library-form-group full-span">
+                <div class="form-group" style="grid-column: span 2;">
                     <label for="lib_description">Description</label>
-                    <textarea id="lib_description" name="description" rows="4" class="library-form-input" placeholder="A brief summary of your material..."></textarea>
+                    <textarea id="lib_description" name="description" rows="4" class="form-control" placeholder="A brief summary of your material..."></textarea>
                 </div>
-                <div class="library-form-group">
+                <div class="form-group">
                     <label for="lib_price">Price (₦)</label>
-                    <input type="number" id="lib_price" name="price_naira" min="0" value="0" required class="library-form-input" placeholder="Enter 0 for free">
+                    <input type="number" id="lib_price" name="price_naira" min="0" value="0" required class="form-control" placeholder="Enter 0 for free">
                 </div>
-                <div class="library-form-group">
+                <div class="form-group">
                     <label for="lib_file">Upload File</label>
-                    <input type="file" id="lib_file" name="file" required class="library-form-input">
+                    <input type="file" id="lib_file" name="file" required class="form-control">
                 </div>
             </div>
-            <button type="submit" class="library-submit-btn">Submit for Review</button>
+            <button type="submit" class="btn-primary" style="margin-top: 1rem;">Submit for Review</button>
         </form>
     </div>
-</div>
+
+    <!-- Floating Action Button -->
+    {% if current_user.role == 'instructor' %}
+    <div class="fab-container" id="fab-container">
+        <div class="fab-actions">
+            <a href="{{ url_for('instructor.create_course') }}">Create Course</a>
+            <a href="{{ url_for('instructor.dashboard') }}#library-form">Upload to Library</a>
+        </div>
+        <button class="fab" id="fab">+</button>
+    </div>
+    {% endif %}
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.body.classList.add('instructor-dashboard');
-    });
-</script>
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fabContainer = document.getElementById('fab-container');
+            const fab = document.getElementById('fab');
+
+            if (fab) {
+                fab.addEventListener('click', () => {
+                    fabContainer.classList.toggle('open');
+                });
+            }
+
+            // Close FAB when clicking outside
+            document.addEventListener('click', function(event) {
+                if (fabContainer && !fabContainer.contains(event.target) && fabContainer.classList.contains('open')) {
+                    fabContainer.classList.remove('open');
+                }
+            });
+        });
+    </script>
 {% endblock %}
