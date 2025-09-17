@@ -11,6 +11,7 @@ from utils import save_chat_file, save_status_file, get_or_create_platform_setti
 from datetime import timedelta
 import re
 from flask import url_for
+import json
 import requests
 from bs4 import BeautifulSoup
 
@@ -1369,7 +1370,20 @@ def student_dashboard():
                            unread_messages_count=unread_messages_count,
                            profile_completion_percentage=profile_completion_percentage,
                            latest_quiz_submission=QuizSubmission.query.filter_by(student_id=current_user.id).order_by(QuizSubmission.id.desc()).first(),
-                           latest_exam_submission=ExamSubmission.query.filter_by(student_id=current_user.id).order_by(ExamSubmission.id.desc()).first())
+                           latest_exam_submission=ExamSubmission.query.filter_by(student_id=current_user.id).order_by(ExamSubmission.id.desc()).first(),
+                           chart_data=get_chart_data(current_user.id))
+
+def get_chart_data(student_id):
+    # Fetch latest 10 exam submissions, sorted by submission time
+    exam_submissions = ExamSubmission.query.filter(
+        ExamSubmission.student_id == student_id,
+        ExamSubmission.submitted_at.isnot(None)
+    ).order_by(ExamSubmission.submitted_at.asc()).limit(10).all()
+
+    labels = [s.final_exam.title for s in exam_submissions]
+    scores = [s.score for s in exam_submissions]
+
+    return json.dumps({'labels': labels, 'scores': scores})
 
 @main.route('/library/<int:material_id>/download')
 @login_required

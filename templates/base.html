@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Scholars Novara Institute{% endblock %}</title>
+    <title>{% block title %}Scholars Novara{% endblock %}</title>
 
     <!-- Google Fonts: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,117 +13,133 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
-    <!-- Site Navigation Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}">
-
-    <!-- Universal Form Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+    <!-- New Dashboard Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_reborn.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark_theme.css') }}">
 
     <!-- Page-specific styles -->
     {% block styles %}{% endblock %}
-
-    <!-- Ice Sky Theme -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ice_sky_theme.css') }}">
-
-    <!-- Load admin-specific styles if on an admin page -->
-    {% if request.endpoint and request.endpoint.startswith('admin.') %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
-    {% endif %}
 </head>
-<body class="{{ 'admin-page' if request.endpoint and request.endpoint.startswith('admin.') else 'ice-sky-theme' }}">
-    <!-- Particle background for admin -->
-    {% if request.endpoint and request.endpoint.startswith('admin.') %}
-    <div class="particles">
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-    </div>
-    {% endif %}
+<body>
 
-    <header class="site-header" role="banner">
-        <div class="nav-container">
-            <div class="site-logo">ScholarsNovara</div>
+    <div class="dashboard-container">
+        <!-- Left Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="{{ url_for('main.home') }}" class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Scholars Novara</span>
+                </a>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role == 'student' %}
+                            <li><a href="{{ url_for('main.student_dashboard') }}"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+                            <li class="nav-item-dropdown">
+                                <a href="#" class="dropdown-toggle"><i class="fas fa-book"></i><span>Courses</span></a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="{{ url_for('main.courses') }}">Explore Courses</a></li>
+                                    <li><a href="{{ url_for('main.student_dashboard') }}#my-courses">Enrolled Courses</a></li>
+                                </ul>
+                            </li>
+                        {% elif current_user.role == 'instructor' %}
+                            <li><a href="{{ url_for('instructor.dashboard') }}"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+                            <li class="nav-item-dropdown">
+                                <a href="#" class="dropdown-toggle"><i class="fas fa-book"></i><span>Courses</span></a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="{{ url_for('instructor.create_course') }}">Create Course</a></li>
+                                    <li><a href="{{ url_for('instructor.dashboard') }}">Manage Courses</a></li>
+                                    <li><a href="{{ url_for('main.courses') }}">Explore Courses</a></li>
+                                </ul>
+                            </li>
+                        {% elif current_user.role == 'admin' %}
+                             <li><a href="{{ url_for('admin.dashboard') }}"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+                        {% endif %}
 
-            <button class="nav-toggle" aria-controls="main-nav" aria-expanded="false">
-                <span class="sr-only">Menu</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
+                        <li><a href="{{ url_for('main.placeholder') }}"><i class="fas fa-search"></i><span>Discover</span></a></li>
+                        <li><a href="{{ url_for('feed.home') }}"><i class="fas fa-rss"></i><span>Feed</span></a></li>
+                        <li><a href="{{ url_for('main.placeholder') }}"><i class="fas fa-calendar-alt"></i><span>Events</span></a></li>
+                        <li><a href="{{ url_for('main.chat_list') }}"><i class="fas fa-comments"></i><span>Chat</span></a></li>
 
-            <nav class="main-nav" id="main-nav" role="navigation" aria-label="Main">
-                {# --- ACTIVE LINK HELPER --- #}
-                {% set nav_links = {
-                    'home': url_for('main.home'),
-                    'courses': url_for('main.courses'),
-                    'login': url_for('main.login'),
-                    'register': url_for('main.register'),
-                    'dashboard': url_for('main.student_dashboard'),
-                    'profile': url_for('main.profile'),
-                    'chat': url_for('main.chat_list'),
-                    'library': url_for('main.library'),
-                    'logout': url_for('main.logout')
-                } %}
-
-                {% if current_user.is_authenticated %}
-                    {# --- LOGGED-IN USERS --- #}
-                    {% if current_user.role == 'student' %}
-                        <a href="{{ nav_links.dashboard }}" class="{{ 'active' if request.endpoint == 'main.student_dashboard' }}">Dashboard</a>
-                        <a href="{{ url_for('feed.home') }}" class="{{ 'active' if request.endpoint.startswith('feed.') }}">Feed World</a>
-                        <a href="{{ nav_links.profile }}" class="{{ 'active' if request.endpoint == 'main.profile' }}">Profile</a>
-                        <a href="{{ nav_links.courses }}" class="{{ 'active' if request.endpoint == 'main.courses' }}">Courses</a>
-                        <a href="{{ nav_links.chat }}" class="{{ 'active' if request.endpoint == 'main.chat_list' }}">Chat</a>
-                        <a href="{{ nav_links.library }}" class="{{ 'active' if request.endpoint == 'main.library' }}">Library</a>
-                    {% elif current_user.role == 'instructor' %}
-                        <a href="{{ url_for('instructor.dashboard') }}" class="{{ 'active' if request.endpoint == 'instructor.dashboard' }}">Dashboard</a>
-                        <a href="{{ url_for('feed.home') }}" class="{{ 'active' if request.endpoint.startswith('feed.') }}">Feed World</a>
-                        <a href="{{ nav_links.profile }}" class="{{ 'active' if request.endpoint == 'main.profile' }}">Profile</a>
-                        <a href="{{ nav_links.courses }}" class="{{ 'active' if request.endpoint == 'main.courses' }}">Courses <small>(manage)</small></a>
-                        <a href="{{ nav_links.chat }}" class="{{ 'active' if request.endpoint == 'main.chat_list' }}">Chat</a>
-                        <a href="{{ nav_links.library }}" class="{{ 'active' if request.endpoint == 'main.library' }}">Library <small>(upload)</small></a>
-                    {% elif current_user.role == 'admin' %}
-                        <a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint == 'admin.dashboard' }}">Dashboard</a>
-                        <a href="{{ url_for('feed.home') }}" class="{{ 'active' if request.endpoint.startswith('feed.') }}">Feed World</a>
-                        <a href="{{ url_for('admin.manage_group_requests') }}" class="{{ 'active' if request.endpoint == 'admin.manage_group_requests' }}">Group Requests</a>
-                        <a href="{{ nav_links.profile }}" class="{{ 'active' if request.endpoint == 'main.profile' }}">Profile</a>
-                        <a href="{{ nav_links.chat }}" class="{{ 'active' if request.endpoint == 'main.chat_list' }}">Chat</a>
+                        <li class="nav-item-dropdown">
+                            <a href="#" class="dropdown-toggle"><i class="fas fa-book-reader"></i><span>Library</span></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="{{ url_for('main.library') }}">Explore Library</a></li>
+                                {% if current_user.role == 'instructor' %}
+                                <li><a href="#" class="upload-library-trigger">Upload to Library</a></li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        <li><a href="{{ url_for('main.placeholder') }}"><i class="fas fa-cogs"></i><span>Resources</span></a></li>
+                    {% else %}
+                        {# --- NON-REGISTERED USERS --- #}
+                        <li><a href="{{ url_for('main.home') }}"><i class="fas fa-home"></i><span>Home</span></a></li>
+                        <li><a href="{{ url_for('main.courses') }}"><i class="fas fa-book"></i><span>Courses</span></a></li>
                     {% endif %}
-                    <a href="{{ nav_links.logout }}" class="nav-logout">Logout</a>
-                {% else %}
-                    {# --- NON-REGISTERED USERS --- #}
-                    <a href="{{ nav_links.home }}" class="{{ 'active' if request.endpoint == 'main.home' }}">Home</a>
-                    <a href="{{ nav_links.courses }}" class="{{ 'active' if request.endpoint == 'main.courses' }}">Courses</a>
-                    <a href="{{ nav_links.login }}" class="nav-login {{ 'active' if request.endpoint == 'main.login' }}">Login</a>
-                    <a href="{{ nav_links.register }}" class="nav-register {{ 'active' if request.endpoint == 'main.register' }}">Register</a>
-                {% endif %}
+                </ul>
             </nav>
-        </div>
-    </header>
+            <div class="sidebar-footer">
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('main.logout') }}"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+                {% else %}
+                    <a href="{{ url_for('main.login') }}"><i class="fas fa-sign-in-alt"></i><span>Login</span></a>
+                    <a href="{{ url_for('main.register') }}"><i class="fas fa-user-plus"></i><span>Register</span></a>
+                {% endif %}
+            </div>
+        </aside>
 
-    <main>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flashes">
-                    <ul>
-                        {% for category, message in messages %}
-                            <li class="{{ category }}">{{ message }}</li>
-                        {% endfor %}
-                    </ul>
+        <!-- Main Content Wrapper -->
+        <div class="main-wrapper">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="sidebar-toggle" id="sidebar-toggle-btn"><i class="fas fa-bars"></i></button>
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search...">
+                    </div>
                 </div>
-            {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
-    </main>
+                <div class="top-bar-right">
+                    <button id="theme-toggle" class="icon-btn"><i class="fas fa-moon"></i></button>
+                    <a href="{{ url_for('main.placeholder') }}" class="icon-btn"><i class="fas fa-th"></i></a>
+                    <a href="{{ url_for('main.placeholder') }}" class="icon-btn">
+                        <i class="fas fa-bell"></i>
+                        {% if current_user.is_authenticated and unread_notification_count > 0 %}
+                            <span class="notification-badge">{{ unread_notification_count }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('main.profile') }}" class="profile-avatar">
+                        <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.is_authenticated and current_user.profile_pic else 'default.jpg')) }}" alt="Profile Avatar">
+                    </a>
+                </div>
+            </header>
 
-    {% block footer %}{% endblock %}
+            <!-- Main Content -->
+            <main class="main-content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flashes">
+                            <ul>
+                                {% for category, message in messages %}
+                                    <li class="{{ category }}">{{ message }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                {% endwith %}
 
-    <script src="{{ url_for('static', filename='js/nav.js') }}"></script>
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script src="{{ url_for('static', filename='js/socket_handler.js') }}"></script>
-    {% block scripts %}{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard_reborn.js') }}"></script>
 
-    <div class="nav-backdrop"></div>
+    <!-- Page-specific scripts -->
+    {% block scripts %}{% endblock %}
 </body>
 </html>
