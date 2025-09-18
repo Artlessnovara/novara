@@ -171,4 +171,26 @@
     font-size: 40px;
     font-weight: bold;
     cursor: pointer;
+    z-index: 1005;
+}
+
+.story-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0,0,0,0.3);
+    color: white;
+    border: none;
+    font-size: 2rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    z-index: 1004;
+}
+
+.story-nav.prev {
+    left: 10px;
+}
+
+.story-nav.next {
+    right: 10px;
 }

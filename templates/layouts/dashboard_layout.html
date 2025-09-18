@@ -83,8 +83,8 @@
                 </div>
                 <div class="top-bar-right">
                     <button id="theme-toggle" class="icon-btn"><i class="fas fa-moon"></i></button>
-                    <a href="#" class="icon-btn"><i class="fas fa-th"></i></a>
-                    <a href="#" class="icon-btn">
+                    <a href="{{ url_for('main.placeholder') }}" class="icon-btn"><i class="fas fa-th"></i></a>
+                    <a href="{{ url_for('main.placeholder') }}" class="icon-btn">
                         <i class="fas fa-bell"></i>
                         {% if current_user.is_authenticated and unread_notification_count > 0 %}
                             <span class="notification-badge">{{ unread_notification_count }}</span>

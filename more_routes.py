@@ -4,7 +4,7 @@ import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post, LibraryMaterial
+from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post, LibraryMaterial, Category
 from extensions import db
 from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm
 from utils import get_or_create_platform_setting
@@ -268,8 +268,71 @@ def upgrade_premium():
 @login_required
 def resources():
     """Marketplace-style page for all library materials."""
-    materials = LibraryMaterial.query.filter_by(approved=True).order_by(LibraryMaterial.id.desc()).all()
-    return render_template('more/resources.html', materials=materials)
+    query = LibraryMaterial.query.filter_by(approved=True)
+
+    # Filtering
+    category_id = request.args.get('category_id', type=int)
+    if category_id:
+        query = query.filter_by(category_id=category_id)
+
+    price = request.args.get('price')
+    if price == 'free':
+        query = query.filter(LibraryMaterial.price_naira == 0)
+    elif price == 'paid':
+        query = query.filter(LibraryMaterial.price_naira > 0)
+
+    # Sorting
+    sort_by = request.args.get('sort', 'newest')
+    if sort_by == 'popular':
+        query = query.order_by(LibraryMaterial.download_count.desc())
+    else: # newest
+        query = query.order_by(LibraryMaterial.id.desc())
+
+    materials = query.all()
+    categories = Category.query.all() # For the filter dropdown
+
+    return render_template('more/resources.html', materials=materials, categories=categories, search_values=request.args)
+
+@more_bp.route('/resource/<int:material_id>')
+@login_required
+def resource_detail(material_id):
+    """Displays the details for a single resource."""
+    material = LibraryMaterial.query.get_or_404(material_id)
+    return render_template('more/resource_detail.html', material=material)
+
+@more_bp.route('/resource/create', methods=['POST'])
+@login_required
+def create_resource():
+    """Handles the creation of a new library material."""
+    title = request.form.get('title')
+    description = request.form.get('description')
+    category_id = request.form.get('category_id')
+    price_naira = request.form.get('price_naira')
+    file = request.files.get('file')
+
+    if not all([title, category_id, price_naira, file]):
+        flash('Title, category, price, and file are required fields.', 'danger')
+        return redirect(url_for('more.resources'))
+
+    from utils import save_library_file
+    saved_path = save_library_file(file)
+    if not saved_path:
+        flash('Invalid file type. Allowed types: pdf, epub, txt, doc, docx, xls, xlsx, ppt, pptx.', 'danger')
+        return redirect(url_for('more.resources'))
+
+    new_material = LibraryMaterial(
+        title=title,
+        description=description,
+        category_id=category_id,
+        price_naira=price_naira,
+        file_path=saved_path,
+        uploader_id=current_user.id,
+        approved=True # For simplicity, auto-approving resources posted from here
+    )
+    db.session.add(new_material)
+    db.session.commit()
+    flash('Your resource has been posted successfully!', 'success')
+    return redirect(url_for('more.resources'))
 
 
 def save_profile_banner(file):

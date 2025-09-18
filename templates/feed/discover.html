@@ -35,7 +35,9 @@
     <div id="story-viewer-modal" class="modal">
         <div class="story-viewer-content">
             <span class="close-story-viewer">&times;</span>
+            <button class="story-nav prev">&lt;</button>
             <div id="story-content"></div>
+            <button class="story-nav next">&gt;</button>
         </div>
     </div>
 
@@ -57,9 +59,6 @@
                 </div>
                 <div class="post-text">
                     {{ post.content }}
-                    {% if post.content|length > 200 %}
-                        <a href="#" class="see-more-btn">... See More</a>
-                    {% endif %}
                 </div>
                 {% if post.media_url %}
                 <div class="post-media">
