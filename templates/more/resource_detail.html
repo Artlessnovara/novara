@@ -1,0 +1,38 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}{{ material.title }}{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/resources.css') }}">
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="resource-detail-container">
+    <div class="card">
+        <div class="resource-detail-header">
+            <h1>{{ material.title }}</h1>
+            <div class="resource-meta">
+                <span><i class="fas fa-user"></i> By {{ material.uploader.name }}</span>
+                <span><i class="fas fa-folder"></i> {{ material.category.name }}</span>
+                <span><i class="fas fa-download"></i> {{ material.download_count }} Downloads</span>
+            </div>
+        </div>
+
+        <div class="resource-detail-body">
+            <h3>Description</h3>
+            <p>{{ material.description }}</p>
+        </div>
+
+        <div class="resource-detail-actions">
+            <span class="resource-price">{% if material.price_naira > 0 %}₦{{ "{:,.0f}".format(material.price_naira) }}{% else %}Free{% endif %}</span>
+            {% if material.price_naira > 0 %}
+                {# Logic to check if user has purchased #}
+                <a href="#" class="btn btn-primary">Purchase to Download</a>
+            {% else %}
+                <a href="{{ url_for('main.download_library_material', material_id=material.id) }}" class="btn btn-primary">Download for Free</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

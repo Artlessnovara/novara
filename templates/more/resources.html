@@ -1,0 +1,133 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}Resources{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/resources.css') }}">
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="resources-container">
+    <div class="resources-header">
+        <h1>Library Resources</h1>
+        <p>Explore materials shared by our community of instructors.</p>
+        <button class="btn btn-primary" id="post-resource-btn"><i class="fas fa-upload"></i> Post Resource</button>
+    </div>
+
+    <div class="resources-controls card">
+        <div class="filter-group">
+            <label for="category-filter">Category</label>
+            <select id="category-filter" name="category">
+                <option value="">All</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}" {% if request.args.get('category') == category.id|string %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="price-filter">Price</label>
+            <select id="price-filter" name="price">
+                <option value="">All</option>
+                <option value="free" {% if request.args.get('price') == 'free' %}selected{% endif %}>Free</option>
+                <option value="paid" {% if request.args.get('price') == 'paid' %}selected{% endif %}>Paid</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="sort-filter">Sort By</label>
+            <select id="sort-filter" name="sort">
+                <option value="newest" {% if request.args.get('sort', 'newest') == 'newest' %}selected{% endif %}>Newest</option>
+                <option value="popular" {% if request.args.get('sort') == 'popular' %}selected{% endif %}>Popularity</option>
+            </select>
+        </div>
+        <button id="apply-filters-btn" class="btn-primary">Apply</button>
+    </div>
+
+    <div class="resources-grid">
+        {% for material in materials %}
+        <div class="card resource-card">
+            <div class="resource-card-header">
+                <span class="resource-category">{{ material.category.name }}</span>
+                <span class="resource-price">{% if material.price_naira > 0 %}₦{{ "{:,.0f}".format(material.price_naira) }}{% else %}Free{% endif %}</span>
+            </div>
+            <h4>{{ material.title }}</h4>
+            <p>{{ material.description|truncate(100) }}</p>
+            <div class="resource-card-footer">
+                <a href="{{ url_for('more.resource_detail', material_id=material.id) }}" class="btn-secondary">View Details</a>
+            </div>
+        </div>
+        {% else %}
+        <p>No resources found matching your criteria.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Post Resource Modal -->
+<div id="post-resource-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Post a New Resource</h2>
+        <form action="{{ url_for('more.post_resource') }}" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="res_title">Title</label>
+                <input type="text" id="res_title" name="title" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="res_description">Description</label>
+                <textarea id="res_description" name="description" class="form-control" rows="3" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="res_category">Category</label>
+                <select id="res_category" name="category_id" class="form-control" required>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="res_price">Price (₦)</label>
+                <input type="number" id="res_price" name="price_naira" class="form-control" value="0" min="0">
+            </div>
+            <div class="form-group">
+                <label for="res_file">Resource File</label>
+                <input type="file" id="res_file" name="file" class="form-control-file" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit for Review</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block dashboard_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Modal logic
+        const modal = document.getElementById('post-resource-modal');
+        const btn = document.getElementById('post-resource-btn');
+        const span = modal.querySelector('.close-btn');
+
+        btn.onclick = function() { modal.style.display = 'block'; }
+        span.onclick = function() { modal.style.display = 'none'; }
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Filter logic
+        const applyBtn = document.getElementById('apply-filters-btn');
+        applyBtn.addEventListener('click', function() {
+            const category = document.getElementById('category-filter').value;
+            const price = document.getElementById('price-filter').value;
+            const sort = document.getElementById('sort-filter').value;
+
+            const params = new URLSearchParams();
+            if (category) params.append('category', category);
+            if (price) params.append('price', price);
+            if (sort) params.append('sort', sort);
+
+            window.location.href = "{{ url_for('more.resources') }}?" + params.toString();
+        });
+    });
+</script>
+{% endblock %}

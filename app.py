@@ -80,7 +80,7 @@ def create_app(config_object=None):
     from feed_world_routes import feed as feed_blueprint
     app.register_blueprint(feed_blueprint)
 
-    from more_routes import more_bp
+    from more_routes import more as more_bp
     app.register_blueprint(more_bp)
 
     from page_routes import page_bp
