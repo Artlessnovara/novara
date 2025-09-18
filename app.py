@@ -77,8 +77,8 @@ def create_app(config_object=None):
     from admin_routes import admin_bp
     app.register_blueprint(admin_bp)
 
-    from feed_world_routes import feed_bp
-    app.register_blueprint(feed_bp)
+    from feed_world_routes import feed as feed_blueprint
+    app.register_blueprint(feed_blueprint)
 
     from more_routes import more_bp
     app.register_blueprint(more_bp)

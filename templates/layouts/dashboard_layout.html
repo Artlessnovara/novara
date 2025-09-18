@@ -43,6 +43,8 @@
                              <li><a href="{{ url_for('admin.dashboard') }}"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
                         {% endif %}
 
+                        <li><a href="{{ url_for('feed.discover') }}"><i class="fas fa-search"></i><span>Discover</span></a></li>
+                        <li><a href="{{ url_for('feed.home') }}"><i class="fas fa-rss"></i><span>Feed</span></a></li>
                         <li><a href="#"><i class="fas fa-comments"></i><span>Chat</span></a></li>
                     {% endif %}
                 </ul>
