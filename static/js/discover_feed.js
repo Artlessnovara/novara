@@ -1,4 +1,25 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Add Story Modal Logic
+    const addStoryModal = document.getElementById('add-story-modal');
+    const addStoryBtn = document.querySelector('.story-card:first-child'); // The "Add Story" button
+    const closeAddStoryBtn = document.querySelector('#add-story-modal .close-btn');
+
+    if(addStoryBtn) {
+        addStoryBtn.onclick = function() {
+            addStoryModal.style.display = "block";
+        }
+    }
+    if(closeAddStoryBtn) {
+        closeAddStoryBtn.onclick = function() {
+            addStoryModal.style.display = "none";
+        }
+    }
+    window.addEventListener('click', function(event) {
+        if (event.target == addStoryModal) {
+            addStoryModal.style.display = "none";
+        }
+    });
+
     // Story viewer logic
     const storyViewerModal = document.getElementById('story-viewer-modal');
     const storyContent = document.getElementById('story-content');
@@ -32,8 +53,66 @@ document.addEventListener('DOMContentLoaded', function() {
                         showStory(0);
                         storyViewerModal.style.display = 'block';
                     }
+        });
+    });
+
+    // Video play button logic
+    document.querySelectorAll('.video-container').forEach(container => {
+        const video = container.querySelector('video');
+        const overlay = container.querySelector('.play-button-overlay');
+
+        container.addEventListener('click', () => {
+            if (video.paused) {
+                video.play();
+                overlay.style.display = 'none';
+                video.setAttribute('controls', 'true');
+            } else {
+                video.pause();
+                overlay.style.display = 'flex';
+                video.removeAttribute('controls');
+            }
                 });
         });
+
+    // Like and comment functionality
+    document.querySelectorAll('.post-action[data-action="like"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            fetch(`/feed/api/post/${postId}/react`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reaction_type: 'like' })
+            }).then(response => response.json()).then(data => {
+                if (data.status === 'success') {
+                    // Update like count and button appearance
+                    this.classList.toggle('liked', data.user_reaction === 'like');
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('.post-action[data-action="comment"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const postCard = this.closest('.post-card');
+            const commentInput = postCard.querySelector('.comment-input');
+            commentInput.focus();
+        });
+    });
+
+    // Fetch latest comments
+    document.querySelectorAll('.comment-preview').forEach(preview => {
+        const postId = preview.id.split('-')[2];
+        fetch(`/feed/api/post/${postId}/comments`)
+            .then(response => response.json())
+            .then(comments => {
+                const latestComments = comments.slice(-2); // Get last 2
+                latestComments.forEach(comment => {
+                    const commentDiv = document.createElement('div');
+                    commentDiv.innerHTML = `<strong>${comment.author.name}</strong> ${comment.content}`;
+                    preview.appendChild(commentDiv);
+                });
+            });
+    });
     });
 
     if(nextStoryBtn) {
