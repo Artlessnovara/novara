@@ -20,37 +20,26 @@ from flask import request, flash, redirect, url_for, current_app, jsonify
 from datetime import datetime
 import json
 import bleach
-from models import Category, LibraryMaterial, Module, Lesson, Assignment, AssignmentSubmission, Quiz, FinalExam, ChatRoom, ChatRoomMember, Question, Choice, ExamSubmission, Notification
+from models import Category, LibraryMaterial, Module, Lesson, Assignment, AssignmentSubmission, Quiz, FinalExam, ChatRoom, ChatRoomMember, Question, Choice, ExamSubmission
 from werkzeug.utils import secure_filename
 import os
-from utils import save_editor_image, save_library_file
-
-from models import CourseComment
+from utils import save_editor_image
 
 @instructor_bp.route('/dashboard')
 def dashboard():
     # Fetch courses taught by the current instructor
     courses = Course.query.filter_by(instructor_id=current_user.id).order_by(Course.id.desc()).all()
-    course_ids = [c.id for c in courses]
-
-    # Fetch recent reviews for the instructor's courses
-    reviews = CourseComment.query.filter(CourseComment.course_id.in_(course_ids)).order_by(CourseComment.timestamp.desc()).limit(5).all()
 
     # Fetch library materials submitted by the current instructor
     library_materials = LibraryMaterial.query.filter_by(uploader_id=current_user.id).order_by(LibraryMaterial.id.desc()).all()
 
-    # Fetch categories for the library submission form
+    # Fetch categories for the form
     categories = Category.query.all()
-
-    # Fetch notification count
-    unread_notification_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
 
     return render_template('instructor/dashboard.html',
                            courses=courses,
-                           reviews=reviews,
                            library_materials=library_materials,
-                           categories=categories,
-                           unread_notification_count=unread_notification_count)
+                           categories=categories)
 
 @instructor_bp.route('/exams')
 def exam_dashboard():
@@ -614,6 +603,22 @@ def enrolled_students(course_id):
     if course.instructor_id != current_user.id:
         abort(403)
     return render_template('instructor/enrolled_students.html', course=course)
+
+def save_library_file(file):
+    allowed_extensions = {'pdf', 'epub', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'}
+    filename = secure_filename(file.filename)
+    if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+        return None
+
+    random_hex = os.urandom(8).hex()
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+
+    filepath = os.path.join(current_app.root_path, 'static/library', new_filename)
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+    file.save(filepath)
+    return os.path.join('library', new_filename)
 
 @instructor_bp.route('/library/submit', methods=['POST'])
 def submit_library_material():

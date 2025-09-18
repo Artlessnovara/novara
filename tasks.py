@@ -1,3 +1,4 @@
+from app import db
 from models import Post, Community, CommunityAnalytics, GenericComment
 from datetime import datetime, date, time
 from sqlalchemy import func
@@ -8,7 +9,6 @@ def publish_scheduled_posts(app):
     This function is designed to be called by a scheduler within the app context.
     """
     with app.app_context():
-        from app import db
         print(f"[{datetime.now()}] --- Running Scheduled Post Publisher ---")
 
         try:
@@ -40,7 +40,6 @@ def snapshot_community_analytics(app):
     Takes a snapshot of key metrics for all communities for the day.
     """
     with app.app_context():
-        from app import db
         print(f"[{datetime.now()}] --- Running Community Analytics Snapshot ---")
 
         try:
