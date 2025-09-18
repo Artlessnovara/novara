@@ -655,8 +655,8 @@ class Post(db.Model):
     community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=True)
     page_id = db.Column(db.Integer, db.ForeignKey('user_page.id'), nullable=True) # Link to a UserPage
     content = db.Column(db.Text, nullable=True) # Nullable for shared posts with no comment
-    media_type = db.Column(db.String(20), nullable=True) # 'image', 'video'
-    media_url = db.Column(db.String(255), nullable=True)
+    media_type = db.Column(db.String(20), nullable=True) # 'image', 'video', 'images'
+    media_url = db.Column(db.JSON, nullable=True) # Can be a single URL (string) or multiple (list of strings)
     original_post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     privacy = db.Column(db.String(50), nullable=False, default='public') # public, followers, private

@@ -1,0 +1,229 @@
+/* --- Discover Page Specific Layout --- */
+.discover-container {
+    padding: 1rem 2rem;
+}
+
+.discover-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: var(--bg-tertiary);
+    border-radius: var(--border-radius-lg);
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--divider);
+}
+
+/* --- Stories --- */
+.stories-container {
+    display: flex;
+    gap: 1rem;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--divider);
+    overflow-x: auto;
+}
+
+.story {
+    text-align: center;
+    cursor: pointer;
+}
+
+.story-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 3px solid var(--color-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+}
+
+.story-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.add-story .story-avatar {
+    border-style: dashed;
+    border-color: var(--color-secondary);
+}
+
+.story span {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+/* --- Feed --- */
+.discover-feed {
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+.post-card {
+    background-color: var(--bg-tertiary);
+    border-radius: var(--border-radius-lg);
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--divider);
+}
+
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+}
+
+.post-author-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.post-author-info img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.post-author-info .timestamp {
+    font-size: 0.85rem;
+    color: var(--color-secondary);
+}
+
+.post-content {
+    padding: 0 1rem 1rem 1rem;
+}
+
+.post-media img, .post-media video {
+    width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+}
+
+.post-actions {
+    display: flex;
+    justify-content: space-around;
+    padding: 0.5rem;
+    border-top: 1px solid var(--divider);
+}
+
+.post-action {
+    background: none;
+    border: none;
+    color: var(--color-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-md);
+    transition: background-color 0.2s;
+}
+.post-action:hover {
+    background-color: var(--bg-secondary);
+}
+
+.post-comments-preview {
+    padding: 1rem;
+    font-size: 0.9rem;
+}
+
+/* --- Story Viewer Modal --- */
+.story-modal {
+    background-color: rgba(0,0,0,0.9);
+}
+
+.story-viewer-content {
+    width: 100%;
+    height: 100%;
+    max-width: 400px;
+    max-height: 95vh;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    padding: 0;
+    background: black;
+    border-radius: var(--border-radius-lg);
+}
+
+.story-progress-bars {
+    display: flex;
+    gap: 4px;
+    padding: 8px;
+    position: absolute;
+    top: 0;
+    width: calc(100% - 16px);
+    z-index: 10;
+}
+
+.progress-bar-background {
+    flex-grow: 1;
+    height: 3px;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: white;
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+.story-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 16px 10px 16px;
+    position: absolute;
+    top: 10px;
+    left: 0;
+    width: calc(100% - 32px);
+    z-index: 10;
+    color: white;
+}
+
+.story-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.close-story-viewer {
+    margin-left: auto;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.story-media-container {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.story-media-container img, .story-media-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: var(--border-radius-lg);
+}
+
+.story-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 11;
+}
+.story-nav.prev { left: 10px; }
+.story-nav.next { right: 10px; }

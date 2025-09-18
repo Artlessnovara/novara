@@ -252,3 +252,33 @@ def save_community_cover_image(file):
     file.save(filepath)
 
     return os.path.join('community_covers', new_filename)
+
+def save_upload_file(file, folder):
+    """
+    A generic file saver for uploads.
+    Saves a file to a specified subfolder within 'static/uploads'.
+    """
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'webm', 'ogg', 'pdf', 'doc', 'docx'}
+    max_size = 50 * 1024 * 1024 # 50MB
+
+    filename = secure_filename(file.filename)
+    if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+        return None # Invalid file type
+
+    file.seek(0, os.SEEK_END)
+    file_length = file.tell()
+    if file_length > max_size:
+        return None # File too large
+    file.seek(0)
+
+    random_hex = os.urandom(8).hex()
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+
+    upload_folder = os.path.join(current_app.root_path, 'static/uploads', folder)
+    os.makedirs(upload_folder, exist_ok=True)
+
+    filepath = os.path.join(upload_folder, new_filename)
+    file.save(filepath)
+
+    return os.path.join('uploads', folder, new_filename)

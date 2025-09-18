@@ -46,7 +46,7 @@ class FeedWorldTests(unittest.TestCase):
 
     def test_create_post(self):
         self.login_user1()
-        response = self.client.post('/feed/create_post', data={
+        response = self.client.post('/create_post', data={
             'content': 'This is a test post.',
             'privacy': 'public'
         }, follow_redirects=True)
@@ -60,7 +60,7 @@ class FeedWorldTests(unittest.TestCase):
 
     def test_follow_user(self):
         self.login_user1()
-        response = self.client.post(f'/feed/follow/{self.user2.id}', follow_redirects=True)
+        response = self.client.post(f'/follow/{self.user2.id}', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'You are now following Test User 2.', response.data)
         self.assertTrue(self.user1.is_following(self.user2))
@@ -71,14 +71,14 @@ class FeedWorldTests(unittest.TestCase):
         db.session.commit()
         self.assertTrue(self.user1.is_following(self.user2))
 
-        response = self.client.post(f'/feed/unfollow/{self.user2.id}', follow_redirects=True)
+        response = self.client.post(f'/unfollow/{self.user2.id}', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'You have unfollowed Test User 2.', response.data)
         self.assertFalse(self.user1.is_following(self.user2))
 
     def test_create_community(self):
         self.login_user1()
-        response = self.client.post('/feed/community/create', data={
+        response = self.client.post('/community/create', data={
             'name': 'Test Community',
             'description': 'A community for testing.'
         }, follow_redirects=True)
@@ -95,7 +95,7 @@ class FeedWorldTests(unittest.TestCase):
         db.session.add(post)
         db.session.commit()
 
-        response = self.client.post('/feed/report_post', data={
+        response = self.client.post('/report_post', data={
             'post_id': post.id,
             'reason': 'Spam'
         }, follow_redirects=True)

@@ -1,0 +1,149 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}Discover{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/discover_feed.css') }}">
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="discover-container">
+    <!-- Custom Top Bar for Discover Page -->
+    <div class="discover-top-bar">
+        <h2>Discover</h2>
+        <button class="btn btn-primary create-post-trigger"><i class="fas fa-plus"></i> Create Post</button>
+    </div>
+
+    <!-- Stories Row -->
+    <div class="stories-container">
+        <div class="story add-story">
+            <div class="story-avatar" id="add-story-btn">
+                <i class="fas fa-plus"></i>
+            </div>
+            <span>Add Story</span>
+        </div>
+        {% for user_stories in stories_by_user %}
+            <div class="story" data-user-id="{{ user_stories.user.id }}">
+                <div class="story-avatar">
+                    <img src="{{ url_for('static', filename='profile_pics/' + user_stories.user.profile_pic) }}" alt="{{ user_stories.user.name }}'s story">
+                </div>
+                <span>{{ user_stories.user.name }}</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Main Feed -->
+    <div class="discover-feed">
+        {% for post in posts %}
+            <div class="post-card">
+                <!-- Post Header -->
+                <div class="post-header">
+                    <div class="post-author-info">
+                        <img src="{{ url_for('static', filename='profile_pics/' + post.author.profile_pic) }}" alt="Author Avatar">
+                        <div>
+                            <strong>{{ post.author.name }}</strong>
+                            <span class="timestamp">{{ post.timestamp.strftime('%b %d, %Y') }}</span>
+                        </div>
+                    </div>
+                    <button class="icon-btn"><i class="fas fa-ellipsis-h"></i></button>
+                </div>
+
+                <!-- Post Content -->
+                <div class="post-content">
+                    <p>{{ post.content }}</p>
+                </div>
+
+                <!-- Post Media -->
+                {% if post.media_url %}
+                <div class="post-media">
+                    {% if post.media_type == 'image' %}
+                        <img src="{{ url_for('static', filename=post.media_url[0]) }}" alt="Post image">
+                    {% elif post.media_type == 'video' %}
+                        <video controls src="{{ url_for('static', filename=post.media_url[0]) }}"></video>
+                    {% elif post.media_type == 'images' %}
+                        <div class="image-grid">
+                            {% for image_url in post.media_url %}
+                                <img src="{{ url_for('static', filename=image_url) }}" alt="Post image">
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Post Actions -->
+                <div class="post-actions">
+                    <button class="post-action"><i class="far fa-heart"></i> Like</button>
+                    <button class="post-action"><i class="far fa-comment"></i> Comment</button>
+                    <button class="post-action"><i class="far fa-share-square"></i> Share</button>
+                </div>
+
+                <!-- Post Comments Preview -->
+                <div class="post-comments-preview">
+                    {% for comment in post.comments|sort(attribute='timestamp', reverse=True) %}
+                        {% if loop.index <= 2 %}
+                            <div class="comment-item">
+                                <strong>{{ comment.author.name }}</strong>
+                                <span>{{ comment.content }}</span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <p>No posts in the feed yet.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Story Viewer Modal -->
+<div id="story-viewer-modal" class="modal story-modal">
+    <div class="story-viewer-content">
+        <div class="story-progress-bars"></div>
+        <div class="story-header">
+            <img src="" alt="User Avatar" class="story-user-avatar">
+            <span class="story-user-name"></span>
+            <span class="close-story-viewer">&times;</span>
+        </div>
+        <div class="story-media-container">
+            <img src="" alt="Story Content" class="story-image">
+            <video src="" class="story-video" autoplay></video>
+        </div>
+        <button class="story-nav prev"><i class="fas fa-chevron-left"></i></button>
+        <button class="story-nav next"><i class="fas fa-chevron-right"></i></button>
+    </div>
+</div>
+
+<!-- Add Story Modal -->
+<div id="add-story-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Add to your Story</h2>
+        <form id="add-story-form" action="{{ url_for('feed.add_story') }}" method="post" enctype="multipart/form-data">
+            <p>Upload an image or video.</p>
+            <input type="file" name="story_media" required accept="image/*,video/*">
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </form>
+    </div>
+</div>
+
+<!-- Create Post Modal -->
+<div id="create-post-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Create Post</h2>
+        <form id="create-post-form" action="{{ url_for('feed.create_post') }}" method="post" enctype="multipart/form-data">
+            <textarea name="content" placeholder="What's on your mind, {{ current_user.name }}?" required></textarea>
+            <div class="post-modal-actions">
+                <input type="file" name="media" multiple accept="image/*,video/*" id="media-input" style="display: none;">
+                <button type="button" class="icon-btn" onclick="document.getElementById('media-input').click();"><i class="fas fa-photo-video"></i> Photo/Video</button>
+                <button type="submit" class="btn btn-primary">Post</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block dashboard_scripts %}
+    <script src="{{ url_for('static', filename='js/discover_feed.js') }}"></script>
+{% endblock %}
