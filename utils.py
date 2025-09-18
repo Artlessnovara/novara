@@ -252,19 +252,3 @@ def save_community_cover_image(file):
     file.save(filepath)
 
     return os.path.join('community_covers', new_filename)
-
-def save_library_file(file):
-    allowed_extensions = {'pdf', 'epub', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'}
-    filename = secure_filename(file.filename)
-    if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
-        return None
-
-    random_hex = os.urandom(8).hex()
-    _, f_ext = os.path.splitext(filename)
-    new_filename = random_hex + f_ext
-
-    filepath = os.path.join(current_app.root_path, 'static/library', new_filename)
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-
-    file.save(filepath)
-    return os.path.join('library', new_filename)

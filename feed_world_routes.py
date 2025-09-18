@@ -69,75 +69,6 @@ def home():
 
     return render_template('feed/home.html', posts=final_feed)
 
-@feed_bp.route('/discover')
-@login_required
-def discover():
-    """New Discover page with a different layout."""
-    # For now, fetch the same feed as home. This can be customized later.
-    following_ids = [u.id for u in current_user.followed]
-    feed_user_ids = following_ids + [current_user.id]
-    posts = Post.query.filter(
-        Post.post_status == 'published',
-        Post.user_id.in_(feed_user_ids)
-    ).order_by(Post.timestamp.desc()).all()
-
-    # Fetch stories from followed users
-    stories = Status.query.filter(
-        Status.is_story == True,
-        Status.user_id.in_(following_ids),
-        Status.expires_at > datetime.utcnow()
-    ).order_by(Status.created_at.desc()).all()
-
-    return render_template('feed/discover.html', posts=posts, stories=stories)
-
-@feed_bp.route('/api/stories/<int:user_id>')
-@login_required
-def get_stories(user_id):
-    """Fetches all active stories for a user."""
-    stories = Status.query.filter(
-        Status.is_story == True,
-        Status.user_id == user_id,
-        Status.expires_at > datetime.utcnow()
-    ).order_by(Status.created_at.asc()).all()
-
-    stories_data = [{
-        'id': story.id,
-        'content_type': story.content_type,
-        'content': story.content,
-        'caption': story.caption
-    } for story in stories]
-
-    return jsonify(stories_data)
-
-@feed_bp.route('/add_story', methods=['POST'])
-@login_required
-def add_story():
-    """Handles the creation of a new story."""
-    media_file = request.files.get('media')
-    caption = request.form.get('caption')
-
-    if not media_file:
-        flash('A media file is required to create a story.', 'danger')
-        return redirect(url_for('feed.discover'))
-
-    media_url, media_type = save_post_media(media_file)
-    if not media_url:
-        flash('Invalid file type or size for story.', 'danger')
-        return redirect(url_for('feed.discover'))
-
-    new_story = Status(
-        user_id=current_user.id,
-        content_type=media_type,
-        content=media_url,
-        caption=caption,
-        is_story=True
-    )
-    db.session.add(new_story)
-    db.session.commit()
-
-    flash('Your story has been posted!', 'success')
-    return redirect(url_for('feed.discover'))
-
 @feed_bp.route('/create', methods=['GET'])
 @login_required
 def create_post_page():
@@ -150,7 +81,7 @@ def create_post():
     """Create a new post, with scheduling for premium users."""
     content = request.form.get('content')
     privacy = request.form.get('privacy', 'public')
-    media_files = request.files.getlist('media')
+    media_file = request.files.get('media')
     community_id = request.form.get('community_id', type=int)
     page_id = request.form.get('page_id', type=int)
     schedule_time_str = request.form.get('schedule_time')
@@ -159,26 +90,13 @@ def create_post():
         flash('Content is required to create a post.', 'danger')
         return redirect(request.referrer or url_for('feed.home'))
 
-    media_urls = []
+    media_url = None
     media_type = None
-    if media_files:
-        for media_file in media_files:
-            if media_file.filename != '':
-                media_url, media_type_single = save_post_media(media_file)
-                if not media_url:
-                    flash('Invalid file type or size for media.', 'danger')
-                    return redirect(url_for('feed.create_post_page'))
-                media_urls.append(media_url)
-                if not media_type:
-                    media_type = media_type_single
-
-    if len(media_urls) > 1:
-        media_type = 'images' # A new type for a list of images
-        media_url_to_save = media_urls
-    elif len(media_urls) == 1:
-        media_url_to_save = media_urls[0]
-    else:
-        media_url_to_save = None
+    if media_file:
+        media_url, media_type = save_post_media(media_file)
+        if not media_url:
+            flash('Invalid file type or size for media.', 'danger')
+            return redirect(url_for('feed.create_post_page'))
 
     scheduled_for_dt = None
     post_status = 'published'
@@ -199,7 +117,7 @@ def create_post():
     new_post = Post(
         user_id=current_user.id,
         content=content,
-        media_url=media_url_to_save,
+        media_url=media_url,
         media_type=media_type,
         privacy=privacy,
         community_id=community_id,

@@ -111,7 +111,6 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     courses = db.relationship('Course', backref='category', lazy=True)
-    events = db.relationship('Event', backref='category', lazy=True)
     def __repr__(self): return f'<Category {self.name}>'
 
 class Course(db.Model):
@@ -656,8 +655,8 @@ class Post(db.Model):
     community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=True)
     page_id = db.Column(db.Integer, db.ForeignKey('user_page.id'), nullable=True) # Link to a UserPage
     content = db.Column(db.Text, nullable=True) # Nullable for shared posts with no comment
-    media_type = db.Column(db.String(20), nullable=True) # 'image', 'video', 'images'
-    media_url = db.Column(db.JSON, nullable=True) # Can be a single URL (string) or multiple (list of strings)
+    media_type = db.Column(db.String(20), nullable=True) # 'image', 'video'
+    media_url = db.Column(db.String(255), nullable=True)
     original_post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=True)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     privacy = db.Column(db.String(50), nullable=False, default='public') # public, followers, private
@@ -1012,40 +1011,3 @@ class FCMToken(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref='fcm_tokens')
-
-
-# --- Event Models ---
-
-class EventRSVP(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    user = db.relationship('User', backref='event_rsvps')
-    event = db.relationship('Event', back_populates='rsvps')
-
-    __table_args__ = (db.UniqueConstraint('user_id', 'event_id', name='_user_event_uc'),)
-
-
-class Event(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    date = db.Column(db.DateTime, nullable=False)
-    location = db.Column(db.String(200), nullable=False)
-    organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    image = db.Column(db.String(255), nullable=True) # Path to event image/banner
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
-    duration_hours = db.Column(db.Integer, nullable=True) # Duration in hours for the "Live Now" badge
-
-    organizer = db.relationship('User', backref='organized_events')
-    rsvps = db.relationship('EventRSVP', back_populates='event', lazy='dynamic', cascade="all, delete-orphan")
-
-    @property
-    def attendees(self):
-        return User.query.join(EventRSVP).filter(EventRSVP.event_id == self.id).all()
-
-    def __repr__(self):
-        return f'<Event {self.title}>'
