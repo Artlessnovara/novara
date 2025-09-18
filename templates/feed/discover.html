@@ -6,11 +6,13 @@
 <div class="discover-container">
     <!-- This top bar is specific to the Discover page -->
     <div class="discover-top-bar">
-        <button class="sidebar-toggle icon-btn" id="sidebar-toggle-btn-discover"><i class="fas fa-bars"></i></button>
-        <h1 class="discover-title">Discover</h1>
-        <div>
-            <a href="#" class="icon-btn"><i class="fas fa-store"></i></a>
-            <a href="{{ url_for('main.profile') }}" class="profile-avatar" style="margin-left: 1rem;">
+        <div class="discover-top-bar-left">
+            <button class="sidebar-toggle icon-btn" id="sidebar-toggle-btn-discover"><i class="fas fa-bars"></i></button>
+            <h1 class="discover-title">DISCOVER</h1>
+        </div>
+        <div class="discover-top-bar-right">
+            <a href="{{ url_for('more.resources') }}" class="icon-btn"><i class="fas fa-store"></i></a>
+            <a href="{{ url_for('main.profile') }}" class="profile-avatar">
                 <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.is_authenticated and current_user.profile_pic else 'default.jpg')) }}" alt="Profile Avatar">
             </a>
             <button id="create-post-btn" class="btn-primary" style="margin-left: 1rem;">+ Create Post</button>
@@ -29,6 +31,25 @@
             <span>{{ story.user.name }}</span>
         </div>
         {% endfor %}
+    </div>
+
+    <!-- Add Story Modal -->
+    <div id="add-story-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Add to Your Story</h2>
+            <form action="{{ url_for('feed.add_story') }}" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="story-media">Image or Video:</label>
+                    <input type="file" name="media" id="story-media" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="story-caption">Caption:</label>
+                    <textarea name="caption" id="story-caption" class="form-control" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 1rem;">Post Story</button>
+            </form>
+        </div>
     </div>
 
     <!-- Story Viewer Modal -->
@@ -54,7 +75,7 @@
                         <div class="timestamp">{{ post.timestamp.strftime('%b %d, %Y') }}</div>
                     </div>
                     <div style="margin-left: auto;">
-                        <a href="#" class="btn-secondary">Message</a>
+                        <a href="{{ url_for('main.create_private_chat', other_user_id=post.author.id) }}" class="btn-secondary">Message</a>
                     </div>
                 </div>
                 <div class="post-text">
@@ -62,24 +83,33 @@
                 </div>
                 {% if post.media_url %}
                 <div class="post-media">
-                    {% if post.media_type == 'image' %}
+                    {% if post.media_type == 'images' %}
+                        <div class="image-grid">
+                            {% for image_url in post.media_url %}
+                                <img src="{{ url_for('static', filename=image_url) }}" alt="Post image">
+                            {% endfor %}
+                        </div>
+                    {% elif post.media_type == 'image' %}
                         <img src="{{ url_for('static', filename=post.media_url) }}" alt="Post image">
                     {% elif post.media_type == 'video' %}
-                        <video controls>
-                            <source src="{{ url_for('static', filename=post.media_url) }}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
+                        <div class="video-container">
+                            <video>
+                                <source src="{{ url_for('static', filename=post.media_url) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            <div class="play-button-overlay"><i class="fas fa-play"></i></div>
+                        </div>
                     {% endif %}
                 </div>
                 {% endif %}
                 <div class="post-footer">
                     <div class="post-actions">
-                        <div class="post-action"><i class="far fa-heart"></i> Like</div>
-                        <div class="post-action"><i class="far fa-comment"></i> Comment</div>
-                        <div class="post-action"><i class="fas fa-share"></i> Share</div>
+                        <div class="post-action" data-action="like" data-post-id="{{ post.id }}"><i class="far fa-heart"></i> Like</div>
+                        <div class="post-action" data-action="comment"><i class="far fa-comment"></i> Comment</div>
+                        <div class="post-action" data-action="share"><i class="fas fa-share"></i> Share</div>
                     </div>
-                    <div class="comment-preview">
-                        {# Comment preview logic goes here #}
+                    <div class="comment-preview" id="comment-preview-{{ post.id }}">
+                        {# Comments will be loaded here via JS #}
                     </div>
                     <div class="comment-box">
                         <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.is_authenticated and current_user.profile_pic else 'default.jpg')) }}" alt="Your profile picture">
