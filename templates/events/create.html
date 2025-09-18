@@ -1,0 +1,54 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}Create New Event{% endblock %}
+
+{% block head %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/create_event.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="create-event-container">
+    <div class="create-event-header">
+        <h1>Create a New Event</h1>
+        <a href="{{ url_for('main.events') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Events
+        </a>
+    </div>
+
+    <div class="create-event-form-card">
+        <form method="POST" action="{{ url_for('main.create_event') }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="title">Event Title</label>
+                <input type="text" id="title" name="title" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Event Description</label>
+                <textarea id="description" name="description" class="form-control" rows="6" required></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="date">Date and Time</label>
+                    <input type="datetime-local" id="date" name="date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="location">Location or Venue</label>
+                    <input type="text" id="location" name="location" class="form-control" placeholder="e.g., 'Online' or '123 Main St, Anytown'" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="image">Event Banner Image</label>
+                <input type="file" id="image" name="image" class="form-control-file" accept="image/png, image/jpeg, image/gif">
+                <small class="form-text text-muted">Optional. A default image will be used if none is provided.</small>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Create Event</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

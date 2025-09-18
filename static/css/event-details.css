@@ -1,0 +1,156 @@
+/* Main container for event details */
+.event-details-container {
+    background-color: var(--bg-primary);
+    color: var(--color-primary);
+    padding: 0;
+}
+
+/* Banner image at the top */
+.event-details-banner {
+    width: 100%;
+    height: 350px;
+    overflow: hidden;
+}
+
+.event-details-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Header section below the banner */
+.event-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--divider);
+}
+
+.event-details-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.event-details-header .btn {
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+}
+
+/* Main body with two columns */
+.event-details-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.event-main-content {
+    flex: 3; /* Takes up 3 parts of the space */
+    min-width: 300px;
+}
+
+.event-sidebar {
+    flex: 2; /* Takes up 2 parts of the space */
+    min-width: 280px;
+}
+
+/* Card styling for content blocks */
+.event-info-card,
+.event-attendees-card,
+.event-meta-card,
+.event-map-card {
+    background-color: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: none;
+    border: 1px solid var(--divider);
+}
+
+.event-info-card h3,
+.event-attendees-card h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--divider);
+}
+
+.event-info-card p {
+    line-height: 1.6;
+}
+
+/* Attendees list styling */
+.attendees-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.attendee-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    width: 80px;
+    text-align: center;
+}
+
+.attendee-item img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.attendee-item span {
+    font-size: 0.875rem;
+    color: var(--color-secondary);
+}
+
+/* Sidebar meta card styling */
+.meta-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.meta-item:not(:last-child) {
+    margin-bottom: 1.5rem;
+}
+
+.meta-item i {
+    font-size: 1.25rem;
+    color: var(--color-accent);
+    margin-top: 5px;
+}
+
+.meta-item div {
+    display: flex;
+    flex-direction: column;
+}
+
+.meta-item strong {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.meta-item span {
+    color: var(--color-secondary);
+}
+
+.organizer-meta .organizer-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Map card styling */
+#event-map {
+    height: 300px;
+    width: 100%;
+    border-radius: var(--border-radius-lg);
+}

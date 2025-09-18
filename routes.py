@@ -5,7 +5,7 @@ import random
 import secrets
 import os
 from werkzeug.utils import secure_filename
-from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory, Post
+from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory, Post, Event, EventRSVP
 from extensions import db
 from utils import save_chat_file, save_status_file, get_or_create_platform_setting, is_contact, get_or_create_private_room
 from datetime import timedelta
@@ -578,6 +578,166 @@ def library():
                            materials=materials_pagination,
                            categories=categories,
                            search_values=request.args)
+
+@main.route('/events')
+@login_required
+def events():
+    """
+    Displays the main events page with a list of upcoming and past events.
+    """
+    search_term = request.args.get('search', '')
+    filter_by = request.args.get('filter', 'all')
+
+    query = Event.query
+
+    if search_term:
+        query = query.filter(or_(
+            Event.title.ilike(f'%{search_term}%'),
+            Event.description.ilike(f'%{search_term}%')
+        ))
+
+    now = datetime.utcnow()
+    if filter_by == 'upcoming':
+        query = query.filter(Event.date >= now)
+    elif filter_by == 'past':
+        query = query.filter(Event.date < now)
+    elif filter_by == 'my_events':
+        query = query.filter_by(organizer_id=current_user.id)
+
+    all_events = query.order_by(Event.date.desc()).all()
+    return render_template('events/index.html', events=all_events, search_values=request.args)
+
+
+@main.route('/event/<int:event_id>')
+@login_required
+def event_details(event_id):
+    """
+    Displays the details for a specific event.
+    """
+    event = Event.query.get_or_404(event_id)
+    user_rsvp = EventRSVP.query.filter_by(user_id=current_user.id, event_id=event.id).first()
+
+    return render_template('events/details.html', event=event, user_rsvp=user_rsvp)
+
+
+@main.route('/event/<int:event_id>/rsvp', methods=['POST'])
+@login_required
+def event_rsvp(event_id):
+    """
+    Handles the logic for a user to RSVP to an event or cancel an RSVP.
+    """
+    event = Event.query.get_or_404(event_id)
+    existing_rsvp = EventRSVP.query.filter_by(user_id=current_user.id, event_id=event.id).first()
+
+    if existing_rsvp:
+        # User is canceling their RSVP
+        db.session.delete(existing_rsvp)
+        flash('You have successfully canceled your RSVP.', 'success')
+    else:
+        # User is RSVPing to the event
+        new_rsvp = EventRSVP(user_id=current_user.id, event_id=event.id)
+        db.session.add(new_rsvp)
+        flash('Thank you for your RSVP!', 'success')
+
+    db.session.commit()
+    return redirect(url_for('main.event_details', event_id=event.id))
+
+
+def save_event_image(file):
+    from werkzeug.utils import secure_filename
+    filename = secure_filename(file.filename)
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(filename)
+    new_filename = random_hex + f_ext
+    filepath = os.path.join(current_app.root_path, 'static/event_images', new_filename)
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+    # Resize and save the image
+    output_size = (1200, 600) # A good banner size
+    i = Image.open(file)
+    i.thumbnail(output_size, Image.LANCZOS)
+    i.save(filepath)
+
+    return os.path.join('event_images', new_filename)
+
+@main.route('/event/create', methods=['GET', 'POST'])
+@login_required
+def create_event():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        date_str = request.form.get('date')
+        location = request.form.get('location')
+        image_file = request.files.get('image')
+
+        if not all([title, description, date_str, location]):
+            flash('All fields are required.', 'danger')
+            return redirect(url_for('main.create_event'))
+
+        try:
+            event_date = datetime.strptime(date_str, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            flash('Invalid date format.', 'danger')
+            return redirect(url_for('main.create_event'))
+
+        image_path = None
+        if image_file and image_file.filename != '':
+            image_path = save_event_image(image_file)
+
+        new_event = Event(
+            title=title,
+            description=description,
+            date=event_date,
+            location=location,
+            organizer_id=current_user.id,
+            image=image_path
+        )
+        db.session.add(new_event)
+        db.session.commit()
+
+        flash('Your event has been created successfully!', 'success')
+        return redirect(url_for('main.event_details', event_id=new_event.id))
+
+    return render_template('events/create.html')
+
+
+@main.route('/api/events/filter')
+@login_required
+def api_filter_events():
+    search_term = request.args.get('search', '')
+    filter_by = request.args.get('filter', 'all')
+
+    query = Event.query
+
+    if search_term:
+        query = query.filter(or_(
+            Event.title.ilike(f'%{search_term}%'),
+            Event.description.ilike(f'%{search_term}%')
+        ))
+
+    now = datetime.utcnow()
+    if filter_by == 'upcoming':
+        query = query.filter(Event.date >= now)
+    elif filter_by == 'past':
+        query = query.filter(Event.date < now)
+    elif filter_by == 'my_events':
+        query = query.filter_by(organizer_id=current_user.id)
+
+    events = query.order_by(Event.date.desc()).all()
+
+    events_data = [{
+        'id': event.id,
+        'title': event.title,
+        'image_url': url_for('static', filename=event.image or 'images/course_placeholder.jpg'),
+        'date': event.date.strftime('%a, %b %d, %Y at %I:%M %p'),
+        'location': event.location,
+        'organizer_name': event.organizer.name,
+        'organizer_pic': url_for('static', filename='profile_pics/' + (event.organizer.profile_pic or 'default.jpg')),
+        'details_url': url_for('main.event_details', event_id=event.id)
+    } for event in events]
+
+    return jsonify(events_data)
+
 
 @main.route('/register', methods=['GET', 'POST'])
 def register():

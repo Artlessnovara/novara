@@ -1,0 +1,94 @@
+/* Main container for the create event page */
+.create-event-container {
+    padding: 2rem;
+    background-color: var(--bg-primary);
+    color: var(--color-primary);
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Header section */
+.create-event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--divider);
+}
+
+.create-event-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Form card styling */
+.create-event-form-card {
+    background-color: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    box-shadow: none;
+    border: 1px solid var(--divider);
+}
+
+/* General form styling */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--divider);
+    background-color: var(--bg-tertiary); /* Different from card for contrast */
+    color: var(--color-primary);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.2); /* This rgba might need adjustment if --primary-color-rgb is not defined */
+}
+
+textarea.form-control {
+    resize: vertical;
+}
+
+/* For side-by-side form groups */
+.form-row {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.form-row .form-group {
+    flex: 1;
+    min-width: 250px;
+}
+
+/* File input styling */
+.form-control-file {
+    display: block;
+    width: 100%;
+    color: var(--color-secondary);
+}
+
+/* Form actions (submit button) */
+.form-actions {
+    margin-top: 2rem;
+    text-align: right;
+}
+
+.form-actions .btn {
+    font-size: 1rem;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+}
