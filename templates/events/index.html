@@ -5,62 +5,118 @@
 {% block head %}
   {{ super() }}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/events.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanilla-js-calendar@1.0.10/dist/js-calendar.min.css">
 {% endblock %}
 
 {% block content %}
-<div class="events-container">
-    <div class="events-header">
-        <h1>Upcoming Events</h1>
-        <a href="{{ url_for('main.create_event') }}" class="btn btn-primary" id="create-event-btn">
-            <i class="fas fa-plus"></i> Create Event
-        </a>
-    </div>
-
-    <div class="events-controls">
-        <div class="search-bar">
-            <input type="text" placeholder="Search events...">
-            <i class="fas fa-search"></i>
+<div class="events-page-container">
+    <!-- Left Sidebar -->
+    <aside class="events-sidebar left-sidebar">
+        <div class="sidebar-section">
+            <h4>My Events</h4>
+            <ul class="sidebar-list">
+                {% for event in my_events %}
+                    <li><a href="{{ url_for('main.event_details', event_id=event.id) }}">{{ event.title }}</a></li>
+                {% else %}
+                    <li>No events created yet.</li>
+                {% endfor %}
+            </ul>
         </div>
-        <div class="filters">
-            <select>
-                <option value="all">All</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="past">Past</option>
-                <option value="my_events">My Events</option>
-            </select>
+        <div class="sidebar-section">
+            <h4>Discover</h4>
+            <ul class="sidebar-list">
+                {% for event in discover_events %}
+                    <li><a href="{{ url_for('main.event_details', event_id=event.id) }}">{{ event.title }}</a></li>
+                {% else %}
+                    <li>No other events to discover.</li>
+                {% endfor %}
+            </ul>
         </div>
-    </div>
+        <div class="sidebar-section">
+            <h4>Categories</h4>
+            <ul class="sidebar-list">
+                <li><a href="{{ url_for('main.events') }}">All</a></li>
+                {% for category in categories %}
+                    <li><a href="{{ url_for('main.events', category=category.id) }}">{{ category.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </aside>
 
-    <div class="events-grid">
-        {% if events %}
-            {% for event in events %}
-            <div class="event-card">
-                <div class="event-card-banner">
-                    <img src="{{ url_for('static', filename=event.image or 'images/course_placeholder.jpg') }}" alt="{{ event.title }}">
-                </div>
-                <div class="event-card-content">
-                    <h3 class="event-title">{{ event.title }}</h3>
-                    <p class="event-date"><i class="fas fa-calendar-alt"></i> {{ event.date.strftime('%a, %b %d, %Y at %I:%M %p') }}</p>
-                    <p class="event-location"><i class="fas fa-map-marker-alt"></i> {{ event.location }}</p>
-                    <div class="event-organizer">
-                        <img src="{{ url_for('static', filename='profile_pics/' + (event.organizer.profile_pic or 'default.jpg')) }}" alt="{{ event.organizer.name }}">
-                        <span>{{ event.organizer.name }}</span>
+    <!-- Main Content -->
+    <main class="events-main-content">
+        <div class="events-header">
+            <h1>Events</h1>
+            <a href="{{ url_for('main.create_event') }}" class="btn btn-primary" id="create-event-btn">
+                <i class="fas fa-plus"></i> Create Event
+            </a>
+        </div>
+
+        <div class="events-controls">
+            <div class="search-bar">
+                <input type="text" placeholder="Search events..." value="{{ search_values.get('search', '') }}">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="filters">
+                <select name="filter">
+                    <option value="all" {% if search_values.get('filter') == 'all' %}selected{% endif %}>All</option>
+                    <option value="upcoming" {% if search_values.get('filter') == 'upcoming' %}selected{% endif %}>Upcoming</option>
+                    <option value="past" {% if search_values.get('filter') == 'past' %}selected{% endif %}>Past</option>
+                    <option value="my_events" {% if search_values.get('filter') == 'my_events' %}selected{% endif %}>My Events</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="events-grid">
+            {% if events %}
+                {% for event in events %}
+                <div class="event-card">
+                    <div class="event-card-banner">
+                        <img src="{{ url_for('static', filename=event.image or 'images/course_placeholder.jpg') }}" alt="{{ event.title }}">
+                    {% if event.duration_hours and event.date <= now and now <= (event.date + timedelta(hours=event.duration_hours)) %}
+                        <span class="live-badge">LIVE NOW</span>
+                    {% endif %}
+                    </div>
+                    <div class="event-card-content">
+                        <h3 class="event-title">{{ event.title }}</h3>
+                        <p class="event-date"><i class="fas fa-calendar-alt"></i> {{ event.date.strftime('%a, %b %d, %Y at %I:%M %p') }}</p>
+                        <p class="event-location"><i class="fas fa-map-marker-alt"></i> {{ event.location }}</p>
+                        <div class="event-organizer">
+                            <img src="{{ url_for('static', filename='profile_pics/' + (event.organizer.profile_pic or 'default.jpg')) }}" alt="{{ event.organizer.name }}">
+                            <span>{{ event.organizer.name }}</span>
+                        </div>
+                    </div>
+                    <div class="event-card-footer">
+                        <a href="{{ url_for('main.event_details', event_id=event.id) }}" class="btn btn-secondary">View Details</a>
                     </div>
                 </div>
-                <div class="event-card-footer">
-                    <a href="{{ url_for('main.event_details', event_id=event.id) }}" class="btn btn-secondary">View Details</a>
+                {% endfor %}
+            {% else %}
+                <div class="no-events">
+                    <p>No events found. Why not create one?</p>
                 </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Right Sidebar -->
+    <aside class="events-sidebar right-sidebar">
+        <div class="sidebar-section">
+            <h4>Calendar</h4>
+            <div id="calendar-placeholder">
+                <!-- Calendar will be initialized here -->
             </div>
-            {% endfor %}
-        {% else %}
-            <div class="no-events">
-                <p>No events found. Why not create one?</p>
-            </div>
-        {% endif %}
-    </div>
+        </div>
+    </aside>
 </div>
 {% endblock %}
 
 {% block dashboard_scripts %}
     <script src="{{ url_for('static', filename='js/events.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanilla-js-calendar@1.0.10/dist/js-calendar.min.js"></script>
+    <script src="{{ url_for('static', filename='js/event_calendar.js') }}"></script>
 {% endblock %}
+
+<a href="{{ url_for('main.create_event') }}" class="fab">
+    <i class="fas fa-plus"></i>
+</a>

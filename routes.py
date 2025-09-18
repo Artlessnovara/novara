@@ -587,14 +587,17 @@ def events():
     """
     search_term = request.args.get('search', '')
     filter_by = request.args.get('filter', 'all')
+    category_id = request.args.get('category', type=int)
 
+    # Main query for the center content
     query = Event.query
-
     if search_term:
         query = query.filter(or_(
             Event.title.ilike(f'%{search_term}%'),
             Event.description.ilike(f'%{search_term}%')
         ))
+    if category_id:
+        query = query.filter_by(category_id=category_id)
 
     now = datetime.utcnow()
     if filter_by == 'upcoming':
@@ -605,8 +608,31 @@ def events():
         query = query.filter_by(organizer_id=current_user.id)
 
     all_events = query.order_by(Event.date.desc()).all()
-    return render_template('events/index.html', events=all_events, search_values=request.args)
 
+    # Queries for sidebars
+    my_events = Event.query.filter_by(organizer_id=current_user.id).order_by(Event.date.desc()).limit(5).all()
+
+    # Exclude events the user has RSVP'd to from discovery
+    rsvpd_event_ids = [rsvp.event_id for rsvp in current_user.event_rsvps]
+    discover_events = Event.query.filter(
+        Event.date >= now,
+        Event.organizer_id != current_user.id,
+        ~Event.id.in_(rsvpd_event_ids)
+    ).order_by(Event.date.asc()).limit(5).all()
+
+    categories = Category.query.all()
+
+    return render_template('events/index.html',
+                           events=all_events,
+                           my_events=my_events,
+                           discover_events=discover_events,
+                           categories=categories,
+                           search_values=request.args,
+                           now=datetime.utcnow(),
+                           timedelta=timedelta)
+
+
+from models import GenericComment
 
 @main.route('/event/<int:event_id>')
 @login_required
@@ -617,8 +643,13 @@ def event_details(event_id):
     event = Event.query.get_or_404(event_id)
     user_rsvp = EventRSVP.query.filter_by(user_id=current_user.id, event_id=event.id).first()
 
-    return render_template('events/details.html', event=event, user_rsvp=user_rsvp)
+    # Fetch comments for the event
+    comments = GenericComment.query.filter_by(target_type='event', target_id=event.id).order_by(GenericComment.timestamp.desc()).all()
 
+    return render_template('events/details.html', event=event, user_rsvp=user_rsvp, comments=comments)
+
+
+from models import Notification
 
 @main.route('/event/<int:event_id>/rsvp', methods=['POST'])
 @login_required
@@ -639,7 +670,41 @@ def event_rsvp(event_id):
         db.session.add(new_rsvp)
         flash('Thank you for your RSVP!', 'success')
 
+        # Create a notification for the event organizer
+        if event.organizer_id != current_user.id:
+            notification = Notification(
+                user_id=event.organizer_id,
+                actor_id=current_user.id,
+                type='event_rsvp',
+                object_type='event',
+                object_id=event.id
+            )
+            db.session.add(notification)
+
     db.session.commit()
+    return redirect(url_for('main.event_details', event_id=event.id))
+
+
+@main.route('/event/<int:event_id>/comment', methods=['POST'])
+@login_required
+def post_event_comment(event_id):
+    event = Event.query.get_or_404(event_id)
+    comment_text = request.form.get('comment_text')
+
+    if not comment_text:
+        flash('Comment cannot be empty.', 'danger')
+        return redirect(url_for('main.event_details', event_id=event.id))
+
+    new_comment = GenericComment(
+        user_id=current_user.id,
+        content=comment_text,
+        target_type='event',
+        target_id=event.id
+    )
+    db.session.add(new_comment)
+    db.session.commit()
+
+    flash('Your comment has been posted.', 'success')
     return redirect(url_for('main.event_details', event_id=event.id))
 
 
@@ -668,9 +733,10 @@ def create_event():
         description = request.form.get('description')
         date_str = request.form.get('date')
         location = request.form.get('location')
+        category_id = request.form.get('category_id')
         image_file = request.files.get('image')
 
-        if not all([title, description, date_str, location]):
+        if not all([title, description, date_str, location, category_id]):
             flash('All fields are required.', 'danger')
             return redirect(url_for('main.create_event'))
 
@@ -684,13 +750,17 @@ def create_event():
         if image_file and image_file.filename != '':
             image_path = save_event_image(image_file)
 
+        duration_hours = request.form.get('duration_hours', type=int)
+
         new_event = Event(
             title=title,
             description=description,
             date=event_date,
             location=location,
+            category_id=category_id,
             organizer_id=current_user.id,
-            image=image_path
+            image=image_path,
+            duration_hours=duration_hours
         )
         db.session.add(new_event)
         db.session.commit()
@@ -698,7 +768,8 @@ def create_event():
         flash('Your event has been created successfully!', 'success')
         return redirect(url_for('main.event_details', event_id=new_event.id))
 
-    return render_template('events/create.html')
+    categories = Category.query.all()
+    return render_template('events/create.html', categories=categories)
 
 
 @main.route('/api/events/filter')
@@ -706,6 +777,7 @@ def create_event():
 def api_filter_events():
     search_term = request.args.get('search', '')
     filter_by = request.args.get('filter', 'all')
+    category_id = request.args.get('category', type=int)
 
     query = Event.query
 
@@ -714,6 +786,9 @@ def api_filter_events():
             Event.title.ilike(f'%{search_term}%'),
             Event.description.ilike(f'%{search_term}%')
         ))
+
+    if category_id:
+        query = query.filter_by(category_id=category_id)
 
     now = datetime.utcnow()
     if filter_by == 'upcoming':
@@ -737,6 +812,34 @@ def api_filter_events():
     } for event in events]
 
     return jsonify(events_data)
+
+
+@main.route('/api/events/for_calendar')
+@login_required
+def api_events_for_calendar():
+    events = Event.query.all()
+    calendar_events = []
+    for event in events:
+        calendar_events.append({
+            'title': event.title,
+            'start': event.date.isoformat(),
+            'url': url_for('main.event_details', event_id=event.id)
+        })
+    return jsonify(calendar_events)
+
+
+@main.route('/api/event/<int:event_id>/attendees')
+@login_required
+def api_event_attendees(event_id):
+    event = Event.query.get_or_404(event_id)
+    attendees = event.attendees
+    attendees_data = [{
+        'id': user.id,
+        'name': user.name,
+        'profile_pic_url': url_for('static', filename='profile_pics/' + (user.profile_pic or 'default.jpg')),
+        'profile_url': url_for('main.view_user', user_id=user.id)
+    } for user in attendees]
+    return jsonify(attendees_data)
 
 
 @main.route('/register', methods=['GET', 'POST'])

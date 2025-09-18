@@ -34,15 +34,44 @@
             </div>
 
             <div class="event-attendees-card">
-                <h3>Attendees ({{ event.rsvps.count() }})</h3>
+                <div class="attendees-header">
+                    <h3>Attendees ({{ event.rsvps.count() }})</h3>
+                    {% if event.rsvps.count() > 10 %}
+                        <button class="btn btn-sm btn-secondary" id="see-all-attendees-btn">See All</button>
+                    {% endif %}
+                </div>
                 <div class="attendees-list">
-                    {% for rsvp in event.rsvps %}
+                    {% for rsvp in event.rsvps.limit(10) %}
                         <div class="attendee-item">
                             <img src="{{ url_for('static', filename='profile_pics/' + (rsvp.user.profile_pic or 'default.jpg')) }}" alt="{{ rsvp.user.name }}">
                             <span>{{ rsvp.user.name }}</span>
                         </div>
                     {% else %}
                         <p>Be the first to RSVP!</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="event-comments-card">
+                <h3>Comments ({{ comments|length }})</h3>
+                <div class="comment-form">
+                    <form action="{{ url_for('main.post_event_comment', event_id=event.id) }}" method="POST">
+                        <textarea name="comment_text" placeholder="Add a public comment..." required></textarea>
+                        <button type="submit" class="btn btn-primary">Comment</button>
+                    </form>
+                </div>
+                <div class="comments-list">
+                    {% for comment in comments %}
+                        <div class="comment-item">
+                            <img src="{{ url_for('static', filename='profile_pics/' + (comment.author.profile_pic or 'default.jpg')) }}" alt="{{ comment.author.name }}" class="comment-author-pic">
+                            <div class="comment-content">
+                                <strong>{{ comment.author.name }}</strong>
+                                <span class="comment-timestamp">{{ comment.timestamp.strftime('%b %d, %Y') }}</span>
+                                <p>{{ comment.content }}</p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p>No comments yet. Be the first to comment!</p>
                     {% endfor %}
                 </div>
             </div>
@@ -85,6 +114,7 @@
     {{ super() }}
     {# Add leaflet JS for map #}
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/event_details.js') }}"></script>
     <script>
         // Basic map initialization - in a real app, you'd geocode the location string
         document.addEventListener('DOMContentLoaded', function () {
@@ -101,3 +131,13 @@
         });
     </script>
 {% endblock %}
+
+<div id="attendees-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>All Attendees</h2>
+        <div id="modal-attendees-list" class="attendees-list-modal">
+            <!-- Attendees will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
