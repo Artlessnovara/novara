@@ -1433,6 +1433,11 @@ def submit_appeal(submission_id):
 
     return redirect(url_for('main.exam_appeal', submission_id=submission.id))
 
+@main.route('/placeholder-page')
+@login_required
+def placeholder_page():
+    return render_template('placeholder.html')
+
 @main.route('/course/<int:course_id>/request-certificate', methods=['POST'])
 @login_required
 def request_certificate(course_id):

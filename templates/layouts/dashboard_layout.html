@@ -45,7 +45,10 @@
 
                         <li><a href="{{ url_for('feed.discover') }}"><i class="fas fa-search"></i><span>Discover</span></a></li>
                         <li><a href="{{ url_for('feed.home') }}"><i class="fas fa-rss"></i><span>Feed</span></a></li>
-                        <li><a href="#"><i class="fas fa-comments"></i><span>Chat</span></a></li>
+                        <li><a href="{{ url_for('main.placeholder_page') }}"><i class="fas fa-calendar-alt"></i><span>Events</span></a></li>
+                        <li><a href="{{ url_for('main.chat_list') }}"><i class="fas fa-comments"></i><span>Chat</span></a></li>
+                        <li><a href="{{ url_for('main.library') }}"><i class="fas fa-book-open"></i><span>Library</span></a></li>
+                        <li><a href="{{ url_for('main.placeholder_page') }}"><i class="fas fa-folder"></i><span>Resources</span></a></li>
                     {% endif %}
                 </ul>
             </nav>

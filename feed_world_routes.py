@@ -17,7 +17,10 @@ def discover():
 @feed.route('/home')
 @login_required
 def home():
-    return redirect(url_for('feed.discover'))
+    followed_users_ids = [user.id for user in current_user.followed]
+    posts = Post.query.filter(Post.user_id.in_(followed_users_ids)).order_by(Post.timestamp.desc()).all()
+    active_stories_users = db.session.query(User).join(Status).filter(Status.is_story == True, Status.expires_at > db.func.now()).distinct().all()
+    return render_template('feed/home.html', posts=posts, stories_by_user=active_stories_users)
 
 @feed.route('/create_post', methods=['POST'])
 @login_required

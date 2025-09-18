@@ -1,9 +1,8 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
 
 {% block title %}Chat Rooms{% endblock %}
 
-{% block content %}
-<div class="ice-sky-content">
+{% block dashboard_content %}
     <div class="chat-list-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h1>Chat Rooms</h1>
         <a href="{{ url_for('main.create_group') }}" class="btn-primary">Create New Group</a>
@@ -40,10 +39,9 @@
     </ul>
 
     <a href="{{ url_for('main.create_group') }}" class="btn-primary" style="position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; text-decoration: none; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">+</a>
-</div>
 {% endblock %}
 
-{% block scripts %}
+{% block dashboard_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-input');

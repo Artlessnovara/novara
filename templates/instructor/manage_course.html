@@ -1,24 +1,13 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
 
 {% block title %}Manage: {{ course.title }}{% endblock %}
 
-{% block scripts %}
+{% block styles %}
+    {{ super() }}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/manage_course.css') }}">
-    <script src="https://cdn.ckeditor.com/4.21.0/standard/ckeditor.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const textareas = document.querySelectorAll('.ckeditor-textarea');
-            textareas.forEach(textarea => {
-                CKEDITOR.replace(textarea.id, {
-                    filebrowserUploadUrl: '{{ url_for("instructor.upload_image") }}',
-                    filebrowserUploadMethod: 'form'
-                });
-            });
-        });
-    </script>
 {% endblock %}
 
-{% block content %}
+{% block dashboard_content %}
 <div class="admin-container">
     <div class="admin-header">
         <a href="{{ url_for('instructor.dashboard') }}" class="back-button">
@@ -157,4 +146,19 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block dashboard_scripts %}
+    <script src="https://cdn.ckeditor.com/4.21.0/standard/ckeditor.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const textareas = document.querySelectorAll('.ckeditor-textarea');
+            textareas.forEach(textarea => {
+                CKEDITOR.replace(textarea.id, {
+                    filebrowserUploadUrl: '{{ url_for("instructor.upload_image") }}',
+                    filebrowserUploadMethod: 'form'
+                });
+            });
+        });
+    </script>
 {% endblock %}

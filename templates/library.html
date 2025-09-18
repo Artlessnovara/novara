@@ -1,13 +1,13 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
 
 {% block title %}Library of Knowledge{% endblock %}
 
 {% block styles %}
+    {{ super() }}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/library.css') }}">
 {% endblock %}
 
-{% block content %}
-<div class="ice-sky-content">
+{% block dashboard_content %}
     <!-- 1. Hero Section -->
     <section class="library-hero glassy-card-container">
         <div class="hero-content">
@@ -133,13 +133,8 @@
             {% endif %}
         </main>
     </div>
-</div>
 {% endblock %}
 
-{% block scripts %}
-    {{ super() }}
-    <script>
-        document.body.classList.add('library-body');
-    </script>
+{% block dashboard_scripts %}
     <script src="{{ url_for('static', filename='js/library.js') }}"></script>
 {% endblock %}
