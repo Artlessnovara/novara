@@ -1,0 +1,36 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}Resources{% endblock %}
+
+{% block dashboard_content %}
+    <h1>Resources</h1>
+    <p>Browse our library of materials, from books and notes to projects and tools.</p>
+
+    <div class="resources-grid" style="margin-top: 2rem;">
+        {% for material in materials %}
+            <div class="resource-card">
+                <div class="resource-thumbnail">
+                    {# In a real app, you would have thumbnails. For now, a file icon. #}
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="resource-info">
+                    <h3 class="resource-title">{{ material.title }}</h3>
+                    <p class="resource-description">{{ material.description|truncate(100) }}</p>
+                    <div class="resource-price">
+                        {% if material.price_naira > 0 %}
+                            ₦{{ material.price_naira }}
+                        {% else %}
+                            Free
+                        {% endif %}
+                    </div>
+                    <div class="resource-seller">
+                        <img src="{{ url_for('static', filename='profile_pics/' + material.uploader.profile_pic) }}" alt="{{ material.uploader.name }}'s profile picture">
+                        <span>{{ material.uploader.name }}</span>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <p>No resources found.</p>
+        {% endfor %}
+    </div>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}Discover{% endblock %}
+
+{% block dashboard_content %}
+<div class="discover-container">
+    <!-- This top bar is specific to the Discover page -->
+    <div class="discover-top-bar">
+        <button class="sidebar-toggle icon-btn" id="sidebar-toggle-btn-discover"><i class="fas fa-bars"></i></button>
+        <h1 class="discover-title">Discover</h1>
+        <div>
+            <a href="#" class="icon-btn"><i class="fas fa-store"></i></a>
+            <a href="{{ url_for('main.profile') }}" class="profile-avatar" style="margin-left: 1rem;">
+                <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.is_authenticated and current_user.profile_pic else 'default.jpg')) }}" alt="Profile Avatar">
+            </a>
+            <button id="create-post-btn" class="btn-primary" style="margin-left: 1rem;">+ Create Post</button>
+        </div>
+    </div>
+
+    <!-- Stories Row -->
+    <div class="stories-row">
+        <div class="story-card">
+            <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.is_authenticated and current_user.profile_pic else 'default.jpg')) }}" alt="Add Story">
+            <span>Add Story</span>
+        </div>
+        {% for story in stories %}
+        <div class="story-card" data-story-user-id="{{ story.user_id }}">
+            <img src="{{ url_for('static', filename='profile_pics/' + story.user.profile_pic) }}" alt="{{ story.user.name }}'s story">
+            <span>{{ story.user.name }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Story Viewer Modal -->
+    <div id="story-viewer-modal" class="modal">
+        <div class="story-viewer-content">
+            <span class="close-story-viewer">&times;</span>
+            <div id="story-content"></div>
+        </div>
+    </div>
+
+    <!-- Main Feed -->
+    <div class="feed-posts">
+        {% for post in posts %}
+            <div class="post-card">
+                <div class="post-header">
+                    <a href="{{ url_for('feed.profile', user_id=post.author.id) }}">
+                        <img src="{{ url_for('static', filename='profile_pics/' + post.author.profile_pic) }}" alt="{{ post.author.name }}'s profile picture">
+                    </a>
+                    <div class="post-author-info">
+                        <a href="{{ url_for('feed.profile', user_id=post.author.id) }}" class="author-name">{{ post.author.name }}</a>
+                        <div class="timestamp">{{ post.timestamp.strftime('%b %d, %Y') }}</div>
+                    </div>
+                    <div style="margin-left: auto;">
+                        <a href="#" class="btn-secondary">Message</a>
+                    </div>
+                </div>
+                <div class="post-text">
+                    {{ post.content }}
+                    {% if post.content|length > 200 %}
+                        <a href="#" class="see-more-btn">... See More</a>
+                    {% endif %}
+                </div>
+                {% if post.media_url %}
+                <div class="post-media">
+                    {% if post.media_type == 'image' %}
+                        <img src="{{ url_for('static', filename=post.media_url) }}" alt="Post image">
+                    {% elif post.media_type == 'video' %}
+                        <video controls>
+                            <source src="{{ url_for('static', filename=post.media_url) }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    {% endif %}
+                </div>
+                {% endif %}
+                <div class="post-footer">
+                    <div class="post-actions">
+                        <div class="post-action"><i class="far fa-heart"></i> Like</div>
+                        <div class="post-action"><i class="far fa-comment"></i> Comment</div>
+                        <div class="post-action"><i class="fas fa-share"></i> Share</div>
+                    </div>
+                    <div class="comment-preview">
+                        {# Comment preview logic goes here #}
+                    </div>
+                    <div class="comment-box">
+                        <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.is_authenticated and current_user.profile_pic else 'default.jpg')) }}" alt="Your profile picture">
+                        <input type="text" class="comment-input" placeholder="Write a comment...">
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <p>No posts in your feed yet. Follow some users to see their posts!</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Create Post Modal -->
+<div id="create-post-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Create Post</h2>
+        <form action="{{ url_for('feed.create_post') }}" method="post" enctype="multipart/form-data">
+            <textarea name="content" class="form-control" rows="5" placeholder="What's on your mind, {{ current_user.name }}?"></textarea>
+            <div style="margin-top: 1rem;">
+                <label for="media">Add to your post:</label>
+                <input type="file" name="media" id="media" class="form-control">
+            </div>
+            <button type="submit" class="btn-primary" style="margin-top: 1rem;">Post</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/discover_feed.js') }}"></script>
+    <script>
+        // JS for Discover Page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Modal logic
+            const modal = document.getElementById('create-post-modal');
+            const btn = document.getElementById('create-post-btn');
+            const span = document.getElementsByClassName('close-btn')[0];
+
+            if(btn) {
+                btn.onclick = function() {
+                    modal.style.display = "block";
+                }
+            }
+            if(span) {
+                span.onclick = function() {
+                    modal.style.display = "none";
+                }
+            }
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            }
+
+            // Sidebar toggle for this specific page
+            const discoverSidebarToggle = document.getElementById('sidebar-toggle-btn-discover');
+            const mainSidebar = document.getElementById('sidebar');
+            if(discoverSidebarToggle && mainSidebar) {
+                 discoverSidebarToggle.addEventListener('click', () => {
+                    mainSidebar.classList.toggle('open');
+                });
+            }
+        });
+    </script>
+{% endblock %}
