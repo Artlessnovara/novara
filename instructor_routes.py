@@ -23,7 +23,7 @@ import bleach
 from models import Category, LibraryMaterial, Module, Lesson, Assignment, AssignmentSubmission, Quiz, FinalExam, ChatRoom, ChatRoomMember, Question, Choice, ExamSubmission, Notification
 from werkzeug.utils import secure_filename
 import os
-from utils import save_editor_image
+from utils import save_editor_image, save_library_file
 
 from models import CourseComment
 
@@ -614,22 +614,6 @@ def enrolled_students(course_id):
     if course.instructor_id != current_user.id:
         abort(403)
     return render_template('instructor/enrolled_students.html', course=course)
-
-def save_library_file(file):
-    allowed_extensions = {'pdf', 'epub', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'}
-    filename = secure_filename(file.filename)
-    if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
-        return None
-
-    random_hex = os.urandom(8).hex()
-    _, f_ext = os.path.splitext(filename)
-    new_filename = random_hex + f_ext
-
-    filepath = os.path.join(current_app.root_path, 'static/library', new_filename)
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-
-    file.save(filepath)
-    return os.path.join('library', new_filename)
 
 @instructor_bp.route('/library/submit', methods=['POST'])
 def submit_library_material():

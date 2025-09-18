@@ -3,12 +3,34 @@
 {% block title %}Resources{% endblock %}
 
 {% block dashboard_content %}
-    <h1>Resources</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Resources</h1>
+        <a href="#" id="post-resource-btn" class="btn-primary">+ Post Resource</a>
+    </div>
     <p>Browse our library of materials, from books and notes to projects and tools.</p>
 
-    <div class="resources-grid" style="margin-top: 2rem;">
+    <form method="GET" action="{{ url_for('more.resources') }}" class="filter-form" style="margin-bottom: 2rem; display: flex; gap: 1rem; align-items: center;">
+        <select name="category_id" class="form-control">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}" {% if search_values.get('category_id') == category.id|string %}selected{% endif %}>{{ category.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="price" class="form-control">
+            <option value="">All Prices</option>
+            <option value="free" {% if search_values.get('price') == 'free' %}selected{% endif %}>Free</option>
+            <option value="paid" {% if search_values.get('price') == 'paid' %}selected{% endif %}>Paid</option>
+        </select>
+        <select name="sort" class="form-control">
+            <option value="newest" {% if search_values.get('sort', 'newest') == 'newest' %}selected{% endif %}>Newest</option>
+            <option value="popular" {% if search_values.get('sort') == 'popular' %}selected{% endif %}>Popular</option>
+        </select>
+        <button type="submit" class="btn-primary">Filter</button>
+    </form>
+
+    <div class="resources-grid">
         {% for material in materials %}
-            <div class="resource-card">
+            <a href="{{ url_for('more.resource_detail', material_id=material.id) }}" class="resource-card" style="text-decoration: none; color: inherit;">
                 <div class="resource-thumbnail">
                     {# In a real app, you would have thumbnails. For now, a file icon. #}
                     <i class="fas fa-file-alt"></i>
@@ -28,9 +50,48 @@
                         <span>{{ material.uploader.name }}</span>
                     </div>
                 </div>
-            </div>
+            </a>
         {% else %}
             <p>No resources found.</p>
         {% endfor %}
     </div>
+
+    <!-- Post Resource Modal -->
+    <div id="post-resource-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Post a New Resource</h2>
+            <form action="{{ url_for('more.create_resource') }}" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="res_title">Title</label>
+                    <input type="text" id="res_title" name="title" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="res_category">Category</label>
+                    <select id="res_category" name="category_id" required class="form-control">
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="res_description">Description</label>
+                    <textarea id="res_description" name="description" rows="4" class="form-control"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="res_price">Price (₦)</label>
+                    <input type="number" id="res_price" name="price_naira" min="0" value="0" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="res_file">File</label>
+                    <input type="file" id="res_file" name="file" required class="form-control">
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 1rem;">Post Resource</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block dashboard_scripts %}
+    <script src="{{ url_for('static', filename='js/resources.js') }}"></script>
 {% endblock %}
