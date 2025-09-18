@@ -1011,3 +1011,38 @@ class FCMToken(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref='fcm_tokens')
+
+
+# --- Event Models ---
+
+class EventRSVP(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    user = db.relationship('User', backref='event_rsvps')
+    event = db.relationship('Event', back_populates='rsvps')
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'event_id', name='_user_event_uc'),)
+
+
+class Event(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+    location = db.Column(db.String(200), nullable=False)
+    organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    image = db.Column(db.String(255), nullable=True) # Path to event image/banner
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    organizer = db.relationship('User', backref='organized_events')
+    rsvps = db.relationship('EventRSVP', back_populates='event', lazy='dynamic', cascade="all, delete-orphan")
+
+    @property
+    def attendees(self):
+        return User.query.join(EventRSVP).filter(EventRSVP.event_id == self.id).all()
+
+    def __repr__(self):
+        return f'<Event {self.title}>'

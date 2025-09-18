@@ -1,0 +1,155 @@
+/* General container for the events page */
+.events-container {
+    padding: 2rem;
+    background-color: var(--bg-primary);
+    color: var(--color-primary);
+}
+
+/* Header section with title and create button */
+.events-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--divider);
+}
+
+.events-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+#create-event-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+/* Search and filter controls */
+.events-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+}
+
+.search-bar {
+    position: relative;
+    flex-grow: 1;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem; /* Add padding for icon */
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--divider);
+    background-color: var(--bg-secondary);
+    color: var(--color-primary);
+}
+
+.search-bar .fa-search {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-secondary);
+}
+
+.filters select {
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--divider);
+    background-color: var(--bg-secondary);
+    color: var(--color-primary);
+}
+
+/* Grid for event cards */
+.events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Individual event card styling */
+.event-card {
+    background-color: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: none;
+    border: 1px solid var(--divider);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.event-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-accent);
+}
+
+.event-card-banner {
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+}
+
+.event-card-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.event-card-content {
+    padding: 1.25rem;
+    flex-grow: 1;
+}
+
+.event-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.event-date, .event-location {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.event-organizer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.event-organizer img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.event-organizer span {
+    font-weight: 500;
+}
+
+.event-card-footer {
+    padding: 1.25rem;
+    border-top: 1px solid var(--divider);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.no-events {
+    grid-column: 1 / -1; /* Span full width */
+    text-align: center;
+    padding: 3rem;
+    background-color: var(--bg-secondary);
+    border-radius: var(--border-radius-lg);
+}
