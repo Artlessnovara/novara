@@ -69,6 +69,46 @@ def home():
 
     return render_template('feed/home.html', posts=final_feed)
 
+@feed_bp.route('/discover')
+@login_required
+def discover():
+    """New Discover page with a different layout."""
+    # For now, fetch the same feed as home. This can be customized later.
+    following_ids = [u.id for u in current_user.followed]
+    feed_user_ids = following_ids + [current_user.id]
+    posts = Post.query.filter(
+        Post.post_status == 'published',
+        Post.user_id.in_(feed_user_ids)
+    ).order_by(Post.timestamp.desc()).all()
+
+    # Fetch stories from followed users
+    stories = Status.query.filter(
+        Status.is_story == True,
+        Status.user_id.in_(following_ids),
+        Status.expires_at > datetime.utcnow()
+    ).order_by(Status.created_at.desc()).all()
+
+    return render_template('feed/discover.html', posts=posts, stories=stories)
+
+@feed_bp.route('/api/stories/<int:user_id>')
+@login_required
+def get_stories(user_id):
+    """Fetches all active stories for a user."""
+    stories = Status.query.filter(
+        Status.is_story == True,
+        Status.user_id == user_id,
+        Status.expires_at > datetime.utcnow()
+    ).order_by(Status.created_at.asc()).all()
+
+    stories_data = [{
+        'id': story.id,
+        'content_type': story.content_type,
+        'content': story.content,
+        'caption': story.caption
+    } for story in stories]
+
+    return jsonify(stories_data)
+
 @feed_bp.route('/create', methods=['GET'])
 @login_required
 def create_post_page():

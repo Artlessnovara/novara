@@ -1,65 +1,86 @@
-/* Dark Theme for Dashboard Reborn */
-
 body.dark-mode {
-    --primary-bg: #1e293b;
-    --secondary-bg: #334155;
-    --content-bg: #0f172a;
-    --card-bg: #1e293b;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-dark: #e2e8f0;
-    --shadow-color: rgba(0, 0, 0, 0.4);
+    --bg-primary: #18191A;       /* deep charcoal */
+    --bg-secondary: #242526;     /* lighter dark gray */
+    --bg-tertiary: #3A3B3C;      /* comment box bg */
+    --color-primary: #E4E6EB;    /* off-white */
+    --color-secondary: #B0B3B8;  /* light gray */
+    --color-accent: #2D88FF;     /* Facebook blue */
+    --divider: #3A3B3C;
+}
+
+/* Override general styles for dark mode */
+.dark-mode .sidebar {
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--divider);
+}
+
+.dark-mode .sidebar-header,
+.dark-mode .sidebar-footer {
+    border-color: var(--divider);
+}
+
+.dark-mode .sidebar-nav a:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.dark-mode .sidebar-nav a {
+    color: var(--color-primary);
 }
 
 .dark-mode .top-bar {
-    border-bottom: 1px solid #334155;
-}
-
-.dark-mode .sidebar-header {
-    border-bottom: 1px solid #334155;
-}
-
-.dark-mode .sidebar-footer {
-    border-top: 1px solid #334155;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--divider);
 }
 
 .dark-mode .search-bar {
-    background-color: #334155;
-    border: 1px solid #475569;
+    background-color: var(--bg-tertiary);
+    border-color: var(--divider);
 }
 
 .dark-mode .search-bar input,
 .dark-mode .search-bar input::placeholder {
-    color: var(--text-primary);
+    color: var(--color-secondary);
+}
+
+.dark-mode .icon-btn {
+    color: var(--color-primary);
+}
+
+.dark-mode .card {
+    background-color: var(--bg-secondary);
+    border: none; /* Remove border if not needed, rely on bg color */
+    box-shadow: none;
 }
 
 .dark-mode .card-header {
-    border-bottom: 1px solid #334155;
+    border-color: var(--divider);
 }
 
-.dark-mode .course-list .course-item,
-.dark-mode .review-list .review-item,
-.dark-mode .submission-list .submission-item {
-    border-bottom: 1px solid #334155;
+/* Discover Feed Specific Dark Mode Styles */
+.dark-mode .discover-top-bar {
+    background-color: var(--bg-secondary);
+    border-color: var(--divider);
 }
 
-.dark-mode .btn-secondary {
-    background-color: #334155;
-    color: var(--text-primary);
+.dark-mode .post-card {
+    background-color: var(--bg-secondary);
 }
 
-.dark-mode .form-control {
-    background-color: #334155;
-    color: var(--text-primary);
-    border: 1px solid #475569;
+.dark-mode .post-author-info .timestamp,
+.dark-mode .post-action {
+    color: var(--color-secondary);
 }
 
-.dark-mode .fab {
-    background-color: #e2e8f0;
-    color: #0f172a;
+.dark-mode .see-more-btn,
+.dark-mode .post-action:hover {
+    color: var(--color-accent);
 }
 
-.dark-mode .fab-action-btn {
-    background-color: #e2e8f0;
-    color: #0f172a;
+.dark-mode .post-actions {
+    border-color: var(--divider);
+}
+
+.dark-mode .comment-input {
+    background-color: var(--bg-tertiary);
+    color: var(--color-primary);
 }

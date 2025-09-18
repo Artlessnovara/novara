@@ -4,7 +4,7 @@ import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post
+from models import User, UserPage, Draft, Wallet, Subscription, BlockedUser, Community, CommunityMembership, Feedback, Referral, PlatformSetting, PremiumSubscriptionRequest, PinnedPost, Post, LibraryMaterial
 from extensions import db
 from forms import ReportProblemForm, ContactForm, FeedbackForm, PremiumUpgradeForm, ProfileAppearanceForm
 from utils import get_or_create_platform_setting
@@ -263,6 +263,13 @@ def upgrade_premium():
          return redirect(url_for('more.more_page'))
 
     return render_template('more/upgrade.html', form=form, settings=settings)
+
+@more_bp.route('/resources')
+@login_required
+def resources():
+    """Marketplace-style page for all library materials."""
+    materials = LibraryMaterial.query.filter_by(approved=True).order_by(LibraryMaterial.id.desc()).all()
+    return render_template('more/resources.html', materials=materials)
 
 
 def save_profile_banner(file):
