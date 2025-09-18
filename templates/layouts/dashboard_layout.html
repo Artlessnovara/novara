@@ -65,17 +65,25 @@
         <div class="main-wrapper">
             <!-- Top Bar -->
             <header class="top-bar">
+                <!-- Left section -->
                 <div class="top-bar-left">
                     <button class="sidebar-toggle" id="sidebar-toggle-btn"><i class="fas fa-bars"></i></button>
+                    <div class="top-bar-mobile-app-name">Scholars Novara</div>
+                </div>
+
+                <!-- Center section -->
+                <div class="top-bar-center">
                     <div class="search-bar">
                         <i class="fas fa-search"></i>
                         <input type="text" placeholder="Search...">
                     </div>
                 </div>
+
+                <!-- Right section -->
                 <div class="top-bar-right">
                     <button id="theme-toggle" class="icon-btn"><i class="fas fa-moon"></i></button>
-                    <a href="{{ url_for('main.placeholder') }}" class="icon-btn"><i class="fas fa-th"></i></a>
-                    <a href="{{ url_for('main.placeholder') }}" class="icon-btn">
+                    <a href="{{ url_for('main.placeholder_page') }}" class="icon-btn"><i class="fas fa-th"></i></a>
+                    <a href="{{ url_for('main.placeholder_page') }}" class="icon-btn">
                         <i class="fas fa-bell"></i>
                         {% if current_user.is_authenticated and unread_notification_count > 0 %}
                             <span class="notification-badge">{{ unread_notification_count }}</span>
