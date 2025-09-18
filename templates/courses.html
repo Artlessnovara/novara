@@ -1,12 +1,13 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
 
 {% block title %}Explore Our Courses{% endblock %}
 
 {% block styles %}
+    {{ super() }}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/courses.css') }}">
 {% endblock %}
 
-{% block content %}
+{% block dashboard_content %}
 <div class="courses-page-container">
     <!-- 1. Hero Section -->
     <section class="courses-hero">
@@ -116,8 +117,5 @@
 
 {% block scripts %}
     {{ super() }}
-    <script>
-        document.body.classList.add('courses-body');
-    </script>
     <script src="{{ url_for('static', filename='js/courses.js') }}"></script>
 {% endblock %}

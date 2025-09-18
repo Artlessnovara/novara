@@ -1,16 +1,16 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
 
 {% block title %}{{ user.name }}'s Profile{% endblock %}
 
 {% block styles %}
+    {{ super() }}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
 {% endblock %}
 
-{% block content %}
-<div class="ice-sky-content">
-    <div class="profile-layout">
-        <!-- Left Column -->
-        <aside class="profile-left-column">
+{% block dashboard_content %}
+<div class="profile-layout">
+    <!-- Left Column -->
+    <aside class="profile-left-column">
             <div class="glassy-card-container profile-header">
                 {% if show_profile_pic %}
                 <div class="profile-pic">
@@ -141,43 +141,4 @@
             </div>
         </main>
     </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-    {{ super() }}
-    <script>
-        document.body.classList.add('profile-body');
-
-        const themeToggle = document.getElementById('theme-toggle');
-        const body = document.body;
-
-        // Function to apply the theme
-        function applyTheme(theme) {
-            if (theme === 'dark') {
-                body.classList.add('dark-mode');
-                themeToggle.checked = true;
-            } else {
-                body.classList.remove('dark-mode');
-                themeToggle.checked = false;
-            }
-        }
-
-        // Check for saved theme in localStorage
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            applyTheme(savedTheme);
-        }
-
-        // Toggle theme on click
-        themeToggle.addEventListener('change', () => {
-            if (themeToggle.checked) {
-                localStorage.setItem('theme', 'dark');
-                applyTheme('dark');
-            } else {
-                localStorage.setItem('theme', 'light');
-                applyTheme('light');
-            }
-        });
-    </script>
 {% endblock %}

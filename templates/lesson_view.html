@@ -1,9 +1,8 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
 
 {% block title %}{{ lesson.title }}{% endblock %}
 
-{% block content %}
-<div class="ice-sky-content">
+{% block dashboard_content %}
     <div class="glassy-card-container">
         <h1>{{ lesson.title }}</h1>
         <p>Part of: <a href="{{ url_for('main.course_detail', course_id=lesson.module.course.id) }}">{{ lesson.module.course.title }}</a></p>
@@ -29,5 +28,4 @@
         </div>
         {% endif %}
     </div>
-</div>
 {% endblock %}

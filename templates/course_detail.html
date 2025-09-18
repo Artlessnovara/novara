@@ -1,9 +1,8 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
 
 {% block title %}{{ course.title }}{% endblock %}
 
-{% block content %}
-<div class="ice-sky-content">
+{% block dashboard_content %}
     <div class="course-header glassy-card-container">
         <h1>{{ course.title }}</h1>
         <p>Rating: {{ "%.1f"|format(course.avg_rating) }} / 5.0</p>
@@ -105,5 +104,4 @@
             {% endfor %}
         </div>
     </div>
-</div>
 {% endblock %}

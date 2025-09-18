@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
 
 {% block title %}Create New Course{% endblock %}
 
-{% block content %}
+{% block dashboard_content %}
 <div class="form-container-glassy">
     <div class="form-header">
         <h1 class="form-title">Create a New Course</h1>
@@ -67,7 +67,7 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block dashboard_scripts %}
 <script>
 function togglePaymentFields() {
     const price = document.getElementById('price_naira').value;
