@@ -2,12 +2,14 @@
 :root {
     /* Light Theme */
     --bg-primary: #FFFFFF;
-    --bg-secondary: #F0F2F5;
-    --bg-tertiary: #FFFFFF;
+    --bg-secondary: #F9FAFB; /* Softer off-white */
+    --bg-sidebar: #0F172A; /* Deep Blue */
     --color-primary: #050505;
     --color-secondary: #65676B;
-    --color-accent: #2D88FF;
-    --divider: #CED0D4;
+    --color-accent: #3B82F6; /* A slightly different blue for accents */
+    --color-sidebar-text: #E5E7EB; /* Light gray for sidebar text */
+    --color-sidebar-text-hover: #FFFFFF;
+    --divider: #E5E7EB; /* Lighter divider */
 }
 
 body {
@@ -25,8 +27,8 @@ body {
 
 .sidebar {
     width: 250px;
-    background-color: var(--bg-tertiary);
-    color: var(--color-primary);
+    background-color: var(--bg-sidebar);
+    color: var(--color-sidebar-text);
     display: flex;
     flex-direction: column;
     transition: width 0.3s ease, left 0.3s ease;
@@ -45,11 +47,11 @@ body {
 .sidebar-header {
     padding: 1.5rem 1rem;
     text-align: center;
-    border-bottom: 1px solid var(--divider);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-header .logo {
-    color: var(--color-primary);
+    color: var(--color-sidebar-text-hover);
     text-decoration: none;
     font-size: 1.5rem;
     font-weight: 600;
@@ -73,7 +75,7 @@ body {
     display: flex;
     align-items: center;
     padding: 0.9rem 1.5rem;
-    color: var(--color-secondary);
+    color: var(--color-sidebar-text);
     text-decoration: none;
     transition: background-color 0.2s, color 0.2s;
     font-weight: 500;
@@ -81,11 +83,13 @@ body {
 }
 
 .sidebar-nav a:hover {
-    background-color: var(--bg-secondary);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--color-sidebar-text-hover);
 }
 
 .sidebar-nav a.active {
-    color: var(--color-accent);
+    color: var(--color-sidebar-text-hover);
+    background-color: rgba(59, 130, 246, 0.2);
 }
 
 .sidebar-nav a.active::before {
@@ -146,9 +150,23 @@ body {
     z-index: 1000;
 }
 
-.top-bar-left, .top-bar-right {
+.top-bar-left, .top-bar-center, .top-bar-right {
     display: flex;
     align-items: center;
+}
+
+.top-bar-left {
+    flex: 1 0 0;
+}
+
+.top-bar-center {
+    flex: 2 0 0;
+    justify-content: center;
+}
+
+.top-bar-right {
+    flex: 1 0 0;
+    justify-content: flex-end;
 }
 
 .sidebar-toggle {
@@ -157,7 +175,13 @@ body {
     font-size: 1.2rem;
     cursor: pointer;
     margin-right: 1rem;
-    display: none; /* Hidden by default */
+    display: none; /* Hidden on desktop */
+}
+
+.top-bar-mobile-app-name {
+    display: none; /* Hidden on desktop */
+    font-weight: 600;
+    font-size: 1.2rem;
 }
 
 .search-bar {
@@ -219,25 +243,48 @@ body {
 }
 
 .card {
-    background-color: var(--bg-tertiary);
+    background-color: var(--bg-primary); /* Pure white */
     border-radius: 12px;
     padding: 1.5rem;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    border: 1px solid var(--divider);
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-@media (min-width: 769px) {
-    .resources-grid .card, .dashboard-grid .card {
-        border-right: 1px solid var(--divider);
-    }
-    .resources-grid, .dashboard-grid {
-        margin-right: -1.5rem; /* To hide the last card's border */
-    }
 }
 
 .card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -2px rgba(0,0,0,0.05);
+}
+
+@media (min-width: 769px) {
+    .dashboard-grid > * {
+        border-right: 1px solid var(--divider);
+        padding-right: 1.5rem;
+    }
+    .dashboard-grid {
+        margin-right: -1.5rem; /* Hide the last divider */
+    }
+    .dashboard-grid .col-span-2 {
+        padding-right: 1.5rem;
+    }
+    /* Remove border on the last item of each row for 2-column layout */
+    .dashboard-grid > *:nth-child(2n) {
+        border-right: none;
+        padding-right: 0;
+    }
+}
+
+@media (min-width: 1200px) {
+    /* Re-apply border to 2nd item in 3-column layout */
+    .dashboard-grid > *:nth-child(2n) {
+        border-right: 1px solid var(--divider);
+        padding-right: 1.5rem;
+    }
+    /* Remove border on the last item of each row for 3-column layout */
+    .dashboard-grid > *:nth-child(3n) {
+        border-right: none;
+        padding-right: 0;
+    }
 }
 
 .btn-primary {
@@ -245,7 +292,7 @@ body {
 }
 
 .btn-primary:hover {
-    box-shadow: 0 0 15px rgba(90, 103, 216, 0.6);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
 }
 
 .card-header {
@@ -340,8 +387,17 @@ body {
     .dashboard-grid {
         grid-template-columns: 1fr; /* Single column */
     }
-    .search-bar {
-        display: none; /* Hide search in top bar for more space */
+    .top-bar-center {
+        display: none; /* Hide search bar on mobile */
+    }
+    .top-bar-mobile-app-name {
+        display: block; /* Show app name on mobile */
+    }
+    .top-bar-left {
+        flex: none;
+    }
+    .top-bar-right {
+        flex: 1;
     }
 }
 
