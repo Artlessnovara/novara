@@ -1,8 +1,68 @@
-/* General container for the events page */
-.events-container {
-    padding: 2rem;
-    background-color: var(--bg-primary);
-    color: var(--color-primary);
+/* New three-column layout for the main events page */
+.events-page-container {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1rem;
+}
+
+.events-sidebar {
+    flex: 1;
+    min-width: 220px;
+}
+
+.events-main-content {
+    flex: 3;
+    min-width: 0; /* Prevents oversized content from breaking flexbox */
+}
+
+.right-sidebar {
+    flex: 1.5;
+    min-width: 280px;
+}
+
+/* Styling for the sidebar sections */
+.sidebar-section {
+    background-color: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: var(--border-radius-lg);
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--divider);
+}
+
+.sidebar-section h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--divider);
+}
+
+.sidebar-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-list li a {
+    display: block;
+    padding: 0.5rem 0;
+    color: var(--color-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.sidebar-list li a:hover {
+    color: var(--color-accent);
+}
+
+#calendar-placeholder {
+    height: 250px;
+    background-color: var(--bg-tertiary);
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-secondary);
 }
 
 /* Header section with title and create button */
@@ -94,6 +154,32 @@
     width: 100%;
     height: 180px;
     overflow: hidden;
+    position: relative;
+}
+
+.live-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: #e74c3c;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+    }
 }
 
 .event-card-banner img {
@@ -152,4 +238,59 @@
     padding: 3rem;
     background-color: var(--bg-secondary);
     border-radius: var(--border-radius-lg);
+}
+
+/* Floating Action Button for mobile */
+.fab {
+    display: none; /* Hidden by default */
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background-color: var(--color-accent);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 1000;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .events-page-container {
+        flex-direction: column;
+    }
+    .right-sidebar {
+        display: none; /* Hide calendar on tablets */
+    }
+    .events-main-content {
+        order: 1;
+    }
+    .left-sidebar {
+        order: 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .left-sidebar {
+        display: none; /* Hide left sidebar on mobile */
+    }
+    .events-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .events-header .btn {
+        display: none; /* Hide create button, use FAB instead */
+    }
+    .fab {
+        display: flex; /* Show FAB on mobile */
+    }
+    .events-grid {
+        grid-template-columns: 1fr; /* Single column on mobile */
+    }
 }

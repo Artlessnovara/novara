@@ -37,12 +37,27 @@
                     <label for="location">Location or Venue</label>
                     <input type="text" id="location" name="location" class="form-control" placeholder="e.g., 'Online' or '123 Main St, Anytown'" required>
                 </div>
+                <div class="form-group">
+                    <label for="duration_hours">Duration (in hours)</label>
+                    <input type="number" id="duration_hours" name="duration_hours" class="form-control" min="1" placeholder="e.g., 2">
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="image">Event Banner Image</label>
-                <input type="file" id="image" name="image" class="form-control-file" accept="image/png, image/jpeg, image/gif">
-                <small class="form-text text-muted">Optional. A default image will be used if none is provided.</small>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="category_id">Category</label>
+                    <select id="category_id" name="category_id" class="form-control" required>
+                        <option value="" disabled selected>Select a category...</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="image">Event Banner Image</label>
+                    <input type="file" id="image" name="image" class="form-control-file" accept="image/png, image/jpeg, image/gif">
+                    <small class="form-text text-muted">Optional. A default image will be used if none is provided.</small>
+                </div>
             </div>
 
             <div class="form-actions">

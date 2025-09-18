@@ -111,6 +111,7 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     courses = db.relationship('Course', backref='category', lazy=True)
+    events = db.relationship('Event', backref='category', lazy=True)
     def __repr__(self): return f'<Category {self.name}>'
 
 class Course(db.Model):
@@ -1036,6 +1037,8 @@ class Event(db.Model):
     organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     image = db.Column(db.String(255), nullable=True) # Path to event image/banner
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
+    duration_hours = db.Column(db.Integer, nullable=True) # Duration in hours for the "Live Now" badge
 
     organizer = db.relationship('User', backref='organized_events')
     rsvps = db.relationship('EventRSVP', back_populates='event', lazy='dynamic', cascade="all, delete-orphan")
