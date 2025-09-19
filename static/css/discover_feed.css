@@ -1,3 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+/* --- Root Variables --- */
+:root {
+    --main-bg-color: #18191A;
+    --content-bg-color: #242526;
+    --divider-color: #3A3B3C;
+    --primary-text-color: #E4E6EB;
+    --secondary-text-color: #B0B3B8;
+    --link-color: #2D88FF;
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+}
+
+body.discover-page {
+    background-color: var(--main-bg-color);
+    color: var(--primary-text-color);
+    font-family: 'Poppins', sans-serif;
+}
+
 /* --- Discover Page Specific Layout --- */
 .discover-page .site-header {
     display: none;
@@ -12,10 +33,10 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    background-color: var(--bg-tertiary);
+    background-color: var(--content-bg-color);
     border-radius: var(--border-radius-lg);
     margin-bottom: 1.5rem;
-    border: 1px solid var(--divider);
+    border: 1px solid var(--divider-color);
 }
 
 .discover-header-left {
@@ -27,6 +48,7 @@
 .discover-title {
     font-size: 1.5rem;
     font-weight: 700;
+    color: var(--primary-text-color);
 }
 
 .discover-header-right {
@@ -37,7 +59,7 @@
 
 .header-icon {
     font-size: 1.2rem;
-    color: var(--text-primary);
+    color: var(--primary-text-color);
 }
 
 .profile-pic-icon {
@@ -49,27 +71,29 @@
 /* --- Stories --- */
 .stories-container {
     display: flex;
-    gap: 1rem;
+    gap: 1.5rem; /* Increased gap */
     padding-bottom: 1.5rem;
     margin-bottom: 1.5rem;
-    border-bottom: 1px solid var(--divider);
+    border-bottom: 1px solid var(--divider-color);
     overflow-x: auto;
 }
 
 .story {
     text-align: center;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .story-avatar {
-    width: 64px;
-    height: 64px;
+    width: 72px; /* Slightly larger */
+    height: 72px;
     border-radius: 50%;
-    border: 3px solid var(--color-accent);
+    border: 3px solid var(--link-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2px;
+    padding: 3px;
+    background-color: var(--content-bg-color);
 }
 
 .story-avatar img {
@@ -80,14 +104,20 @@
 }
 
 .add-story .story-avatar {
-    border-style: dashed;
-    border-color: var(--color-secondary);
+    border-radius: var(--border-radius-md); /* Square card */
+    border: 2px dashed var(--secondary-text-color);
+}
+
+.add-story .story-avatar i {
+    color: var(--secondary-text-color);
+    font-size: 1.5rem;
 }
 
 .story span {
-    font-size: 0.8rem;
+    font-size: 0.85rem; /* Slightly larger font */
     margin-top: 0.5rem;
     display: block;
+    color: var(--primary-text-color);
 }
 
 /* --- Feed --- */
@@ -96,74 +126,12 @@
     margin: 0 auto;
 }
 
-:root {
-    --main-bg-color: #18191A;
-    --content-bg-color: #242526;
-    --divider-color: #3A3B3C;
-}
-
-body.discover-page {
-    background-color: var(--main-bg-color);
-}
-
 .post-card {
     background-color: var(--content-bg-color);
     border-radius: var(--border-radius-lg);
     margin-bottom: 20px;
     border: 1px solid var(--divider-color);
     width: 100%;
-}
-
-@media (min-width: 600px) {
-    .post-card {
-        width: 90%;
-        max-width: 680px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-}
-
-.post-content {
-    margin-bottom: 10px;
-}
-
-.post-divider {
-    border: none;
-    border-top: 1px solid var(--divider);
-    margin: 0.5rem 0;
-}
-
-.comment-preview {
-    padding: 0.5rem 1rem;
-}
-
-.comment-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.comment-author-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-}
-
-.add-comment {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-}
-
-.comment-input {
-    width: 100%;
-    border: 1px solid var(--divider);
-    border-radius: 20px;
-    padding: 0.5rem 1rem;
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
 }
 
 .post-header {
@@ -183,20 +151,29 @@ body.discover-page {
     width: 40px;
     height: 40px;
     border-radius: 50%;
+    border: 1px solid var(--divider-color); /* Subtle dark outline */
+}
+
+.post-author-info strong a {
+    font-weight: 700;
+    color: var(--primary-text-color);
+    text-decoration: none;
 }
 
 .post-author-info .timestamp {
     font-size: 0.85rem;
-    color: var(--color-secondary);
+    color: var(--secondary-text-color);
 }
 
 .post-content {
+    padding: 0 1rem;
     overflow: hidden;
     transition: max-height 0.3s ease;
+    color: var(--primary-text-color);
 }
 
 .post-content.collapsed {
-    max-height: 80px; /* Show only first few lines */
+    max-height: 66px; /* Approx 3 lines of Poppins */
 }
 
 .post-content.expanded {
@@ -206,14 +183,15 @@ body.discover-page {
 .see-more-btn {
     background: none;
     border: none;
-    color: var(--color-accent);
+    color: var(--link-color);
     cursor: pointer;
     font-weight: bold;
-    padding: 0.5rem 0;
+    padding: 0.5rem 1rem;
 }
 
 .post-media {
-    position: relative;
+    margin-top: 1rem;
+    background-color: var(--main-bg-color);
 }
 
 .post-media img, .post-media video {
@@ -223,88 +201,85 @@ body.discover-page {
     border-radius: var(--border-radius-md);
 }
 
-.image-grid {
-    display: grid;
-    gap: 0.25rem;
-}
-
-.image-grid .grid-item {
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
-
-.image-grid .grid-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.image-grid-2 {
-    grid-template-columns: 1fr 1fr;
-}
-
-.image-grid-3 {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-}
-
-.image-grid-3 .grid-item:first-child {
-    grid-row: 1 / 3;
-}
-
-.image-grid-4 {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-}
-
-.post-media video {
-    max-height: 600px;
-}
-
-.play-btn-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
+.post-divider {
     border: none;
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    font-size: 2rem;
-    cursor: pointer;
+    border-top: 1px solid var(--divider-color);
+    margin: 0.5rem 0;
+}
+
+.post-footer {
+    padding: 0 1rem 0.5rem;
+}
+
+.post-stats {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    color: var(--secondary-text-color);
+    font-size: 0.9rem;
 }
 
 .post-actions {
     display: flex;
     justify-content: space-around;
-    padding: 0.5rem;
-    border-top: 1px solid var(--divider);
+    padding: 0.5rem 0;
 }
 
 .post-action {
     background: none;
     border: none;
-    color: var(--color-secondary);
+    color: var(--secondary-text-color);
     font-weight: 600;
     cursor: pointer;
     padding: 0.5rem 1rem;
     border-radius: var(--border-radius-md);
     transition: background-color 0.2s;
+    flex-grow: 1;
+    text-align: center;
 }
 .post-action:hover {
-    background-color: var(--bg-secondary);
+    background-color: #3A3B3C;
+}
+.post-action i {
+    margin-right: 0.5rem;
 }
 
-.post-comments-preview {
-    padding: 1rem;
-    font-size: 0.9rem;
+.comment-preview {
+    padding: 0.5rem 0;
 }
+
+.comment-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.comment-author-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.add-comment {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.comment-input {
+    width: 100%;
+    border: 1px solid var(--divider-color);
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    background-color: #3A3B3C;
+    color: var(--primary-text-color);
+}
+.comment-input::placeholder {
+    color: var(--secondary-text-color);
+}
+
 
 /* --- Story Viewer Modal --- */
 .story-modal {
