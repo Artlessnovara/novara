@@ -76,6 +76,8 @@ class User(UserMixin, db.Model):
     projects = db.relationship('Project', backref='owner', lazy='dynamic', cascade="all, delete-orphan")
     creative_works = db.relationship('CreativeWork', backref='artist', lazy='dynamic', cascade="all, delete-orphan")
     notifications = db.relationship('Notification', foreign_keys='Notification.user_id', backref='user', lazy='dynamic', cascade="all, delete-orphan")
+    badges = db.relationship('Badge', backref='user', lazy='dynamic')
+    social_links = db.relationship('SocialLink', backref='user', lazy='dynamic')
 
     followed = db.relationship(
         'User', secondary=follow,
@@ -1011,6 +1013,25 @@ class PremiumSubscriptionRequest(db.Model):
 
     def __repr__(self):
         return f'<PremiumSubscriptionRequest {self.id} for User {self.user_id}>'
+
+
+class Badge(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    icon_url = db.Column(db.String(255), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<Badge {self.name}>'
+
+class SocialLink(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    platform = db.Column(db.String(50), nullable=False)
+    url = db.Column(db.String(255), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<SocialLink {self.platform}:{self.url}>'
 
 
 class FCMToken(db.Model):

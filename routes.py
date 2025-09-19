@@ -733,13 +733,30 @@ def save_picture(form_picture):
 @main.route("/profile")
 @login_required
 def profile():
-    # Fetch recent comments for activity feed
-    recent_comments = current_user.course_comments.order_by(CourseComment.timestamp.desc()).limit(5).all()
-
     # Fetch earned certificates
     certificates = current_user.certificates.order_by(Certificate.issued_at.desc()).all()
 
-    return render_template('profile.html', user=current_user, certificates=certificates)
+    # Fetch earned badges
+    badges = current_user.badges.all()
+
+    # Fetch social links
+    social_links = current_user.social_links.all()
+
+    # Calculate profile completion
+    # This is a simplified example. A real implementation would be more robust.
+    profile_fields = ['name', 'email', 'profile_pic', 'bio']
+    completed_fields = sum([1 for field in profile_fields if getattr(current_user, field)])
+    total_fields = len(profile_fields)
+    profile_completion = int((completed_fields / total_fields) * 100) if total_fields > 0 else 0
+
+    return render_template(
+        'profile.html',
+        user=current_user,
+        certificates=certificates,
+        badges=badges,
+        social_links=social_links,
+        profile_completion=profile_completion
+    )
 
 from models import BlockedUser
 
@@ -765,19 +782,21 @@ def view_user(user_id):
 
     return render_template('public_profile.html', user=user, show_profile_pic=show_profile_pic, show_about=show_about)
 
-@main.route("/profile/edit", methods=['POST'])
+@main.route("/profile/edit", methods=['GET', 'POST'])
 @login_required
 def edit_profile():
-    if request.files.get('profile_pic'):
-        picture_file = save_picture(request.files['profile_pic'])
-        current_user.profile_pic = picture_file
-
-    current_user.name = request.form.get('name', current_user.name)
-    current_user.email = request.form.get('email', current_user.email)
-    current_user.bio = request.form.get('bio', current_user.bio)
-    db.session.commit()
-    flash('Your profile has been updated.', 'success')
-    return redirect(url_for('main.profile'))
+    form = EditProfileForm(obj=current_user)
+    if form.validate_on_submit():
+        if form.profile_pic.data:
+            picture_file = save_picture(form.profile_pic.data)
+            current_user.profile_pic = picture_file
+        current_user.name = form.name.data
+        current_user.email = form.email.data
+        current_user.bio = form.bio.data
+        db.session.commit()
+        flash('Your profile has been updated.', 'success')
+        return redirect(url_for('main.profile'))
+    return render_template('forms/edit_profile.html', form=form)
 
 @main.route("/profile/change-password", methods=['POST'])
 @login_required
@@ -792,6 +811,80 @@ def change_password():
     current_user.set_password(new_password)
     db.session.commit()
     flash('Your password has been updated.', 'success')
+    return redirect(url_for('main.profile'))
+
+@main.route('/profile/badge/add', methods=['GET', 'POST'])
+@login_required
+def add_badge():
+    form = AddBadgeForm()
+    if form.validate_on_submit():
+        badge = Badge(name=form.name.data, icon_url=form.icon_url.data, user_id=current_user.id)
+        db.session.add(badge)
+        db.session.commit()
+        flash('Badge added successfully.', 'success')
+        return redirect(url_for('main.profile'))
+    return render_template('forms/add_badge.html', form=form)
+
+@main.route('/profile/badge/<int:badge_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_badge(badge_id):
+    badge = Badge.query.get_or_404(badge_id)
+    if badge.user_id != current_user.id:
+        abort(403)
+    form = EditBadgeForm(obj=badge)
+    if form.validate_on_submit():
+        form.populate_obj(badge)
+        db.session.commit()
+        flash('Badge updated successfully.', 'success')
+        return redirect(url_for('main.profile'))
+    return render_template('forms/edit_badge.html', form=form)
+
+@main.route('/profile/badge/<int:badge_id>/delete', methods=['POST'])
+@login_required
+def delete_badge(badge_id):
+    badge = Badge.query.get_or_404(badge_id)
+    if badge.user_id != current_user.id:
+        abort(403)
+    db.session.delete(badge)
+    db.session.commit()
+    flash('Badge deleted successfully.', 'success')
+    return redirect(url_for('main.profile'))
+
+@main.route('/profile/social_link/add', methods=['GET', 'POST'])
+@login_required
+def add_social_link():
+    form = AddSocialLinkForm()
+    if form.validate_on_submit():
+        link = SocialLink(platform=form.platform.data, url=form.url.data, user_id=current_user.id)
+        db.session.add(link)
+        db.session.commit()
+        flash('Social link added successfully.', 'success')
+        return redirect(url_for('main.profile'))
+    return render_template('forms/add_social_link.html', form=form)
+
+@main.route('/profile/social_link/<int:link_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_social_link(link_id):
+    link = SocialLink.query.get_or_404(link_id)
+    if link.user_id != current_user.id:
+        abort(403)
+    form = EditSocialLinkForm(obj=link)
+    if form.validate_on_submit():
+        form.populate_obj(link)
+        db.session.commit()
+        flash('Social link updated successfully.', 'success')
+        return redirect(url_for('main.profile'))
+    return render_template('forms/edit_social_link.html', form=form)
+
+@main.route('/profile/social_link/<int:link_id>/delete', methods=['POST'])
+@login_required
+def delete_social_link(link_id):
+    link = SocialLink.query.get_or_404(link_id)
+    if link.user_id != current_user.id:
+        abort(403)
+    db.session.delete(link)
+    db.session.commit()
+    flash('Social link deleted successfully.', 'success')
     return redirect(url_for('main.profile'))
 
 def save_group_icon(form_picture):
