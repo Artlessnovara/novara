@@ -92,9 +92,9 @@
                 <div class="post-footer">
                     <hr class="post-divider">
                     <div class="post-actions">
-                        <button class="post-action"><i class="far fa-heart"></i> Like</button>
-                        <button class="post-action"><i class="far fa-comment"></i> Comment</button>
-                        <button class="post-action"><i class="far fa-share-square"></i> Share</button>
+                        <button class="post-action"><i class="far fa-heart"></i> {{ post.likes.count() }} Like</button>
+                        <button class="post-action"><i class="far fa-comment"></i> {{ post.comments.count() }} Comment</button>
+                        <button class="post-action" data-action="share"><i class="far fa-share-square"></i> {{ post.shares.count() }} Share</button>
                     </div>
                     <hr class="post-divider">
                     <div class="comment-preview">
@@ -146,8 +146,18 @@
         <span class="close-btn">&times;</span>
         <h2>Add to your Story</h2>
         <form id="add-story-form" action="{{ url_for('feed.add_story') }}" method="post" enctype="multipart/form-data">
-            <p>Upload an image or video.</p>
-            <input type="file" name="story_media" required accept="image/*,video/*">
+            <div class="story-type-selector">
+                <button type="button" class="story-type-btn active" data-story-type="media">Media</button>
+                <button type="button" class="story-type-btn" data-story-type="text">Text</button>
+            </div>
+            <div id="media-story-upload">
+                <p>Upload an image or video.</p>
+                <input type="file" name="story_media" accept="image/*,video/*">
+            </div>
+            <div id="text-story-upload" style="display: none;">
+                <p>Write your story.</p>
+                <textarea name="story_text" placeholder="What's on your mind?"></textarea>
+            </div>
             <button type="submit" class="btn btn-primary">Upload</button>
         </form>
     </div>
