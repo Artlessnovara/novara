@@ -656,7 +656,6 @@ class Share(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('shares', lazy='dynamic'))
-    post = db.relationship('Post', backref=db.backref('shares', lazy='dynamic'))
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -683,6 +682,7 @@ class Post(db.Model):
                                primaryjoin="and_(GenericComment.target_type=='post', foreign(GenericComment.target_id)==Post.id)",
                                lazy='dynamic',
                                cascade="all, delete-orphan")
+    shares = db.relationship('Share', backref='post', lazy='dynamic', cascade="all, delete-orphan")
     original_post = db.relationship('Post', remote_side=[id], backref='reposts')
 
 class Like(db.Model):
