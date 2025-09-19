@@ -151,4 +151,22 @@ document.addEventListener('DOMContentLoaded', function() {
     if (storyNavNext) storyNavNext.addEventListener('click', nextStory);
     if (storyNavPrev) storyNavPrev.addEventListener('click', prevStory);
 
+    // --- See More Functionality ---
+    document.querySelectorAll(".see-more-btn").forEach(button => {
+        const content = button.previousElementSibling;
+        if (content.scrollHeight <= 80) {
+            button.style.display = "none";
+        }
+        button.addEventListener("click", () => {
+            if (content.classList.contains("collapsed")) {
+                content.classList.remove("collapsed");
+                content.classList.add("expanded");
+                button.textContent = "See Less";
+            } else {
+                content.classList.remove("expanded");
+                content.classList.add("collapsed");
+                button.textContent = "See More";
+            }
+        });
+    });
 });

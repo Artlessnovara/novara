@@ -128,7 +128,25 @@
 }
 
 .post-content {
-    padding: 0 1rem 1rem 1rem;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.post-content.collapsed {
+    max-height: 80px; /* Show only first few lines */
+}
+
+.post-content.expanded {
+    max-height: 1000px; /* A large value to allow for expansion */
+}
+
+.see-more-btn {
+    background: none;
+    border: none;
+    color: var(--color-accent);
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0.5rem 0;
 }
 
 .post-media img, .post-media video {
