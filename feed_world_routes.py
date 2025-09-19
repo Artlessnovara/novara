@@ -11,7 +11,7 @@ feed = Blueprint('feed', __name__)
 @login_required
 def discover():
     posts = Post.query.order_by(Post.timestamp.desc()).all()
-    active_stories_users = db.session.query(User).join(Status).filter(Status.is_story == True, Status.expires_at > db.func.now()).distinct().all()
+    active_stories_users = db.session.query(User).join(Status).filter(User.role == 'instructor', Status.is_story == True, Status.expires_at > db.func.now()).distinct().all()
     return render_template('feed/discover.html', posts=posts, stories_by_user=active_stories_users)
 
 @feed.route('/home')

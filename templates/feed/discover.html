@@ -28,12 +28,14 @@
 
     <!-- Stories Row -->
     <div class="stories-container">
+        {% if current_user.role == 'instructor' %}
         <div class="story add-story">
             <div class="story-avatar" id="add-story-btn">
                 <i class="fas fa-plus"></i>
             </div>
             <span>Add Story</span>
         </div>
+        {% endif %}
         {% for user_stories in stories_by_user %}
             <div class="story" data-user-id="{{ user_stories.user.id }}">
                 <div class="story-avatar">
