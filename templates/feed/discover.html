@@ -53,17 +53,18 @@
                     <div class="post-author-info">
                         <img src="{{ url_for('static', filename='profile_pics/' + post.author.profile_pic) }}" alt="Author Avatar">
                         <div>
-                            <strong>{{ post.author.name }}</strong>
-                            <span class="timestamp">{{ post.timestamp.strftime('%b %d, %Y') }}</span>
+                            <strong><a href="{{ url_for('main.view_user', user_id=post.author.id) }}">{{ post.author.name }}</a></strong>
+                            <span class="timestamp">{{ post.timestamp | naturaltime }}</span>
                         </div>
                     </div>
-                    <button class="icon-btn"><i class="fas fa-ellipsis-h"></i></button>
+                    <a href="{{ url_for('main.create_private_chat', other_user_id=post.author.id) }}" class="btn btn-secondary btn-sm">Message</a>
                 </div>
 
                 <!-- Post Content -->
-                <div class="post-content">
+                <div class="post-content collapsed">
                     <p>{{ post.content }}</p>
                 </div>
+                <button class="see-more-btn">See More</button>
 
                 <!-- Post Media -->
                 {% if post.media_url %}
