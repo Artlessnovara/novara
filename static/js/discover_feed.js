@@ -169,4 +169,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // --- Video Playback ---
+    document.querySelectorAll('.video-wrapper').forEach(wrapper => {
+        const video = wrapper.querySelector('video');
+        const playBtn = wrapper.querySelector('.play-btn-overlay');
+
+        playBtn.addEventListener('click', () => {
+            video.play();
+            playBtn.style.display = 'none';
+            video.setAttribute('controls', 'true');
+        });
+
+        video.addEventListener('click', () => {
+            if (!video.paused) {
+                video.pause();
+            }
+        });
+
+        video.addEventListener('pause', () => {
+            if (!video.ended) {
+                playBtn.style.display = 'flex';
+            }
+        });
+    });
 });
