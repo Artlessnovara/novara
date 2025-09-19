@@ -99,8 +99,61 @@
 .post-card {
     background-color: var(--bg-tertiary);
     border-radius: var(--border-radius-lg);
-    margin-bottom: 1.5rem;
+    margin-bottom: 20px;
     border: 1px solid var(--divider);
+    width: 100%;
+}
+
+@media (min-width: 600px) {
+    .post-card {
+        width: 90%;
+        max-width: 680px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+.post-content {
+    margin-bottom: 10px;
+}
+
+.post-divider {
+    border: none;
+    border-top: 1px solid var(--divider);
+    margin: 0.5rem 0;
+}
+
+.comment-preview {
+    padding: 0.5rem 1rem;
+}
+
+.comment-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.comment-author-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.add-comment {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+}
+
+.comment-input {
+    width: 100%;
+    border: 1px solid var(--divider);
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 .post-header {
