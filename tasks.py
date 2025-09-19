@@ -1,4 +1,4 @@
-from app import db
+from extensions import db
 from models import Post, Community, CommunityAnalytics, GenericComment
 from datetime import datetime, date, time
 from sqlalchemy import func

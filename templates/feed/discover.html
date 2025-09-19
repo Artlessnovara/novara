@@ -89,22 +89,31 @@
                 {% endif %}
 
                 <!-- Post Actions -->
-                <div class="post-actions">
-                    <button class="post-action"><i class="far fa-heart"></i> Like</button>
-                    <button class="post-action"><i class="far fa-comment"></i> Comment</button>
-                    <button class="post-action"><i class="far fa-share-square"></i> Share</button>
-                </div>
-
-                <!-- Post Comments Preview -->
-                <div class="post-comments-preview">
-                    {% for comment in post.comments|sort(attribute='timestamp', reverse=True) %}
-                        {% if loop.index <= 2 %}
-                            <div class="comment-item">
-                                <strong>{{ comment.author.name }}</strong>
-                                <span>{{ comment.content }}</span>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
+                <div class="post-footer">
+                    <hr class="post-divider">
+                    <div class="post-actions">
+                        <button class="post-action"><i class="far fa-heart"></i> Like</button>
+                        <button class="post-action"><i class="far fa-comment"></i> Comment</button>
+                        <button class="post-action"><i class="far fa-share-square"></i> Share</button>
+                    </div>
+                    <hr class="post-divider">
+                    <div class="comment-preview">
+                        {% for comment in post.comments|sort(attribute='timestamp', reverse=True) %}
+                            {% if loop.index <= 2 %}
+                                <div class="comment-item">
+                                    <img src="{{ url_for('static', filename='profile_pics/' + comment.author.profile_pic) }}" alt="Author Avatar" class="comment-author-avatar">
+                                    <div class="comment-content">
+                                        <strong>{{ comment.author.name }}</strong>
+                                        <span>{{ comment.content }}</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="add-comment">
+                        <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="My Avatar" class="comment-author-avatar">
+                        <input type="text" placeholder="Write a comment..." class="comment-input">
+                    </div>
                 </div>
             </div>
         {% else %}
