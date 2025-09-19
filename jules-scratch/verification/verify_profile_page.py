@@ -27,15 +27,20 @@ def run(playwright):
     page.get_by_label("Password").fill(password)
     page.get_by_role("button", name="Login").click()
 
-    # Go to the student dashboard
-    page.goto("http://127.0.0.1:5000/student/dashboard")
+    # Go to the profile page
+    page.goto("http://127.0.0.1:5000/profile")
 
-    # Verify that the old nav bar is not present
-    # The old nav bar has a class of "site-header"
-    expect(page.locator(".site-header")).to_have_count(0)
+    # Desktop Screenshot
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.screenshot(path="jules-scratch/verification/desktop.png")
 
-    # Take a screenshot
-    page.screenshot(path="jules-scratch/verification/verification.png")
+    # Tablet Screenshot
+    page.set_viewport_size({"width": 768, "height": 1024})
+    page.screenshot(path="jules-scratch/verification/tablet.png")
+
+    # Mobile Screenshot
+    page.set_viewport_size({"width": 375, "height": 812})
+    page.screenshot(path="jules-scratch/verification/mobile.png")
 
     browser.close()
 

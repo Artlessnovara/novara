@@ -1,0 +1,16 @@
+{% extends "layouts/dashboard_layout.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}Edit Social Link{% endblock %}
+
+{% block dashboard_content %}
+<div class="form-container">
+    <h2>Edit Social Link</h2>
+    <form method="POST" action="{{ url_for('main.edit_social_link', link_id=form.instance.id) }}">
+        {{ form.hidden_tag() }}
+        {{ render_field(form.platform) }}
+        {{ render_field(form.url) }}
+        {{ render_field(form.submit) }}
+    </form>
+</div>
+{% endblock %}

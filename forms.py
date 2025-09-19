@@ -62,3 +62,30 @@ class ProfileAppearanceForm(FlaskForm):
                               validators=[Optional()])
     pinned_post = SelectField('Pinned Post', coerce=int, validators=[Optional()])
     submit = SubmitField('Save Changes')
+
+class EditProfileForm(FlaskForm):
+    name = StringField('Full Name', validators=[DataRequired(), Length(max=150)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    bio = TextAreaField('Bio', validators=[Optional(), Length(max=500)])
+    profile_pic = FileField('Profile Picture', validators=[FileAllowed(['jpg', 'png', 'jpeg'], 'Images only!')])
+    submit = SubmitField('Save Changes')
+
+class AddBadgeForm(FlaskForm):
+    name = StringField('Badge Name', validators=[DataRequired(), Length(max=100)])
+    icon_url = StringField('Icon URL', validators=[Optional(), URL()])
+    submit = SubmitField('Add Badge')
+
+class EditBadgeForm(FlaskForm):
+    name = StringField('Badge Name', validators=[DataRequired(), Length(max=100)])
+    icon_url = StringField('Icon URL', validators=[Optional(), URL()])
+    submit = SubmitField('Save Changes')
+
+class AddSocialLinkForm(FlaskForm):
+    platform = StringField('Platform', validators=[DataRequired(), Length(max=50)])
+    url = StringField('URL', validators=[DataRequired(), URL()])
+    submit = SubmitField('Add Link')
+
+class EditSocialLinkForm(FlaskForm):
+    platform = StringField('Platform', validators=[DataRequired(), Length(max=50)])
+    url = StringField('URL', validators=[DataRequired(), URL()])
+    submit = SubmitField('Save Changes')

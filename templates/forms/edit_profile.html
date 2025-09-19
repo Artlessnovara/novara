@@ -1,0 +1,18 @@
+{% extends "layouts/dashboard_layout.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block dashboard_content %}
+<div class="form-container">
+    <h2>Edit Profile</h2>
+    <form method="POST" action="{{ url_for('main.edit_profile') }}" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        {{ render_field(form.name) }}
+        {{ render_field(form.email) }}
+        {{ render_field(form.bio) }}
+        {{ render_field(form.profile_pic) }}
+        {{ render_field(form.submit) }}
+    </form>
+</div>
+{% endblock %}

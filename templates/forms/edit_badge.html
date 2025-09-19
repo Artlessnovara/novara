@@ -1,0 +1,16 @@
+{% extends "layouts/dashboard_layout.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}Edit Badge{% endblock %}
+
+{% block dashboard_content %}
+<div class="form-container">
+    <h2>Edit Badge</h2>
+    <form method="POST" action="{{ url_for('main.edit_badge', badge_id=form.instance.id) }}">
+        {{ form.hidden_tag() }}
+        {{ render_field(form.name) }}
+        {{ render_field(form.icon_url) }}
+        {{ render_field(form.submit) }}
+    </form>
+</div>
+{% endblock %}
