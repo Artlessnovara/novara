@@ -29,6 +29,7 @@
                                     <li><a href="{{ url_for('main.student_dashboard') }}#my-courses">Enrolled Courses</a></li>
                                 </ul>
                             </li>
+                            <li><a href="{{ url_for('main.library') }}"><i class="fas fa-book-open"></i><span>Explore Library</span></a></li>
                         {% elif current_user.role == 'instructor' %}
                             <li><a href="{{ url_for('instructor.dashboard') }}"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
                             <li class="nav-item-dropdown">
@@ -39,6 +40,13 @@
                                     <li><a href="{{ url_for('main.courses') }}">Explore Courses</a></li>
                                 </ul>
                             </li>
+                            <li class="nav-item-dropdown">
+                                <a href="#" class="dropdown-toggle"><i class="fas fa-book-open"></i><span>Library</span></a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="{{ url_for('main.library') }}">Explore Library</a></li>
+                                    <li><a href="{{ url_for('instructor.dashboard') }}">Upload to Library</a></li>
+                                </ul>
+                            </li>
                         {% elif current_user.role == 'admin' %}
                              <li><a href="{{ url_for('admin.dashboard') }}"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
                         {% endif %}
@@ -47,7 +55,6 @@
                         <li><a href="{{ url_for('feed.home') }}"><i class="fas fa-rss"></i><span>Feed</span></a></li>
                         <li><a href="{{ url_for('main.placeholder_page') }}"><i class="fas fa-calendar-alt"></i><span>Events</span></a></li>
                         <li><a href="{{ url_for('main.chat_list') }}"><i class="fas fa-comments"></i><span>Chat</span></a></li>
-                        <li><a href="{{ url_for('main.library') }}"><i class="fas fa-book-open"></i><span>Library</span></a></li>
                         <li><a href="{{ url_for('main.placeholder_page') }}"><i class="fas fa-folder"></i><span>Resources</span></a></li>
                     {% endif %}
                 </ul>
