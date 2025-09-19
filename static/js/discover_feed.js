@@ -170,6 +170,49 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // --- Story Type Selector ---
+    const storyTypeBtns = document.querySelectorAll('.story-type-btn');
+    const mediaStoryUpload = document.getElementById('media-story-upload');
+    const textStoryUpload = document.getElementById('text-story-upload');
+
+    storyTypeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            storyTypeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (btn.dataset.storyType === 'text') {
+                mediaStoryUpload.style.display = 'none';
+                textStoryUpload.style.display = 'block';
+            } else {
+                mediaStoryUpload.style.display = 'block';
+                textStoryUpload.style.display = 'none';
+            }
+        });
+    });
+
+    // --- Share Functionality ---
+    document.querySelectorAll('.post-action[data-action="share"]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const postCard = button.closest('.post-card');
+            const postContent = postCard.querySelector('.post-content p').textContent;
+            const postUrl = window.location.href; // Or a permalink to the post
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Check out this post!',
+                        text: postContent,
+                        url: postUrl,
+                    });
+                } catch (error) {
+                    console.error('Error sharing:', error);
+                }
+            } else {
+                // Fallback for browsers that don't support Web Share API
+                alert('Sharing is not supported on this browser.');
+            }
+        });
+    });
+
     // --- Video Playback ---
     document.querySelectorAll('.video-wrapper').forEach(wrapper => {
         const video = wrapper.querySelector('video');

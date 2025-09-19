@@ -52,13 +52,20 @@ def create_post():
 @feed.route('/add_story', methods=['POST'])
 @login_required
 def add_story():
+    story_text = request.form.get('story_text')
     media_file = request.files.get('story_media')
-    if not media_file:
-        flash('No media file selected for the story.', 'danger')
+
+    if not story_text and not media_file:
+        flash('Please enter text or upload a file for your story.', 'danger')
         return redirect(url_for('feed.discover'))
-    folder = 'images' if media_file.mimetype.startswith('image') else 'videos'
-    saved_path = save_upload_file(media_file, folder)
-    new_story = Status(user_id=current_user.id, content_type=media_file.mimetype, content=saved_path, is_story=True)
+
+    if story_text:
+        new_story = Status(user_id=current_user.id, content_type='text', content=story_text, is_story=True)
+    else:
+        folder = 'images' if media_file.mimetype.startswith('image') else 'videos'
+        saved_path = save_upload_file(media_file, folder)
+        new_story = Status(user_id=current_user.id, content_type=media_file.mimetype, content=saved_path, is_story=True)
+
     db.session.add(new_story)
     db.session.commit()
     flash('Your story has been added!', 'success')

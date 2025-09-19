@@ -96,11 +96,21 @@
     margin: 0 auto;
 }
 
+:root {
+    --main-bg-color: #18191A;
+    --content-bg-color: #242526;
+    --divider-color: #3A3B3C;
+}
+
+body.discover-page {
+    background-color: var(--main-bg-color);
+}
+
 .post-card {
-    background-color: var(--bg-tertiary);
+    background-color: var(--content-bg-color);
     border-radius: var(--border-radius-lg);
     margin-bottom: 20px;
-    border: 1px solid var(--divider);
+    border: 1px solid var(--divider-color);
     width: 100%;
 }
 

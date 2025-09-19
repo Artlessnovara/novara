@@ -649,6 +649,15 @@ class LinkPreview(db.Model):
 
 # --- Feed World Models ---
 
+class Share(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('shares', lazy='dynamic'))
+    post = db.relationship('Post', backref=db.backref('shares', lazy='dynamic'))
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
