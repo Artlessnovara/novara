@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
 
+{% block header %}
+    {# This will override the header from base.html and render nothing #}
+{% endblock %}
+
 {% block styles %}
     {{ super() }}
     <!-- New Dashboard Styles -->
@@ -51,7 +55,6 @@
                              <li><a href="{{ url_for('admin.dashboard') }}"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
                         {% endif %}
 
-                        <li><a href="{{ url_for('main.placeholder_page') }}"><i class="fas fa-search"></i><span>Discover</span></a></li>
                         <li><a href="{{ url_for('feed.home') }}"><i class="fas fa-rss"></i><span>Feed</span></a></li>
                         <li><a href="{{ url_for('main.placeholder_page') }}"><i class="fas fa-calendar-alt"></i><span>Events</span></a></li>
                         <li><a href="{{ url_for('main.chat_list') }}"><i class="fas fa-comments"></i><span>Chat</span></a></li>
