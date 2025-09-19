@@ -14,7 +14,7 @@
     <!-- Custom Top Bar for Discover Page -->
     <div class="discover-top-bar">
         <div class="discover-header-left">
-            <button class="sidebar-toggle-btn"><i class="fas fa-bars"></i></button>
+            <button class="sidebar-toggle-btn" id="sidebar-toggle-btn"><i class="fas fa-bars"></i></button>
             <h1 class="discover-title">DISCOVER</h1>
         </div>
         <div class="discover-header-right">
@@ -72,11 +72,16 @@
                     {% if post.media_type == 'image' %}
                         <img src="{{ url_for('static', filename=post.media_url[0]) }}" alt="Post image">
                     {% elif post.media_type == 'video' %}
-                        <video controls src="{{ url_for('static', filename=post.media_url[0]) }}"></video>
+                        <div class="video-wrapper">
+                            <video src="{{ url_for('static', filename=post.media_url[0]) }}"></video>
+                            <button class="play-btn-overlay"><i class="fas fa-play"></i></button>
+                        </div>
                     {% elif post.media_type == 'images' %}
-                        <div class="image-grid">
+                        <div class="image-grid image-grid-{{ post.media_url|length }}">
                             {% for image_url in post.media_url %}
-                                <img src="{{ url_for('static', filename=image_url) }}" alt="Post image">
+                                <div class="grid-item">
+                                    <img src="{{ url_for('static', filename=image_url) }}" alt="Post image">
+                                </div>
                             {% endfor %}
                         </div>
                     {% endif %}

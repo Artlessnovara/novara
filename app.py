@@ -13,6 +13,7 @@ from push_notifications import initialize_firebase
 from apscheduler.schedulers.background import BackgroundScheduler
 from tasks import publish_scheduled_posts, snapshot_community_analytics
 import atexit
+import humanize
 
 def secure_embeds_filter(html_content):
     if not html_content:
@@ -92,6 +93,7 @@ def create_app(config_object=None):
 
     # Register custom Jinja filters
     app.jinja_env.filters['secure_embeds'] = secure_embeds_filter
+    app.jinja_env.filters['naturaltime'] = humanize.naturaltime
 
     # Initialize Firebase Admin SDK
     with app.app_context():
@@ -162,6 +164,77 @@ def create_app(config_object=None):
         db.session.add(admin)
         db.session.commit()
         print(f"Admin user {name} ({email}) created successfully.")
+
+    @app.cli.command("seed-db")
+    def seed_db():
+        """Seeds the database with sample data."""
+        from models import Post, Category, Course, Module, Lesson, CourseComment, LibraryMaterial
+        # Clear existing data
+        db.drop_all()
+        db.create_all()
+
+        # Create users
+        admin_user = User(name='Admin User', email='admin@example.com', role='admin', approved=True)
+        admin_user.set_password('password')
+        instructor1 = User(name='John Doe', email='john@example.com', role='instructor', approved=True)
+        instructor1.set_password('password')
+        instructor2 = User(name='Jane Smith', email='jane@example.com', role='instructor', approved=False) # Unapproved
+        instructor2.set_password('password')
+        student1 = User(name='Test Student', email='student@example.com', role='student', approved=True)
+        student1.set_password('password')
+        db.session.add_all([admin_user, instructor1, instructor2, student1])
+        db.session.commit()
+
+        # Create posts for the feed
+        long_post_content = "This is a very long post to test the 'See More' functionality. " * 10
+        post1 = Post(content="This is a test post for the feed!", author=instructor1)
+        post2 = Post(content=long_post_content, author=student1)
+        post3 = Post(content="A post with a single image.", author=instructor1, media_type='image', media_url=['images/course1.jpg'])
+        post4 = Post(content="A post with two images.", author=student1, media_type='images', media_url=['images/course2.jpg', 'images/course3.jpg'])
+        post5 = Post(content="A post with three images.", author=instructor1, media_type='images', media_url=['images/course1.jpg', 'images/course2.jpg', 'images/course3.jpg'])
+        db.session.add_all([post1, post2, post3, post4, post5])
+        db.session.commit()
+
+        # Create categories
+        cat1 = Category(name='Web Development')
+        cat2 = Category(name='Data Science')
+        cat3 = Category(name='Business')
+        db.session.add_all([cat1, cat2, cat3])
+        db.session.commit()
+
+        # Create courses
+        c1 = Course(title='Introduction to Flask', description='A beginner friendly course on Flask.', instructor_id=instructor1.id, category_id=cat1.id, price_naira=10000, approved=True)
+        c2 = Course(title='Advanced Python', description='Take your Python skills to the next level.', instructor_id=instructor1.id, category_id=cat1.id, price_naira=15000, approved=True)
+        c3 = Course(title='Data Analysis with Pandas', description='Learn data analysis.', instructor_id=instructor2.id, category_id=cat2.id, price_naira=20000, approved=True)
+        c4 = Course(title='Marketing 101', description='Basics of marketing.', instructor_id=instructor2.id, category_id=cat3.id, price_naira=5000, approved=False)
+        db.session.add_all([c1, c2, c3, c4])
+        db.session.commit()
+
+        # Create modules and lessons for Course 1
+        mod1_c1 = Module(course_id=c1.id, title='Getting Started', order=1)
+        mod2_c1 = Module(course_id=c1.id, title='Building a Basic App', order=2)
+        db.session.add_all([mod1_c1, mod2_c1])
+        db.session.commit()
+
+        les1_m1 = Lesson(module_id=mod1_c1.id, title='Installation', video_url='https://www.youtube.com/embed/xxxxxxxxxxx', notes='Some notes here.')
+        les2_m1 = Lesson(module_id=mod1_c1.id, title='Project Structure', notes='More notes.')
+        les1_m2 = Lesson(module_id=mod2_c1.id, title='Hello World', drive_link='https://docs.google.com/document/d/xxxxxxxxxxx/edit?usp=sharing')
+        db.session.add_all([les1_m1, les2_m1, les1_m2])
+        db.session.commit()
+
+
+        # Add a comment
+        comment1 = CourseComment(course_id=c1.id, user_id=student1.id, body='This is a great course!', rating=5)
+        db.session.add(comment1)
+        db.session.commit()
+
+        # Add library materials
+        lib1 = LibraryMaterial(uploader_id=instructor1.id, category_id=cat1.id, title='Flask Cheatsheet', price_naira=500, file_path='flask_cheatsheet.pdf', approved=True)
+        lib2 = LibraryMaterial(uploader_id=instructor2.id, category_id=cat2.id, title='Data Science Intro', price_naira=1000, file_path='ds_intro.pdf', approved=False)
+        db.session.add_all([lib1, lib2])
+        db.session.commit()
+
+        print('Database has been cleared and re-seeded with sample data.')
 
     # --- Background Scheduler for Scheduled Posts ---
     # This check prevents the scheduler from running twice in debug mode
