@@ -39,6 +39,9 @@
                         <span class="notification-badge">{{ unread_notification_count }}</span>
                     {% endif %}
                 </a>
+                <button id="theme-toggle" class="header-icon" aria-label="Toggle Theme">
+                    <i class="fas fa-sun"></i>
+                </button>
                 <a href="{{ url_for('main.profile') }}" class="header-icon" aria-label="Profile">
                     <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Profile" class="profile-pic-small">
                 </a>
@@ -87,6 +90,7 @@
     <!-- Day.js for relative timestamps -->
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.min.js"></script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
 
     {% block scripts %}{% endblock %}
 </body>

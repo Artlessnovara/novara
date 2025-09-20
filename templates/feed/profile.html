@@ -4,205 +4,118 @@
 
 {% block head %}
 {{ super() }}
-{# Inject theme styles if the user is premium and has a theme set #}
-{% if user.is_premium and user.profile_theme and user.profile_theme != 'default' %}
-    {% set themes = {
-        'ocean': {'primary': '#007bff', 'gradient_start': '#1e3c72', 'gradient_end': '#2a5298', 'text': '#ffffff'},
-        'forest': {'primary': '#28a745', 'gradient_start': '#233329', 'gradient_end': '#414d3f', 'text': '#ffffff'},
-        'sunset': {'primary': '#fd7e14', 'gradient_start': '#ff7e5f', 'gradient_end': '#feb47b', 'text': '#000000'}
-    } %}
-    {% set theme = themes.get(user.profile_theme) %}
-    {% if theme %}
-    <style>
-        .profile-theme-active {
-            --theme-primary: {{ theme.primary }};
-            --theme-gradient-start: {{ theme.gradient_start }};
-            --theme-gradient-end: {{ theme.gradient_end }};
-            --theme-text: {{ theme.text }};
-        }
-        .profile-header.has-theme {
-            background: linear-gradient(135deg, var(--theme-gradient-start), var(--theme-gradient-end));
-            color: var(--theme-text);
-        }
-        .profile-header.has-theme .profile-info p,
-        .profile-header.has-theme .profile-stats,
-        .profile-header.has-theme .bio-links a {
-            color: var(--theme-text);
-            opacity: 0.9;
-        }
-        .profile-header.has-theme .premium-badge {
-            background-color: var(--theme-text);
-            color: var(--theme-gradient-end);
-        }
-    </style>
-    {% endif %}
-{% endif %}
-{% endblock %}
-
-{% block styles %}
-<style>
-    .profile-container { max-width: 900px; margin: auto; }
-    .profile-header {
-        display: flex;
-        align-items: center;
-        gap: 2rem;
-        background: var(--card-bg-light);
-        padding: 2rem;
-        border-radius: var(--border-radius);
-        margin-bottom: 2rem;
-        position: relative;
-        overflow: hidden;
-        background-size: cover;
-        background-position: center;
-    }
-    .profile-header::before { /* Overlay for text readability on banners */
-        content: '';
-        position: absolute;
-        top: 0; right: 0; bottom: 0; left: 0;
-        background: rgba(0,0,0,0.4);
-        z-index: 1;
-        display: none; /* Hidden by default */
-    }
-    .profile-header.has-banner::before { display: block; }
-    .profile-header.has-banner .profile-info,
-    .profile-header.has-banner .profile-pic-large {
-        z-index: 2;
-        position: relative;
-    }
-    .profile-header.has-banner .profile-info h1,
-    .profile-header.has-banner .profile-info p,
-    .profile-header.has-banner .profile-stats {
-        color: white;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-    }
-    .profile-pic-large { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid white; }
-    .profile-info h1 { margin: 0 0 0.5rem 0; }
-    .profile-stats { display: flex; gap: 1.5rem; margin: 1rem 0; }
-    .bio-links { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; }
-    .bio-links a { color: var(--primary-color); text-decoration: none; font-weight: 600; }
-    .profile-actions button { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-    .profile-tabs { display: flex; border-bottom: 1px solid var(--border-color-light); margin-bottom: 1.5rem; }
-    .tab-link { padding: 1rem 1.5rem; cursor: pointer; border-bottom: 2px solid transparent; }
-    .tab-link.active { border-bottom-color: var(--primary-color); color: var(--primary-color); font-weight: 600; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .posts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-    .post-grid-item img, .post-grid-item video { width: 100%; height: 250px; object-fit: cover; border-radius: var(--border-radius); }
-    .pinned-post-section { margin-bottom: 2rem; }
-    .pinned-post-section h3 { border-bottom: 1px solid var(--border-color-light); padding-bottom: 0.5rem; margin-bottom: 1rem; }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile_new.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="profile-container {% if user.is_premium and user.profile_theme %}profile-theme-active{% endif %}">
-    <div class="profile-header
-        {% if user.is_premium and user.profile_banner_url %}has-banner{% endif %}
-        {% if user.is_premium and user.profile_theme and user.profile_theme != 'default' %}has-theme{% endif %}"
-        style="{% if user.is_premium and user.profile_banner_url %}background-image: url({{ url_for('static', filename=user.profile_banner_url) }});{% endif %}">
-
-        <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}" class="profile-pic-large">
-        <div class="profile-info">
-            <h1>{{ user.name }}{% if user.is_premium %}<span class="premium-badge" title="Premium Member"><i class="fas fa-check-circle"></i> Pro</span>{% endif %}</h1>
-            <p>{{ user.bio or 'No bio yet.' }}</p>
-
-            {% if user.is_premium and user.bio_links %}
-            <div class="bio-links">
-                {% for link in user.bio_links %}
-                    <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"><i class="fas fa-link"></i> {{ link.title }}</a>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <div class="profile-stats">
-                <div><strong>{{ posts|length }}</strong> posts</div>
-                <div><strong>{{ user.followers.count() }}</strong> followers</div>
-                <div><strong>{{ user.followed.count() }}</strong> following</div>
-            </div>
-            <div class="profile-actions">
-                {% if user.id != current_user.id %}
-                    <div style="display: flex; gap: 1rem;">
-                        {% if current_user.is_following(user) %}
-                            <form action="{{ url_for('feed.unfollow', user_id=user.id) }}" method="POST">
-                                <button type="submit" class="btn-secondary">Unfollow</button>
-                            </form>
-                        {% else %}
-                            <form action="{{ url_for('feed.follow', user_id=user.id) }}" method="POST">
-                                <button type="submit">Follow</button>
-                            </form>
-                        {% endif %}
-                        <form action="{{ url_for('main.create_private_chat', other_user_id=user.id) }}" method="POST">
-                            <button type="submit">Message</button>
-                        </form>
-                    </div>
-                {% else %}
-                    <a href="{{ url_for('more.settings') }}" class="btn">Edit Profile</a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    {% if user.is_premium and user.pinned_post %}
-    <div class="pinned-post-section">
-        <h3><i class="fas fa-thumbtack"></i> Pinned Post</h3>
-        <div class="post-container" data-post-id="{{ user.pinned_post.post.id }}">
-            {% with post=user.pinned_post.post %}
-                {% include 'feed/_post_content.html' %}
-            {% endwith %}
-        </div>
+<div class="profile-container">
+    {% if profile_completion < 100 %}
+    <div class="completion-banner">
+        Your profile is only {{ profile_completion }}% complete. <a href="#">Complete it now!</a>
     </div>
     {% endif %}
-
-    <div class="profile-tabs">
-        <div class="tab-link active" onclick="showTab('posts')">Posts</div>
-        <div class="tab-link" onclick="showTab('reels')">Reels</div>
-        <div class="tab-link" onclick="showTab('projects')">Projects</div>
+    <div class="profile-header" style="background-image: url({{ url_for('static', filename=user.profile_banner_url or 'images/course_placeholder.jpg') }})">
+        <div class="profile-header-content">
+            <div class="profile-pic">
+                <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}'s profile picture">
+            </div>
+            <div class="profile-info">
+                <h1>{{ user.name }}</h1>
+                <p class="tagline">{{ user.bio or 'Eager to learn and grow.' }}</p>
+                <div class="profile-actions">
+                    <button class="btn btn-primary">Edit Profile</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="posts" class="tab-content active">
-        <div class="posts-grid">
-            {% for post in posts %}
-                {# Do not show the pinned post again in the grid #}
-                {% if not user.pinned_post or user.pinned_post.post_id != post.id %}
-                    <div class="post-grid-item">
-                        {% if post.media_type == 'image' %}
-                            <img src="{{ url_for('static', filename=post.media_url) }}" alt="Post by {{ user.name }}">
-                        {% elif post.media_type == 'video' %}
-                            <video src="{{ url_for('static', filename=post.media_url) }}"></video>
-                        {% else %}
-                            <div style="padding:1rem; background: #eee; height: 100%; border-radius: var(--border-radius);">{{ post.content|truncate(100) }}</div>
-                        {% endif %}
-                    </div>
-                {% endif %}
+    <div class="profile-stats">
+        <div class="stat-card">
+            <h3>Profile Completion</h3>
+            <p class="stat-number">85%</p>
+        </div>
+        <div class="stat-card">
+            <h3>Certificates</h3>
+            <p class="stat-number">{{ user.certificates.count() }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Badges</h3>
+            <p class="stat-number">{{ user.badges.count() }}</p>
+        </div>
+    </div>
+
+    <div class="profile-certificates">
+        <div class="section-header">
+            <h2>My Certificates</h2>
+            <button class="btn-add">+ Add</button>
+        </div>
+        <div class="certificates-grid">
+            {% for cert in user.certificates %}
+            <div class="certificate-card">
+                <div class="cert-icon"><i class="fas fa-award"></i></div>
+                <div class="cert-details">
+                    <h4>{{ cert.course.title }}</h4>
+                    <p>Issued: {{ cert.issued_at.strftime('%b %Y') }}</p>
+                </div>
+            </div>
             {% else %}
-                <p>No posts yet.</p>
+            <p>No certificates yet.</p>
+            {% endfor %}
+        </div>
+        <a href="#" class="view-all-link">View All</a>
+    </div>
+
+    <div class="profile-badges">
+        <div class="section-header">
+            <h2>Achievements & Badges</h2>
+        </div>
+        <div class="badges-carousel">
+            {% for badge in user.badges %}
+            <div class="badge-item">
+                <img src="{{ badge.icon_url or url_for('static', filename='images/course_placeholder.jpg') }}" alt="{{ badge.name }}">
+                <p>{{ badge.name }}</p>
+            </div>
+            {% else %}
+            <p>No badges earned yet.</p>
             {% endfor %}
         </div>
     </div>
 
-    <div id="reels" class="tab-content">
-        <p>Reels will be shown here.</p>
+    <div class="profile-details">
+        <div class="section-header">
+            <h2>Profile Details</h2>
+        </div>
+        <div class="details-grid">
+            <div class="detail-card">
+                <strong>Full Name</strong>
+                <p>{{ user.name }}</p>
+                <button class="btn-edit-detail"><i class="fas fa-pencil-alt"></i></button>
+            </div>
+            <div class="detail-card">
+                <strong>Email Address</strong>
+                <p>{{ user.email }}</p>
+                <button class="btn-edit-detail"><i class="fas fa-pencil-alt"></i></button>
+            </div>
+            <div class="detail-card">
+                <strong>Role</strong>
+                <p>{{ user.role.capitalize() }}</p>
+            </div>
+        </div>
     </div>
 
-    <div id="projects" class="tab-content">
-        <p>Projects will be shown here.</p>
+    <div class="profile-social-links">
+        <div class="section-header">
+            <h2>Social Links</h2>
+        </div>
+        <div class="social-links-row">
+            {% for link in user.social_links %}
+            <a href="{{ link.url }}" target="_blank" class="social-link-btn">
+                <i class="fab fa-{{ link.platform | lower }}"></i>
+            </a>
+            {% else %}
+            <p>No social links yet.</p>
+            {% endfor %}
+        </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    function showTab(tabName) {
-        // Hide all tab content
-        document.querySelectorAll('.tab-content').forEach(function(tab) {
-            tab.classList.remove('active');
-        });
-        // Deactivate all tab links
-        document.querySelectorAll('.tab-link').forEach(function(link) {
-            link.classList.remove('active');
-        });
-        // Show the selected tab content and activate the link
-        document.getElementById(tabName).classList.add('active');
-        event.currentTarget.classList.add('active');
-    }
-</script>
 {% endblock %}

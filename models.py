@@ -52,7 +52,6 @@ class User(UserMixin, db.Model):
     # Custom Profile Appearance
     profile_banner_url = db.Column(db.String(255), nullable=True)
     profile_theme = db.Column(db.String(50), nullable=True)
-    bio_links = db.Column(db.JSON, nullable=True)
 
     # Location
     latitude = db.Column(db.Float, nullable=True)
@@ -1032,6 +1031,18 @@ class SocialLink(db.Model):
 
     def __repr__(self):
         return f'<SocialLink {self.platform}:{self.url}>'
+
+
+class BioLink(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    url = db.Column(db.String(255), nullable=False)
+
+    user = db.relationship('User', backref=db.backref('bio_links', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<BioLink {self.title}>'
 
 
 class FCMToken(db.Model):
