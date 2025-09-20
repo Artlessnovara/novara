@@ -1,0 +1,16 @@
+{% extends "layouts/dashboard_layout.html" %}
+{% from "_form_helpers.html" import render_field %}
+
+{% block title %}Add Certificate{% endblock %}
+
+{% block dashboard_content %}
+<div class="form-container">
+    <h2>Add New Certificate</h2>
+    <form method="POST" action="{{ url_for('main.add_certificate') }}">
+        {{ form.hidden_tag() }}
+        {{ render_field(form.title) }}
+        {{ render_field(form.course_id) }}
+        {{ render_field(form.submit) }}
+    </form>
+</div>
+{% endblock %}

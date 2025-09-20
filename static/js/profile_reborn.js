@@ -55,18 +55,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const addCertBtn = document.querySelector('.btn-add');
+    const addCertBtn = document.querySelector('.certificates-grid + .section-header .btn-add');
     if(addCertBtn) {
-        addCertBtn.addEventListener('click', () => {
-            alert('This would open a modal to add a new certificate.');
-        });
+        addCertBtn.addEventListener('click', () => openModal('add-certificate-modal'));
+    }
+
+    const addBadgeBtn = document.querySelector('.badges-carousel + .section-header .btn-add');
+    if(addBadgeBtn) {
+        addBadgeBtn.addEventListener('click', () => openModal('add-badge-modal'));
+    }
+
+    const addSocialLinkBtn = document.querySelector('.social-links-row + .section-header .btn-add');
+    if(addSocialLinkBtn) {
+        addSocialLinkBtn.addEventListener('click', () => openModal('add-social-link-modal'));
     }
 
     const fab = document.querySelector('.fab');
     if(fab) {
-        fab.addEventListener('click', () => {
-            alert('This would open a modal to add a new certificate.');
-        });
+        fab.addEventListener('click', () => openModal('add-certificate-modal'));
     }
 
 

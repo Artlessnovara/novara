@@ -150,7 +150,14 @@
         <div class="modal-content">
             <span class="close-btn">&times;</span>
             <h2>Edit Profile</h2>
-            <!-- Edit Profile Form will be loaded here via JS or be pre-rendered -->
+            <form method="POST" action="{{ url_for('main.edit_profile') }}" enctype="multipart/form-data">
+                {{ edit_profile_form.hidden_tag() }}
+                {{ render_field(edit_profile_form.name) }}
+                {{ render_field(edit_profile_form.email) }}
+                {{ render_field(edit_profile_form.bio) }}
+                {{ render_field(edit_profile_form.profile_pic) }}
+                {{ render_field(edit_profile_form.submit) }}
+            </form>
         </div>
     </div>
 
@@ -158,7 +165,12 @@
         <div class="modal-content">
             <span class="close-btn">&times;</span>
             <h2>Add Badge</h2>
-            <!-- Add Badge Form will be loaded here -->
+            <form method="POST" action="{{ url_for('main.add_badge') }}">
+                {{ add_badge_form.hidden_tag() }}
+                {{ render_field(add_badge_form.name) }}
+                {{ render_field(add_badge_form.icon_url) }}
+                {{ render_field(add_badge_form.submit) }}
+            </form>
         </div>
     </div>
 
@@ -166,7 +178,25 @@
         <div class="modal-content">
             <span class="close-btn">&times;</span>
             <h2>Add Social Link</h2>
-            <!-- Add Social Link Form will be loaded here -->
+            <form method="POST" action="{{ url_for('main.add_social_link') }}">
+                {{ add_social_link_form.hidden_tag() }}
+                {{ render_field(add_social_link_form.platform) }}
+                {{ render_field(add_social_link_form.url) }}
+                {{ render_field(add_social_link_form.submit) }}
+            </form>
+        </div>
+    </div>
+
+    <div id="add-certificate-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Add Certificate</h2>
+            <form method="POST" action="{{ url_for('main.add_certificate') }}">
+                {{ add_certificate_form.hidden_tag() }}
+                {{ render_field(add_certificate_form.title) }}
+                {{ render_field(add_certificate_form.course_id) }}
+                {{ render_field(add_certificate_form.submit) }}
+            </form>
         </div>
     </div>
 </div>
