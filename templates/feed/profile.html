@@ -1,56 +1,124 @@
-{% extends "feed/base.html" %}
+{% extends "layouts/dashboard_layout.html" %}
+{% from "_form_helpers.html" import render_field %}
 
 {% block title %}{{ user.name }}'s Profile{% endblock %}
 
-{% block head %}
-{{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/profile_new.css') }}">
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
 {% endblock %}
 
-{% block content %}
+{% block dashboard_content %}
 <div class="profile-container">
+    <!-- Optional top banner for profile completion -->
     {% if profile_completion < 100 %}
     <div class="completion-banner">
-        Your profile is only {{ profile_completion }}% complete. <a href="#">Complete it now!</a>
+        <p>Your profile is only {{ profile_completion }}% complete. <a href="#">Complete it now</a> to get the most out of our platform!</p>
     </div>
     {% endif %}
-    <div class="profile-header" style="background-image: url({{ url_for('static', filename=user.profile_banner_url or 'images/course_placeholder.jpg') }})">
-        <div class="profile-header-content">
-            <div class="profile-pic">
-                <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}'s profile picture">
+
+    <!-- 2. Hero / Cover Section -->
+    <section class="profile-hero">
+        <div class="cover-image" style="background-image: url('{{ user.profile_banner_url or url_for('static', filename='images/course_placeholder.jpg') }}');">
+        </div>
+        <div class="hero-content">
+            <div class="profile-photo-container">
+                <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}'s profile photo" class="profile-photo">
             </div>
             <div class="profile-info">
                 <h1>{{ user.name }}</h1>
-                <p class="tagline">{{ user.bio or 'Eager to learn and grow.' }}</p>
-                <div class="profile-actions">
-                    <button class="btn btn-primary">Edit Profile</button>
-                </div>
+                <p class="tagline">{{ user.bio | truncate(80) if user.bio else 'Eager to learn and grow.' }}</p>
+                <button class="btn btn-gradient edit-profile-btn">Edit Profile</button>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div class="profile-stats">
+    <!-- 3. Stats Strip -->
+    <section class="stats-strip">
         <div class="stat-card">
             <h3>Profile Completion</h3>
-            <p class="stat-number">85%</p>
+            <div class="progress-bar-container">
+                <div class="progress-bar" style="width: {{ profile_completion }}%;"></div>
+            </div>
+            <span>{{ profile_completion }}%</span>
         </div>
         <div class="stat-card">
-            <h3>Certificates</h3>
-            <p class="stat-number">{{ user.certificates.count() }}</p>
+            <h3>Certificates Earned</h3>
+            <span class="stat-number">{{ certificates|length }}</span>
         </div>
         <div class="stat-card">
-            <h3>Badges</h3>
-            <p class="stat-number">{{ user.badges.count() }}</p>
+            <h3>Badges Earned</h3>
+            <span class="stat-number">{{ badges|length }}</span>
         </div>
-    </div>
+    </section>
 
-    <div class="profile-certificates">
+    <!-- Role-Specific Section: Courses -->
+    {% if current_user.role == 'instructor' %}
+    <section class="profile-section">
+        <div class="section-header">
+            <h2>Courses I'm Teaching</h2>
+            <a href="{{ url_for('instructor.create_course') }}" class="btn btn-gradient">+ Create New</a>
+        </div>
+        <div class="courses-grid">
+            {% for course in courses %}
+                <div class="course-card">
+                    <a href="{{ url_for('main.course_detail', course_id=course.id) }}">
+                        <img src="{{ course.cover_image or url_for('static', filename='images/course_placeholder.jpg') }}" alt="{{ course.title }} cover">
+                        <div class="course-card-content">
+                            <h4>{{ course.title }}</h4>
+                            <p>{{ course.description | truncate(80) }}</p>
+                        </div>
+                    </a>
+                </div>
+            {% else %}
+                <p>No courses to display.</p>
+            {% endfor %}
+        </div>
+    </section>
+    {% elif current_user.role == 'student' %}
+    <section class="profile-section">
+        <div class="section-header">
+            <h2>My Enrolled Courses</h2>
+        </div>
+        <div class="courses-grid">
+            {% for course in courses %}
+                <div class="course-card">
+                    <a href="{{ url_for('main.course_detail', course_id=course.id) }}">
+                        <img src="{{ course.cover_image or url_for('static', filename='images/course_placeholder.jpg') }}" alt="{{ course.title }} cover">
+                        <div class="course-card-content">
+                            <h4>{{ course.title }}</h4>
+                            <p>{{ course.description | truncate(80) }}</p>
+                        </div>
+                    </a>
+                </div>
+            {% else %}
+                <p>You are not enrolled in any courses yet. <a href="{{ url_for('main.courses') }}">Explore courses</a>.</p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Admin-Specific Section -->
+    {% if current_user.role == 'admin' %}
+    <section class="profile-section admin-actions">
+        <div class="section-header">
+            <h2>Admin Actions</h2>
+        </div>
+        <div class="action-buttons">
+            <a href="{{ url_for('admin.manage_users') }}" class="btn btn-secondary">Manage Users</a>
+            <a href="{{ url_for('admin.manage_permissions') }}" class="btn btn-secondary">Manage Permissions</a>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 4. Certificates Section -->
+    <section class="profile-section">
         <div class="section-header">
             <h2>My Certificates</h2>
-            <button class="btn-add">+ Add</button>
+            <button id="add-certificate-btn" class="btn-add">+ Add</button>
         </div>
         <div class="certificates-grid">
-            {% for cert in user.certificates %}
+            {% for cert in certificates %}
             <div class="certificate-card">
                 <div class="cert-icon"><i class="fas fa-award"></i></div>
                 <div class="cert-details">
@@ -59,63 +127,145 @@
                 </div>
             </div>
             {% else %}
-            <p>No certificates yet.</p>
+            <div class="empty-state">
+                <p>No certificates earned yet. <a href="{{ url_for('main.courses') }}">Start a course</a> to earn your first one!</p>
+            </div>
             {% endfor %}
         </div>
         <a href="#" class="view-all-link">View All</a>
-    </div>
+    </section>
 
-    <div class="profile-badges">
+    <!-- 5. Achievements / Badges Carousel -->
+    <section class="profile-section">
         <div class="section-header">
             <h2>Achievements & Badges</h2>
+            <button id="add-badge-btn" class="btn-add">+ Add</button>
         </div>
         <div class="badges-carousel">
-            {% for badge in user.badges %}
+            {% for badge in badges %}
             <div class="badge-item">
                 <img src="{{ badge.icon_url or url_for('static', filename='images/course_placeholder.jpg') }}" alt="{{ badge.name }}">
                 <p>{{ badge.name }}</p>
             </div>
             {% else %}
-            <p>No badges earned yet.</p>
+            <div class="empty-state">
+                <p>No badges earned yet.</p>
+            </div>
             {% endfor %}
         </div>
-    </div>
+    </section>
 
-    <div class="profile-details">
+    <!-- 6. Profile Details Section -->
+    <section class="profile-section">
         <div class="section-header">
             <h2>Profile Details</h2>
         </div>
         <div class="details-grid">
             <div class="detail-card">
-                <strong>Full Name</strong>
-                <p>{{ user.name }}</p>
+                <div class="detail-info">
+                    <strong>Full Name</strong>
+                    <p>{{ user.name }}</p>
+                </div>
                 <button class="btn-edit-detail"><i class="fas fa-pencil-alt"></i></button>
             </div>
             <div class="detail-card">
-                <strong>Email Address</strong>
-                <p>{{ user.email }}</p>
+                <div class="detail-info">
+                    <strong>Email Address</strong>
+                    <p>{{ user.email }}</p>
+                </div>
                 <button class="btn-edit-detail"><i class="fas fa-pencil-alt"></i></button>
             </div>
             <div class="detail-card">
-                <strong>Role</strong>
-                <p>{{ user.role.capitalize() }}</p>
+                <div class="detail-info">
+                    <strong>Phone Number</strong>
+                    <p>{{ user.phone_number or 'Not provided' }}</p>
+                </div>
+                <button class="btn-edit-detail"><i class="fas fa-pencil-alt"></i></button>
             </div>
+            <!-- Add more detail cards as needed -->
         </div>
-    </div>
+    </section>
 
-    <div class="profile-social-links">
+    <!-- 7. Social Links Row -->
+    <section class="profile-section">
         <div class="section-header">
             <h2>Social Links</h2>
+            <button id="add-social-link-btn" class="btn-add">+ Add</button>
         </div>
         <div class="social-links-row">
-            {% for link in user.social_links %}
+            {% for link in social_links %}
             <a href="{{ link.url }}" target="_blank" class="social-link-btn">
                 <i class="fab fa-{{ link.platform | lower }}"></i>
             </a>
             {% else %}
-            <p>No social links yet.</p>
+            <div class="empty-state">
+                <p>No social links added yet.</p>
+            </div>
             {% endfor %}
+        </div>
+    </section>
+
+    <!-- 8. Sticky Floating Action Button -->
+    <button class="fab">+ Add Certificate</button>
+
+    <!-- Modals -->
+    <div id="edit-profile-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Edit Profile</h2>
+            <form method="POST" action="{{ url_for('main.edit_profile') }}" enctype="multipart/form-data">
+                {{ edit_profile_form.hidden_tag() }}
+                {{ render_field(edit_profile_form.name) }}
+                {{ render_field(edit_profile_form.email) }}
+                {{ render_field(edit_profile_form.bio) }}
+                {{ render_field(edit_profile_form.profile_pic) }}
+                {{ render_field(edit_profile_form.submit) }}
+            </form>
+        </div>
+    </div>
+
+    <div id="add-badge-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Add Badge</h2>
+            <form method="POST" action="{{ url_for('main.add_badge') }}">
+                {{ add_badge_form.hidden_tag() }}
+                {{ render_field(add_badge_form.name) }}
+                {{ render_field(add_badge_form.icon_url) }}
+                {{ render_field(add_badge_form.submit) }}
+            </form>
+        </div>
+    </div>
+
+    <div id="add-social-link-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Add Social Link</h2>
+            <form method="POST" action="{{ url_for('main.add_social_link') }}">
+                {{ add_social_link_form.hidden_tag() }}
+                {{ render_field(add_social_link_form.platform) }}
+                {{ render_field(add_social_link_form.url) }}
+                {{ render_field(add_social_link_form.submit) }}
+            </form>
+        </div>
+    </div>
+
+    <div id="add-certificate-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Add Certificate</h2>
+            <form method="POST" action="{{ url_for('main.add_certificate') }}">
+                {{ add_certificate_form.hidden_tag() }}
+                {{ render_field(add_certificate_form.title) }}
+                {{ render_field(add_certificate_form.course_id) }}
+                {{ render_field(add_certificate_form.submit) }}
+            </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/profile_reborn.js') }}"></script>
 {% endblock %}

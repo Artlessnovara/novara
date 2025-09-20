@@ -735,12 +735,26 @@ def save_picture(form_picture):
 @login_required
 def profile():
     """
-    Renders the new feed-centric profile page for the current user.
+    Renders the user's profile page.
     """
     user = current_user
-    posts = Post.query.filter_by(author=user).order_by(Post.timestamp.desc()).all()
-    bio_links = user.bio_links.all()
-    pinned_post = user.pinned_post
+
+    # Forms for modals
+    edit_profile_form = EditProfileForm(obj=user)
+    add_badge_form = AddBadgeForm()
+    add_social_link_form = AddSocialLinkForm()
+    add_certificate_form = AddCertificateForm()
+    # Populate course choices for the certificate form if the user is an instructor
+    if user.role == 'instructor':
+        add_certificate_form.course_id.choices = [(c.id, c.title) for c in Course.query.filter_by(instructor_id=user.id).all()]
+    else:
+        add_certificate_form.course_id.choices = []
+
+
+    # Data for profile sections
+    certificates = Certificate.query.filter_by(user_id=user.id).order_by(Certificate.issued_at.desc()).all()
+    badges = Badge.query.filter_by(user_id=user.id).all()
+    social_links = SocialLink.query.filter_by(user_id=user.id).all()
 
     # Calculate profile completion
     profile_fields = ['name', 'email', 'profile_pic', 'bio']
@@ -748,7 +762,26 @@ def profile():
     total_fields = len(profile_fields)
     profile_completion = int((completed_fields / total_fields) * 100) if total_fields > 0 else 0
 
-    return render_template('feed/profile.html', user=user, posts=posts, bio_links=bio_links, pinned_post=pinned_post, profile_completion=profile_completion)
+    # Role-specific data
+    courses = []
+    if user.role == 'instructor':
+        courses = Course.query.filter_by(instructor_id=user.id).order_by(Course.created_at.desc()).all()
+    elif user.role == 'student':
+        courses = [enrollment.course for enrollment in user.enrollments.filter_by(status='approved').all()]
+
+    return render_template(
+        'feed/profile.html',
+        user=user,
+        profile_completion=profile_completion,
+        certificates=certificates,
+        badges=badges,
+        social_links=social_links,
+        edit_profile_form=edit_profile_form,
+        add_badge_form=add_badge_form,
+        add_social_link_form=add_social_link_form,
+        add_certificate_form=add_certificate_form,
+        courses=courses
+    )
 
 from models import BlockedUser
 
