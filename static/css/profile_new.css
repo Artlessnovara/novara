@@ -196,6 +196,27 @@ body {
     background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    animation: count-up 2s ease-out;
+}
+
+@keyframes count-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.certificate-card, .detail-card, .social-link-btn {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.certificate-card:hover, .detail-card:hover, .social-link-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Responsive adjustments for stats strip */
