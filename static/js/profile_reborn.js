@@ -41,39 +41,70 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Event Listeners for Modal Triggers ---
-    const editProfileBtn = document.querySelector('.edit-profile-btn');
-    if (editProfileBtn) {
-        editProfileBtn.addEventListener('click', () => openModal('edit-profile-modal'));
-    }
+    document.querySelector('.edit-profile-btn')?.addEventListener('click', () => openModal('edit-profile-modal'));
+    document.querySelector('#add-certificate-btn')?.addEventListener('click', () => openModal('add-certificate-modal'));
+    document.querySelector('#add-badge-btn')?.addEventListener('click', () => openModal('add-badge-modal'));
+    document.querySelector('#add-social-link-btn')?.addEventListener('click', () => openModal('add-social-link-modal'));
+    document.querySelector('.fab')?.addEventListener('click', () => openModal('add-certificate-modal'));
 
-    // This is a placeholder for editing individual details.
-    // A real implementation would need to know which detail is being edited.
-    const editDetailBtns = document.querySelectorAll('.btn-edit-detail');
-    editDetailBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            alert('A modal for this specific item would open.');
-        });
+    // --- AJAX Form Submission ---
+    const handleFormSubmit = async (form, modalId) => {
+        const formData = new FormData(form);
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                closeModal(document.getElementById(modalId));
+                if (modalId === 'edit-profile-modal') {
+                    updateProfileData(data.user);
+                } else {
+                    // For other forms, a reload might still be the simplest option for now
+                    window.location.reload();
+                }
+            } else {
+                // Handle errors, e.g., display them in the modal
+                alert('Error: ' + (data.message || 'An unknown error occurred.'));
+            }
+        } catch (error) {
+            console.error('Form submission error:', error);
+            alert('An unexpected error occurred.');
+        }
+    };
+
+    document.getElementById('edit-profile-modal')?.querySelector('form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleFormSubmit(e.target, 'edit-profile-modal');
+    });
+    document.getElementById('add-badge-modal')?.querySelector('form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleFormSubmit(e.target, 'add-badge-modal');
+    });
+    document.getElementById('add-social-link-modal')?.querySelector('form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleFormSubmit(e.target, 'add-social-link-modal');
+    });
+    document.getElementById('add-certificate-modal')?.querySelector('form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleFormSubmit(e.target, 'add-certificate-modal');
     });
 
-    const addCertBtn = document.querySelector('.certificates-grid + .section-header .btn-add');
-    if(addCertBtn) {
-        addCertBtn.addEventListener('click', () => openModal('add-certificate-modal'));
-    }
+    const updateProfileData = (user) => {
+        // Update profile header
+        document.querySelector('.profile-header h1').textContent = user.name;
+        document.querySelector('.profile-header .text-muted').textContent = `@${user.name.toLowerCase().replace(/\s+/g, '')}`; // A simple username approximation
+        document.querySelector('.profile-bio p').textContent = user.bio;
 
-    const addBadgeBtn = document.querySelector('.badges-carousel + .section-header .btn-add');
-    if(addBadgeBtn) {
-        addBadgeBtn.addEventListener('click', () => openModal('add-badge-modal'));
-    }
-
-    const addSocialLinkBtn = document.querySelector('.social-links-row + .section-header .btn-add');
-    if(addSocialLinkBtn) {
-        addSocialLinkBtn.addEventListener('click', () => openModal('add-social-link-modal'));
-    }
-
-    const fab = document.querySelector('.fab');
-    if(fab) {
-        fab.addEventListener('click', () => openModal('add-certificate-modal'));
-    }
+        // Update profile picture in both the header and the top bar
+        const newPicUrl = `/static/profile_pics/${user.profile_pic}`;
+        document.querySelector('.profile-pic-container img').src = newPicUrl;
+        document.querySelector('.top-bar-right .profile-avatar img').src = newPicUrl; // Assumes this selector is correct
+    };
 
 
     // --- Carousels ---
@@ -81,4 +112,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // A more advanced implementation would use a proper carousel library
     // or custom JS for prev/next buttons and snapping.
     // For now, the native scroll works as a baseline.
+
+    // --- Animate Stat Counters ---
+    const statNumbers = document.querySelectorAll('.stat-number');
+    statNumbers.forEach(stat => {
+        const target = +stat.innerText;
+        stat.innerText = '0';
+        const speed = 200; // Lower is faster
+
+        const updateCount = () => {
+            const count = +stat.innerText;
+            const inc = target / speed;
+
+            if (count < target) {
+                stat.innerText = Math.ceil(count + inc);
+                setTimeout(updateCount, 1);
+            } else {
+                stat.innerText = target;
+            }
+        };
+
+        updateCount();
+    });
 });
