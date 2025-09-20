@@ -11,40 +11,7 @@
     position: relative;
 }
 
-/* Optional: Subtle animated shapes */
-.auth-body::before, .auth-body::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    filter: blur(50px);
-    z-index: 0;
-    animation: float 20s infinite alternate ease-in-out;
-}
-
-.auth-body::before {
-    width: 200px;
-    height: 200px;
-    top: 10%;
-    left: 15%;
-}
-
-.auth-body::after {
-    width: 300px;
-    height: 300px;
-    bottom: 5%;
-    right: 10%;
-    animation-duration: 25s;
-}
-
-@keyframes float {
-    0% {
-        transform: translateY(0px) translateX(0px) rotate(0deg);
-    }
-    100% {
-        transform: translateY(-40px) translateX(30px) rotate(20deg);
-    }
-}
+/* Animations removed for stability */
 
 
 /* --- Form Card (Container) --- */
