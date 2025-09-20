@@ -12,3 +12,5 @@ requests
 Flask-WTF
 APScheduler
 humanize
+pytest
+pytest-playwright
