@@ -749,13 +749,25 @@ def profile():
     total_fields = len(profile_fields)
     profile_completion = int((completed_fields / total_fields) * 100) if total_fields > 0 else 0
 
+    # Forms for modals
+    edit_profile_form = EditProfileForm(obj=current_user)
+    add_badge_form = AddBadgeForm()
+    add_social_link_form = AddSocialLinkForm()
+    add_certificate_form = AddCertificateForm()
+    add_certificate_form.course_id.choices = [(c.id, c.title) for c in Course.query.filter_by(instructor_id=current_user.id).all()]
+
+
     return render_template(
         'profile.html',
         user=current_user,
         certificates=certificates,
         badges=badges,
         social_links=social_links,
-        profile_completion=profile_completion
+        profile_completion=profile_completion,
+        edit_profile_form=edit_profile_form,
+        add_badge_form=add_badge_form,
+        add_social_link_form=add_social_link_form,
+        add_certificate_form=add_certificate_form
     )
 
 from models import BlockedUser
@@ -886,6 +898,26 @@ def delete_social_link(link_id):
     db.session.commit()
     flash('Social link deleted successfully.', 'success')
     return redirect(url_for('main.profile'))
+
+@main.route('/profile/certificate/add', methods=['GET', 'POST'])
+@login_required
+def add_certificate():
+    form = AddCertificateForm()
+    form.course_id.choices = [(c.id, c.title) for c in Course.query.filter_by(instructor_id=current_user.id).all()]
+    if form.validate_on_submit():
+        # In a real app, you would generate a PDF for the certificate
+        # and save it. For now, we'll just create the DB entry.
+        certificate = Certificate(
+            user_id=current_user.id,
+            course_id=form.course_id.data,
+            certificate_uid=secrets.token_hex(16),
+            file_path=f"certificates/{secrets.token_hex(16)}.pdf" # dummy path
+        )
+        db.session.add(certificate)
+        db.session.commit()
+        flash('Certificate added successfully.', 'success')
+        return redirect(url_for('main.profile'))
+    return render_template('forms/add_certificate.html', form=form)
 
 def save_group_icon(form_picture):
     random_hex = os.urandom(8).hex()
