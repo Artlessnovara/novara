@@ -8,8 +8,7 @@ def test_profile_page_screenshot(page: Page, base_url: str):
     # Navigate to the login page
     page.goto(f"{base_url}/login")
 
-    # It's a good practice to use locators that are resilient to changes.
-    # Using name attributes is a good choice.
+    # Fill in the login credentials
     page.locator('input[name="email"]').fill("student@example.com")
     page.locator('input[name="password"]').fill("password")
 
@@ -17,7 +16,6 @@ def test_profile_page_screenshot(page: Page, base_url: str):
     page.locator('button[type="submit"]').click()
 
     # Wait for the navigation to the student dashboard.
-    # Using page.wait_for_url is a reliable way to wait for redirects.
     page.wait_for_url(f"{base_url}/student/dashboard")
 
     # Now that we are logged in, navigate to the profile page
