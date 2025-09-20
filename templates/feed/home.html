@@ -255,11 +255,11 @@
 {% block content %}
 <div class="feed-container">
     <div class="create-post-prompt">
-        <a href="{{ url_for('feed.create_post_page') }}" class="create-post-link">
+        <a href="{{ url_for('feed.create_post') }}" class="create-post-link">
             <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Your Profile Pic" class="profile-pic-small">
             <div class="prompt-text">What's on your mind, {{ current_user.name.split()[0] }}?</div>
         </a>
-        <a href="{{ url_for('feed.create_post_page') }}" class="action-btn"><i class="fas fa-photo-video"></i> Photo/Video</a>
+        <a href="{{ url_for('feed.create_post') }}" class="action-btn"><i class="fas fa-photo-video"></i> Photo/Video</a>
     </div>
 
     <div class="posts-list">

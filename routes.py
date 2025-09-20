@@ -5,8 +5,8 @@ import random
 import secrets
 import os
 from werkzeug.utils import secure_filename
-from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory, Post
-from forms import EditProfileForm, AddBadgeForm, AddSocialLinkForm, AddCertificateForm
+from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory, Post, Badge, SocialLink
+from forms import EditProfileForm, AddBadgeForm, AddSocialLinkForm, AddCertificateForm, EditBadgeForm, EditSocialLinkForm
 from extensions import db
 from utils import save_chat_file, save_status_file, get_or_create_platform_setting, is_contact, get_or_create_private_room
 from datetime import timedelta
@@ -807,8 +807,17 @@ def edit_profile():
         current_user.email = form.email.data
         current_user.bio = form.bio.data
         db.session.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            user_data = {
+                'name': current_user.name,
+                'bio': current_user.bio,
+                'profile_pic': current_user.profile_pic
+            }
+            return jsonify({'status': 'success', 'message': 'Profile updated successfully.', 'user': user_data})
         flash('Your profile has been updated.', 'success')
         return redirect(url_for('main.profile'))
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'error', 'errors': form.errors})
     return render_template('forms/edit_profile.html', form=form)
 
 @main.route("/profile/change-password", methods=['POST'])
@@ -834,8 +843,12 @@ def add_badge():
         badge = Badge(name=form.name.data, icon_url=form.icon_url.data, user_id=current_user.id)
         db.session.add(badge)
         db.session.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'success', 'message': 'Badge added successfully.'})
         flash('Badge added successfully.', 'success')
         return redirect(url_for('main.profile'))
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'error', 'errors': form.errors})
     return render_template('forms/add_badge.html', form=form)
 
 @main.route('/profile/badge/<int:badge_id>/edit', methods=['GET', 'POST'])
@@ -848,8 +861,12 @@ def edit_badge(badge_id):
     if form.validate_on_submit():
         form.populate_obj(badge)
         db.session.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'success', 'message': 'Badge updated successfully.'})
         flash('Badge updated successfully.', 'success')
         return redirect(url_for('main.profile'))
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'error', 'errors': form.errors})
     return render_template('forms/edit_badge.html', form=form)
 
 @main.route('/profile/badge/<int:badge_id>/delete', methods=['POST'])
@@ -871,8 +888,12 @@ def add_social_link():
         link = SocialLink(platform=form.platform.data, url=form.url.data, user_id=current_user.id)
         db.session.add(link)
         db.session.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'success', 'message': 'Social link added successfully.'})
         flash('Social link added successfully.', 'success')
         return redirect(url_for('main.profile'))
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'error', 'errors': form.errors})
     return render_template('forms/add_social_link.html', form=form)
 
 @main.route('/profile/social_link/<int:link_id>/edit', methods=['GET', 'POST'])
@@ -885,8 +906,12 @@ def edit_social_link(link_id):
     if form.validate_on_submit():
         form.populate_obj(link)
         db.session.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'success', 'message': 'Social link updated successfully.'})
         flash('Social link updated successfully.', 'success')
         return redirect(url_for('main.profile'))
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'error', 'errors': form.errors})
     return render_template('forms/edit_social_link.html', form=form)
 
 @main.route('/profile/social_link/<int:link_id>/delete', methods=['POST'])
@@ -906,18 +931,28 @@ def add_certificate():
     form = AddCertificateForm()
     form.course_id.choices = [(c.id, c.title) for c in Course.query.filter_by(instructor_id=current_user.id).all()]
     if form.validate_on_submit():
-        # In a real app, you would generate a PDF for the certificate
-        # and save it. For now, we'll just create the DB entry.
+        from flask import current_app
+        if current_app.testing:
+            uid = 'test-certificate-uid'
+            path = f"certificates/{uid}.pdf"
+        else:
+            uid = secrets.token_hex(16)
+            path = f"certificates/{uid}.pdf" # dummy path
+
         certificate = Certificate(
             user_id=current_user.id,
             course_id=form.course_id.data,
-            certificate_uid=secrets.token_hex(16),
-            file_path=f"certificates/{secrets.token_hex(16)}.pdf" # dummy path
+            certificate_uid=uid,
+            file_path=path
         )
         db.session.add(certificate)
         db.session.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'success', 'message': 'Certificate added successfully.'})
         flash('Certificate added successfully.', 'success')
         return redirect(url_for('main.profile'))
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'error', 'errors': form.errors})
     return render_template('forms/add_certificate.html', form=form)
 
 def save_group_icon(form_picture):

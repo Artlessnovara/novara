@@ -1,4 +1,5 @@
 {% extends "layouts/dashboard_layout.html" %}
+{% from "_form_helpers.html" import render_field %}
 
 {% block title %}{{ user.name }}'s Profile{% endblock %}
 
@@ -55,7 +56,7 @@
     <section class="profile-section">
         <div class="section-header">
             <h2>My Certificates</h2>
-            <button class="btn-add">+ Add</button>
+            <button id="add-certificate-btn" class="btn-add">+ Add</button>
         </div>
         <div class="certificates-grid">
             {% for cert in certificates %}
@@ -72,12 +73,14 @@
             </div>
             {% endfor %}
         </div>
+        <a href="#" class="view-all-link">View All</a>
     </section>
 
     <!-- 5. Achievements / Badges Carousel -->
     <section class="profile-section">
         <div class="section-header">
             <h2>Achievements & Badges</h2>
+            <button id="add-badge-btn" class="btn-add">+ Add</button>
         </div>
         <div class="badges-carousel">
             {% for badge in badges %}
@@ -128,6 +131,7 @@
     <section class="profile-section">
         <div class="section-header">
             <h2>Social Links</h2>
+            <button id="add-social-link-btn" class="btn-add">+ Add</button>
         </div>
         <div class="social-links-row">
             {% for link in social_links %}
