@@ -739,7 +739,7 @@ def profile():
     """
     user = current_user
     posts = Post.query.filter_by(author=user).order_by(Post.timestamp.desc()).all()
-    bio_links = user.bio_links.all()
+    social_links = user.social_links.all()
     pinned_post = user.pinned_post
 
     # Calculate profile completion
@@ -748,7 +748,34 @@ def profile():
     total_fields = len(profile_fields)
     profile_completion = int((completed_fields / total_fields) * 100) if total_fields > 0 else 0
 
-    return render_template('feed/profile.html', user=user, posts=posts, bio_links=bio_links, pinned_post=pinned_post, profile_completion=profile_completion)
+    edit_profile_form = EditProfileForm(obj=user)
+    add_certificate_form = AddCertificateForm()
+
+    # Populate choices for the add certificate form
+    enrolled_courses = [e.course for e in current_user.enrollments if e.status == 'approved']
+    eligible_courses = []
+    for course in enrolled_courses:
+        progress = get_course_progress(current_user, course)
+        # Also check if a certificate for this course has been requested or issued.
+        existing_cert = Certificate.query.filter_by(user_id=current_user.id, course_id=course.id).first()
+        existing_request = CertificateRequest.query.filter_by(user_id=current_user.id, course_id=course.id).first()
+        if progress['can_request_certificate'] and not existing_cert and not existing_request:
+             eligible_courses.append(course)
+    add_certificate_form.course_id.choices = [(c.id, c.title) for c in eligible_courses]
+
+    add_badge_form = AddBadgeForm()
+    add_social_link_form = AddSocialLinkForm()
+
+    return render_template('feed/profile.html',
+                           user=user,
+                           posts=posts,
+                           social_links=social_links,
+                           pinned_post=pinned_post,
+                           profile_completion=profile_completion,
+                           edit_profile_form=edit_profile_form,
+                           add_certificate_form=add_certificate_form,
+                           add_badge_form=add_badge_form,
+                           add_social_link_form=add_social_link_form)
 
 from models import BlockedUser
 
@@ -823,7 +850,12 @@ def add_badge():
         db.session.add(badge)
         db.session.commit()
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'status': 'success', 'message': 'Badge added successfully.'})
+            new_badge_data = {
+                'id': badge.id,
+                'name': badge.name,
+                'icon_url': badge.icon_url or url_for('static', filename='images/course_placeholder.jpg')
+            }
+            return jsonify({'status': 'success', 'message': 'Badge added successfully.', 'badge': new_badge_data})
         flash('Badge added successfully.', 'success')
         return redirect(url_for('main.profile'))
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -868,7 +900,12 @@ def add_social_link():
         db.session.add(link)
         db.session.commit()
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'status': 'success', 'message': 'Social link added successfully.'})
+            new_link_data = {
+                'id': link.id,
+                'platform': link.platform.lower(),
+                'url': link.url
+            }
+            return jsonify({'status': 'success', 'message': 'Social link added successfully.', 'link': new_link_data})
         flash('Social link added successfully.', 'success')
         return redirect(url_for('main.profile'))
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -908,30 +945,55 @@ def delete_social_link(link_id):
 @login_required
 def add_certificate():
     form = AddCertificateForm()
-    form.course_id.choices = [(c.id, c.title) for c in Course.query.filter_by(instructor_id=current_user.id).all()]
+
+    enrolled_courses = [e.course for e in current_user.enrollments if e.status == 'approved']
+    eligible_courses = []
+    for course in enrolled_courses:
+        progress = get_course_progress(current_user, course)
+        existing_cert = Certificate.query.filter_by(user_id=current_user.id, course_id=course.id).first()
+        existing_request = CertificateRequest.query.filter_by(user_id=current_user.id, course_id=course.id).first()
+        if progress['can_request_certificate'] and not existing_cert and not existing_request:
+            eligible_courses.append(course)
+    form.course_id.choices = [(c.id, c.title) for c in eligible_courses]
+
     if form.validate_on_submit():
-        from flask import current_app
-        if current_app.testing:
-            uid = 'test-certificate-uid'
-            path = f"certificates/{uid}.pdf"
-        else:
-            uid = secrets.token_hex(16)
-            path = f"certificates/{uid}.pdf" # dummy path
+        course_id = form.course_id.data
+        course = Course.query.get(course_id)
+
+        if not course or course not in eligible_courses:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'status': 'error', 'message': 'Invalid or ineligible course selected.'})
+            flash('Invalid or ineligible course selected.', 'danger')
+            return redirect(url_for('main.profile'))
+
+        uid = secrets.token_hex(16)
+        path = f"certificates/{uid}.pdf"
 
         certificate = Certificate(
             user_id=current_user.id,
-            course_id=form.course_id.data,
+            course_id=course.id,
             certificate_uid=uid,
             file_path=path
         )
         db.session.add(certificate)
         db.session.commit()
+
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'status': 'success', 'message': 'Certificate added successfully.'})
+            new_cert_data = {
+                'title': certificate.course.title,
+                'issuer': certificate.course.instructor.name,
+                'issued_date': certificate.issued_at.strftime('%B %Y'),
+                'view_url': '#',
+                'id': certificate.id
+            }
+            return jsonify({'status': 'success', 'message': 'Certificate added successfully.', 'certificate': new_cert_data})
+
         flash('Certificate added successfully.', 'success')
         return redirect(url_for('main.profile'))
+
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'error', 'errors': form.errors})
+
     return render_template('forms/add_certificate.html', form=form)
 
 def save_group_icon(form_picture):

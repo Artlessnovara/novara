@@ -26,4 +26,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // Apply saved theme on page load
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
+
+    // Animated counters
+    const counters = document.querySelectorAll('.animated-counter');
+    counters.forEach(counter => {
+        const target = +counter.getAttribute('data-target');
+        const duration = 2000; // 2 seconds
+        const stepTime = 20; // 50 steps per second
+        const totalSteps = duration / stepTime;
+        const increment = target / totalSteps;
+        let current = 0;
+
+        const updateCounter = () => {
+            current += increment;
+            if (current >= target) {
+                counter.innerText = target + (counter.innerText.includes('%') ? '%' : '');
+            } else {
+                counter.innerText = Math.ceil(current) + (counter.innerText.includes('%') ? '%' : '');
+                setTimeout(updateCounter, stepTime);
+            }
+        };
+        updateCounter();
+    });
 });

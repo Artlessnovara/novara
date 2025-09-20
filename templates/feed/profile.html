@@ -32,15 +32,15 @@
     <div class="profile-stats">
         <div class="stat-card">
             <h3>Profile Completion</h3>
-            <p class="stat-number">85%</p>
+            <p class="stat-number animated-counter" data-target="{{ profile_completion }}">{{ profile_completion }}%</p>
         </div>
         <div class="stat-card">
             <h3>Certificates</h3>
-            <p class="stat-number">{{ user.certificates.count() }}</p>
+            <p class="stat-number animated-counter" data-target="{{ user.certificates.count() }}">{{ user.certificates.count() }}</p>
         </div>
         <div class="stat-card">
             <h3>Badges</h3>
-            <p class="stat-number">{{ user.badges.count() }}</p>
+            <p class="stat-number animated-counter" data-target="{{ user.badges.count() }}">{{ user.badges.count() }}</p>
         </div>
     </div>
 
@@ -68,6 +68,7 @@
     <div class="profile-badges">
         <div class="section-header">
             <h2>Achievements & Badges</h2>
+            <button class="btn-add" data-modal="add-badge-modal">+ Add</button>
         </div>
         <div class="badges-carousel">
             {% for badge in user.badges %}
@@ -106,6 +107,7 @@
     <div class="profile-social-links">
         <div class="section-header">
             <h2>Social Links</h2>
+            <button class="btn-add" data-modal="add-social-link-modal">+ Add</button>
         </div>
         <div class="social-links-row">
             {% for link in user.social_links %}
@@ -118,4 +120,105 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Profile Modal -->
+<div id="edit-profile-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Edit Profile</h2>
+        <form id="edit-profile-form" action="{{ url_for('main.edit_profile') }}" method="post" enctype="multipart/form-data">
+            {{ edit_profile_form.hidden_tag() }}
+            <div class="form-group">
+                {{ edit_profile_form.name.label }}
+                {{ edit_profile_form.name(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ edit_profile_form.email.label }}
+                {{ edit_profile_form.email(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ edit_profile_form.bio.label }}
+                {{ edit_profile_form.bio(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ edit_profile_form.profile_pic.label }}
+                {{ edit_profile_form.profile_pic(class="form-control-file") }}
+            </div>
+            <div class="form-group">
+                {{ edit_profile_form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Certificate Modal -->
+<div id="add-certificate-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Add Certificate</h2>
+        <form id="add-certificate-form" action="{{ url_for('main.add_certificate') }}" method="post">
+            {{ add_certificate_form.hidden_tag() }}
+            <div class="form-group">
+                {{ add_certificate_form.course_id.label }}
+                {{ add_certificate_form.course_id(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ add_certificate_form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Badge Modal -->
+<div id="add-badge-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Add Badge</h2>
+        <form id="add-badge-form" action="{{ url_for('main.add_badge') }}" method="post">
+            {% if add_badge_form %}
+            {{ add_badge_form.hidden_tag() }}
+            <div class="form-group">
+                {{ add_badge_form.name.label }}
+                {{ add_badge_form.name(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ add_badge_form.icon_url.label }}
+                {{ add_badge_form.icon_url(class="form-control", placeholder="https://example.com/icon.png") }}
+            </div>
+            <div class="form-group">
+                {{ add_badge_form.submit(class="btn btn-primary") }}
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Add Social Link Modal -->
+<div id="add-social-link-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>Add Social Link</h2>
+        <form id="add-social-link-form" action="{{ url_for('main.add_social_link') }}" method="post">
+            {% if add_social_link_form %}
+            {{ add_social_link_form.hidden_tag() }}
+            <div class="form-group">
+                {{ add_social_link_form.platform.label }}
+                {{ add_social_link_form.platform(class="form-control", placeholder="e.g., twitter, linkedin, github") }}
+            </div>
+            <div class="form-group">
+                {{ add_social_link_form.url.label }}
+                {{ add_social_link_form.url(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ add_social_link_form.submit(class="btn btn-primary") }}
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/profile_new.js') }}"></script>
 {% endblock %}

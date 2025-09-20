@@ -1,6 +1,7 @@
-from playwright.sync_api import sync_playwright, expect
+from playwright.sync_api import sync_playwright
 import random
 import string
+import time
 
 def random_string(length=10):
     letters = string.ascii_lowercase
@@ -11,38 +12,49 @@ def run(playwright):
     context = browser.new_context()
     page = context.new_page()
 
-    # Register a new student user
-    email = f"student_{random_string()}@example.com"
-    password = "password"
-    page.goto("http://127.0.0.1:5000/register")
-    page.get_by_label("Name").fill("Test Student")
-    page.get_by_label("Email").fill(email)
-    page.get_by_label("Password").fill(password)
-    page.get_by_label("Role").select_option("student")
-    page.get_by_role("button", name="Register").click()
+    try:
+        # Go to register page
+        page.goto("http://127.0.0.1:5000/register", timeout=60000)
 
-    # Log in
-    page.goto("http://127.0.0.1:5000/login")
-    page.get_by_label("Email").fill(email)
-    page.get_by_label("Password").fill(password)
-    page.get_by_role("button", name="Login").click()
+        # Register a new student user
+        email = f"student_{random_string()}@example.com"
+        password = "password"
+        page.get_by_label("Name").fill("Test Student")
+        page.get_by_label("Email").fill(email)
+        page.get_by_label("Password").fill(password)
+        page.locator('select#role').select_option('student')
+        page.get_by_role("button", name="Create Account").click()
 
-    # Go to the profile page
-    page.goto("http://127.0.0.1:5000/profile")
+        # After registration, we should be on the login page.
+        # Wait for the login form to be visible to confirm redirection.
+        page.wait_for_selector('form[action="/login"]')
 
-    # Desktop Screenshot
-    page.set_viewport_size({"width": 1440, "height": 900})
-    page.screenshot(path="jules-scratch/verification/desktop.png")
+        # Log in
+        page.get_by_label("Email").fill(email)
+        page.get_by_label("Password").fill(password)
+        page.get_by_role("button", name="Sign In").click()
 
-    # Tablet Screenshot
-    page.set_viewport_size({"width": 768, "height": 1024})
-    page.screenshot(path="jules-scratch/verification/tablet.png")
+        # Wait for navigation to the student dashboard
+        page.wait_for_url("**/student/dashboard", timeout=60000)
 
-    # Mobile Screenshot
-    page.set_viewport_size({"width": 375, "height": 812})
-    page.screenshot(path="jules-scratch/verification/mobile.png")
+        # Go to the profile page
+        page.goto("http://127.0.0.1:5000/profile", timeout=60000)
 
-    browser.close()
+        # Wait for a key element of the new profile page to be visible
+        page.wait_for_selector('.profile-header-content')
+        time.sleep(2) # Wait for animations to settle
+
+        # Take a single screenshot
+        page.screenshot(path="profile_screenshot.png")
+
+        print("Screenshot taken successfully.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        page.screenshot(path="error_screenshot.png")
+    finally:
+        browser.close()
+
 
 with sync_playwright() as playwright:
     run(playwright)

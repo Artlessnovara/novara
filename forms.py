@@ -91,6 +91,5 @@ class EditSocialLinkForm(FlaskForm):
     submit = SubmitField('Save Changes')
 
 class AddCertificateForm(FlaskForm):
-    title = StringField('Certificate Title', validators=[DataRequired(), Length(max=150)])
-    course_id = SelectField('Course', coerce=int, validators=[DataRequired()])
+    course_id = SelectField('Course', coerce=int, validators=[DataRequired(message="Please select a course.")])
     submit = SubmitField('Add Certificate')

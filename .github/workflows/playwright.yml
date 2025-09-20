@@ -1,0 +1,39 @@
+name: E2E Profile Screenshot Test
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Install Playwright browsers
+      run: playwright install
+
+    - name: Run app in background
+      run: |
+        export FLASK_APP=app.py
+        export FLASK_ENV=development
+        flask run &
+        sleep 5 # Give the server a moment to start
+
+    - name: Run Playwright test
+      run: |
+        python jules-scratch/verification/verify_profile_page.py
+
+    - name: Upload screenshot artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: profile-screenshot
+        path: profile_screenshot.png
