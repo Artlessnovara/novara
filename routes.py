@@ -731,45 +731,24 @@ def save_picture(form_picture):
 
     return picture_fn
 
-@main.route("/profile")
+@main.route('/profile')
 @login_required
 def profile():
-    # Fetch earned certificates
-    certificates = current_user.certificates.order_by(Certificate.issued_at.desc()).all()
-
-    # Fetch earned badges
-    badges = current_user.badges.all()
-
-    # Fetch social links
-    social_links = current_user.social_links.all()
+    """
+    Renders the new feed-centric profile page for the current user.
+    """
+    user = current_user
+    posts = Post.query.filter_by(author=user).order_by(Post.timestamp.desc()).all()
+    bio_links = user.bio_links.all()
+    pinned_post = user.pinned_post
 
     # Calculate profile completion
-    # This is a simplified example. A real implementation would be more robust.
     profile_fields = ['name', 'email', 'profile_pic', 'bio']
-    completed_fields = sum([1 for field in profile_fields if getattr(current_user, field)])
+    completed_fields = sum([1 for field in profile_fields if getattr(user, field)])
     total_fields = len(profile_fields)
     profile_completion = int((completed_fields / total_fields) * 100) if total_fields > 0 else 0
 
-    # Forms for modals
-    edit_profile_form = EditProfileForm(obj=current_user)
-    add_badge_form = AddBadgeForm()
-    add_social_link_form = AddSocialLinkForm()
-    add_certificate_form = AddCertificateForm()
-    add_certificate_form.course_id.choices = [(c.id, c.title) for c in Course.query.filter_by(instructor_id=current_user.id).all()]
-
-
-    return render_template(
-        'profile.html',
-        user=current_user,
-        certificates=certificates,
-        badges=badges,
-        social_links=social_links,
-        profile_completion=profile_completion,
-        edit_profile_form=edit_profile_form,
-        add_badge_form=add_badge_form,
-        add_social_link_form=add_social_link_form,
-        add_certificate_form=add_certificate_form
-    )
+    return render_template('feed/profile.html', user=user, posts=posts, bio_links=bio_links, pinned_post=pinned_post, profile_completion=profile_completion)
 
 from models import BlockedUser
 
