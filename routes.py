@@ -1546,6 +1546,33 @@ def student_dashboard():
                            latest_exam_submission=ExamSubmission.query.filter_by(student_id=current_user.id).order_by(ExamSubmission.id.desc()).first(),
                            chart_data=get_chart_data(current_user.id))
 
+@main.route('/student/my-courses')
+@login_required
+def my_courses():
+    if current_user.role != 'student':
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.home'))
+
+    enrollments = current_user.enrollments.filter_by(status='approved').all()
+    enrollment_data = []
+    for enrollment in enrollments:
+        progress_data = get_course_progress(current_user, enrollment.course)
+        total_items = len(progress_data['quizzes']) + len(progress_data['assignments'])
+        completed_items = 0
+        if total_items > 0:
+            completed_items += sum(1 for q in progress_data['quizzes'] if q['passed'])
+            completed_items += sum(1 for a in progress_data['assignments'] if a['approved'])
+            progress_data['percentage'] = (completed_items / total_items) * 100
+        else:
+            progress_data['percentage'] = 0
+
+        enrollment_data.append({
+            'enrollment': enrollment,
+            'progress': progress_data
+        })
+
+    return render_template('my_courses.html', enrollment_data=enrollment_data)
+
 def get_chart_data(student_id):
     # Fetch latest 10 exam submissions, sorted by submission time
     exam_submissions = ExamSubmission.query.filter(
