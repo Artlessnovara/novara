@@ -1553,8 +1553,8 @@ def student_dashboard():
                            upcoming_assignments=upcoming_assignments,
                            badges=Badge.query.filter_by(user_id=current_user.id).order_by(Badge.id.desc()).limit(5).all(),
                            latest_quiz_submission=QuizSubmission.query.filter_by(student_id=current_user.id).order_by(QuizSubmission.id.desc()).first(),
-                           latest_exam_submission=ExamSubmission.query.filter_by(student_id=current_user.id).order_by(ExamSubmission.id.desc()).first()),
-                           chart_data=get_chart_data(current_user.id)
+                           latest_exam_submission=ExamSubmission.query.filter_by(student_id=current_user.id).order_by(ExamSubmission.id.desc()).first(),
+                           chart_data=get_chart_data(current_user.id))
 
 @main.route('/student/my-courses')
 @login_required
