@@ -690,14 +690,24 @@ def add_assignment(module_id):
     description = request.form.get('description')
     submission_type = request.form.get('submission_type')
     max_file_size = request.form.get('max_file_size', type=int)
+    due_date_str = request.form.get('due_date')
 
     if title and description and submission_type:
+        due_date = None
+        if due_date_str:
+            try:
+                due_date = datetime.fromisoformat(due_date_str)
+            except ValueError:
+                flash('Invalid date format for due date.', 'danger')
+                return redirect(url_for('instructor.manage_course', course_id=module.course_id))
+
         new_assignment = Assignment(
             title=title,
             description=description,
             module_id=module.id,
             submission_type=submission_type,
-            max_file_size=max_file_size
+            max_file_size=max_file_size,
+            due_date=due_date
         )
         db.session.add(new_assignment)
         db.session.commit()
@@ -718,6 +728,16 @@ def edit_assignment(assignment_id):
     assignment.description = request.form.get('description')
     assignment.submission_type = request.form.get('submission_type')
     assignment.max_file_size = request.form.get('max_file_size', type=int)
+    due_date_str = request.form.get('due_date')
+    if due_date_str:
+        try:
+            assignment.due_date = datetime.fromisoformat(due_date_str)
+        except ValueError:
+            flash('Invalid date format for due date.', 'danger')
+            return redirect(url_for('instructor.manage_course', course_id=assignment.module.course_id))
+    else:
+        assignment.due_date = None
+
     db.session.commit()
     flash('Assignment updated successfully.', 'success')
     return redirect(url_for('instructor.manage_course', course_id=assignment.module.course_id))
