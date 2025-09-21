@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Scholars Novara Institute{% endblock %}</title>
 
-    <!-- Google Fonts: Poppins -->
+    <!-- Google Fonts: Poppins, Merriweather, Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Merriweather:wght@400;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
@@ -22,10 +22,6 @@
     <!-- Page-specific styles -->
     {% block styles %}{% endblock %}
 
-    <!-- Load Ice Sky Theme only if not on the new profile page -->
-    {% if request.endpoint != 'main.profile' %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ice_sky_theme.css') }}">
-    {% endif %}
 
     <!-- Load admin-specific styles if on an admin page -->
     {% if request.endpoint and request.endpoint.startswith('admin.') %}

@@ -1,25 +1,23 @@
 from playwright.sync_api import sync_playwright, expect
 
-def run(playwright):
-    browser = playwright.chromium.launch(headless=True)
-    context = browser.new_context()
-    page = context.new_page()
+def main():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
 
-    # Go to the login page
-    page.goto("http://localhost:5000/login")
+        # Log in
+        page.goto("http://127.0.0.1:5000/login")
+        page.fill('input[name="email"]', "student@example.com")
+        page.fill('input[name="password"]', "password")
+        page.get_by_role("button", name="Sign In").click()
 
-    # Fill in the login form
-    page.get_by_label("Email").fill("student@example.com")
-    page.get_by_label("Password").fill("password")
-    page.get_by_role("button", name="Login").click()
+        # Wait for navigation to the dashboard
+        expect(page).to_have_url("http://127.0.0.1:5000/student/dashboard")
 
-    # Wait for navigation to the dashboard and check the welcome message
-    expect(page.get_by_role("heading", name="Welcome back, Test!")).to_be_visible()
+        # Take a screenshot of the student dashboard
+        page.screenshot(path="jules-scratch/verification/student_dashboard.png")
 
-    # Take a screenshot of the dashboard
-    page.screenshot(path="jules-scratch/verification/dashboard_screenshot.png")
+        browser.close()
 
-    browser.close()
-
-with sync_playwright() as playwright:
-    run(playwright)
+if __name__ == "__main__":
+    main()

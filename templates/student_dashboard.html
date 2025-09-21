@@ -3,8 +3,8 @@
 {% block dashboard_content %}
 <!-- Header -->
 <div class="content-header">
-    <h1 class="fade-in">Welcome back, {{ current_user.name.split(' ')[0] }}!</h1>
-    <p class="fade-in" style="animation-delay: 0.2s;">Your personalized student dashboard.</p>
+    <h1>Welcome back, {{ current_user.name.split(' ')[0] }}!</h1>
+    <p>Your personalized student dashboard.</p>
 </div>
 
 <!-- Horizontal Navigation -->
@@ -23,7 +23,7 @@
     <!-- Left Column -->
     <div class="grid-col-left">
         <!-- Progress Overview -->
-        <div class="card fade-in" style="animation-delay: 0.4s;">
+        <div class="card">
             <div class="card-header">
                 <h3>Progress Overview</h3>
             </div>
@@ -46,7 +46,7 @@
         </div>
 
         <!-- My Courses -->
-        <div class="card fade-in" style="animation-delay: 0.6s;">
+        <div class="card">
             <div class="card-header">
                 <h3>My Courses</h3>
                 <a href="{{ url_for('main.courses') }}" class="view-all-link">View All</a>
@@ -75,7 +75,7 @@
         </div>
 
         <!-- Achievements -->
-        <div class="card fade-in" style="animation-delay: 0.7s;">
+        <div class="card">
             <div class="card-header">
                 <h3>Achievements</h3>
                 <a href="{{ url_for('main.profile') }}" class="view-all-link">View All</a>
@@ -100,7 +100,7 @@
     <!-- Right Column -->
     <div class="grid-col-right">
         <!-- Profile Completion -->
-        <div class="card fade-in" style="animation-delay: 0.5s;">
+        <div class="card">
             <div class="card-header">
                 <h3>Profile Completion</h3>
             </div>
@@ -117,7 +117,7 @@
         </div>
 
         <!-- Quick Links -->
-        <div class="card fade-in" style="animation-delay: 0.8s;">
+        <div class="card">
             <div class="card-header">
                 <h3>Quick Links</h3>
             </div>
@@ -131,7 +131,7 @@
         </div>
 
         <!-- Score History -->
-        <div class="card fade-in" style="animation-delay: 0.9s;">
+        <div class="card">
             <div class="card-header">
                 <h3>Score History</h3>
             </div>
@@ -141,7 +141,7 @@
         </div>
 
         <!-- Upcoming Deadlines -->
-        <div class="card fade-in" style="animation-delay: 1.0s;">
+        <div class="card">
             <div class="card-header">
                 <h3>Upcoming Deadlines</h3>
                 <a href="{{ url_for('main.assignments') }}" class="view-all-link">View All</a>
