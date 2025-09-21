@@ -1,0 +1,218 @@
+/* Academic Theme */
+
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #f1f3f5;
+
+    --color-primary: #002147; /* Deep Blue */
+    --color-secondary: #5c677d;
+    --color-accent: #003366; /* Muted Blue */
+
+    --divider: #e6e6e6; /* Light Grey */
+    --divider-light: #f1f3f5;
+
+    --font-heading: 'Merriweather', serif;
+    --font-body: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--bg-primary);
+    font-family: var(--font-body);
+    color: var(--color-secondary);
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: var(--font-heading);
+    color: var(--color-primary);
+}
+
+/* Override sidebar colors */
+.sidebar {
+    background-color: var(--color-primary);
+}
+
+.sidebar-header .logo {
+    color: var(--bg-primary);
+}
+
+.sidebar-nav a {
+    color: #e5e7eb;
+}
+
+.sidebar-nav a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.sidebar-nav a.active {
+    color: #ffffff;
+    background-color: var(--color-accent);
+}
+
+.sidebar-nav a.active::before {
+    background-color: #ffffff;
+}
+
+/* Main content */
+.main-wrapper {
+    background-color: var(--bg-primary);
+}
+
+.main-content {
+    min-height: 100vh;
+}
+
+.top-bar {
+    background-color: var(--bg-primary);
+    border-bottom: 1px solid var(--divider);
+}
+
+.search-bar {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--divider);
+}
+
+.search-bar input {
+    color: var(--color-primary);
+}
+
+.icon-btn {
+    color: var(--color-secondary);
+}
+
+.profile-avatar img {
+    border: 2px solid var(--divider);
+}
+
+/* Card adjustments */
+.card {
+    border: 1px solid var(--divider);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    padding: 2rem; /* More generous padding */
+    background-color: var(--bg-primary);
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.card .card-header {
+    background-color: transparent;
+    border-bottom: 1px solid var(--divider);
+    padding: 0 0 1.5rem 0;
+    margin-bottom: 1.5rem;
+}
+
+.card .card-header h3 {
+    font-size: 1.25rem;
+    color: var(--color-primary);
+}
+
+.content-header h1 {
+    color: var(--color-primary);
+}
+
+.content-header p {
+    color: var(--color-secondary);
+}
+
+
+/* Icon adjustments */
+.quick-links-list li a i {
+    color: var(--color-accent);
+}
+
+/* Button adjustments */
+.btn-primary-gradient {
+    background: var(--color-accent);
+    box-shadow: none;
+    border: none;
+    color: white;
+}
+
+.btn-secondary {
+    border-color: var(--divider);
+    background-color: var(--bg-primary);
+    color: var(--color-accent);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-secondary);
+}
+
+/* Table adjustments */
+.assignments-table th, .assignments-table td {
+    border-bottom: 1px solid var(--divider);
+}
+
+.assignments-table thead th {
+    font-family: var(--font-body);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    color: var(--color-primary);
+}
+
+.assignments-table tbody tr:nth-child(even) {
+    background-color: var(--bg-secondary);
+}
+
+/* Active tab */
+.dashboard-nav .nav-tab.active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+}
+
+.dashboard-nav .nav-tab {
+    color: var(--color-secondary);
+}
+
+.dashboard-nav {
+    border-bottom-color: var(--divider);
+}
+
+/* Progress bar */
+.progress-bar-wrapper {
+    background-color: var(--bg-tertiary);
+}
+
+.progress-bar-gradient {
+    background: var(--color-accent);
+}
+
+/* Course item */
+.course-item-new {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--divider);
+}
+
+.course-info .course-title {
+    color: var(--color-primary);
+}
+
+.stat-item .stat-value {
+    color: var(--color-primary);
+}
+
+.circular-progress .progress-text {
+    color: var(--color-primary);
+}
+
+.deadline-title {
+    color: var(--color-primary);
+}
+
+.deadline-date .date-day {
+    color: var(--color-accent);
+}
+
+.achievement-name {
+    color: var(--color-primary);
+}
+
+.view-all-link {
+    color: var(--color-accent);
+}
