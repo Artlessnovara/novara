@@ -1658,6 +1658,16 @@ def grades():
 
     return render_template('grades.html', grades_data=grades_data)
 
+@main.route('/student/certificates')
+@login_required
+def certificates():
+    if current_user.role != 'student':
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.home'))
+
+    certificates = Certificate.query.filter_by(user_id=current_user.id).order_by(Certificate.issued_at.desc()).all()
+    return render_template('certificates.html', certificates=certificates)
+
 def get_chart_data(student_id):
     # Fetch latest 10 exam submissions, sorted by submission time
     exam_submissions = ExamSubmission.query.filter(
@@ -1750,10 +1760,15 @@ def request_certificate(course_id):
     flash('Your certificate request has been submitted for approval.', 'success')
     return redirect(url_for('main.student_dashboard'))
 
-@main.route('/placeholder')
+@main.route('/student/certificate/<int:certificate_id>/download')
 @login_required
-def placeholder():
-    return render_template('placeholder.html')
+def download_certificate(certificate_id):
+    certificate = Certificate.query.get_or_404(certificate_id)
+    if certificate.user_id != current_user.id:
+        abort(403)
+
+    # Assuming certificates are stored in a 'certificates' directory in 'static'
+    return send_from_directory(os.path.join(current_app.root_path, 'static'), certificate.file_path, as_attachment=True)
 
 @main.route('/pending_approval')
 @login_required
@@ -1956,6 +1971,23 @@ def seed_db():
     lib1 = LibraryMaterial(uploader_id=instructor1.id, category_id=cat1.id, title='Flask Cheatsheet', price_naira=500, file_path='flask_cheatsheet.pdf', approved=True)
     lib2 = LibraryMaterial(uploader_id=instructor2.id, category_id=cat2.id, title='Data Science Intro', price_naira=1000, file_path='ds_intro.pdf', approved=False)
     db.session.add_all([lib1, lib2])
+
+    # Enroll student in the course
+    enrollment1 = Enrollment(user_id=student1.id, course_id=c1.id, status='approved')
+    db.session.add(enrollment1)
+
+    # Add an assignment and submission for testing
+    assignment1 = Assignment(module_id=mod1_c1.id, title='Setup Your Environment', description='<p>Follow the installation guide to set up your Flask environment.</p>')
+    db.session.add(assignment1)
+    db.session.commit()
+
+    submission1 = AssignmentSubmission(assignment_id=assignment1.id, student_id=student1.id, text_submission='Environment setup complete.', grade='A')
+    db.session.add(submission1)
+
+    # Add a certificate for testing
+    certificate1 = Certificate(user_id=student1.id, course_id=c2.id, certificate_uid='test-cert-123', file_path='certificates/sample.pdf')
+    db.session.add(certificate1)
+
     db.session.commit()
 
     flash('Database has been cleared and re-seeded with sample data.')
@@ -2357,6 +2389,11 @@ def upload_wallpaper():
         return jsonify({'status': 'success', 'filepath': filepath})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@main.route('/placeholder')
+@login_required
+def placeholder():
+    return render_template('placeholder.html')
 
 @main.route('/api/upload_status_voice', methods=['POST'])
 @login_required
