@@ -38,7 +38,9 @@ def secure_embeds_filter(html_content):
     return Markup(str(soup))
 
 def create_app(config_object=None):
+    print("Creating app...")
     app = Flask(__name__)
+    print("Flask app created.")
 
     if config_object:
         app.config.from_object(config_object)

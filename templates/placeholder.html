@@ -1,0 +1,25 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="content-header">
+    <h1 class="fade-in">Coming Soon</h1>
+    <p class="fade-in" style="animation-delay: 0.2s;">This feature is under construction.</p>
+</div>
+
+<!-- Horizontal Navigation -->
+<nav class="dashboard-nav">
+    <a href="{{ url_for('main.student_dashboard') }}" class="nav-tab">Dashboard</a>
+    <a href="{{ url_for('main.my_courses') }}" class="nav-tab">My Courses</a>
+    <a href="{{ url_for('main.assignments') }}" class="nav-tab">Assignments</a>
+    <a href="{{ url_for('main.grades') }}" class="nav-tab">Grades</a>
+    <a href="{{ url_for('main.certificates') }}" class="nav-tab">Certificates</a>
+    <a href="{{ url_for('main.placeholder') }}" class="nav-tab active">Announcements</a>
+</nav>
+
+<div style="text-align: center; padding: 4rem;">
+    <i class="fas fa-tools" style="font-size: 4rem; color: var(--color-secondary);"></i>
+    <h2 style="margin-top: 1rem; color: var(--color-primary);">Under Construction</h2>
+    <p style="color: var(--color-secondary);">We're working hard to bring you this feature. Please check back later!</p>
+</div>
+{% endblock %}
