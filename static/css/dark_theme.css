@@ -1,4 +1,4 @@
-body.dark-mode {
+[data-theme="dark"] {
     --bg-primary: #18191A;       /* deep charcoal */
     --bg-secondary: #242526;     /* lighter dark gray */
     --bg-tertiary: #3A3B3C;      /* comment box bg */
@@ -9,78 +9,78 @@ body.dark-mode {
 }
 
 /* Override general styles for dark mode */
-.dark-mode .sidebar {
+[data-theme="dark"] .sidebar {
     background-color: var(--bg-secondary);
     border-right: 1px solid var(--divider);
 }
 
-.dark-mode .sidebar-header,
-.dark-mode .sidebar-footer {
+[data-theme="dark"] .sidebar-header,
+[data-theme="dark"] .sidebar-footer {
     border-color: var(--divider);
 }
 
-.dark-mode .sidebar-nav a:hover {
+[data-theme="dark"] .sidebar-nav a:hover {
     background-color: var(--bg-tertiary);
 }
 
-.dark-mode .sidebar-nav a {
+[data-theme="dark"] .sidebar-nav a {
     color: var(--color-primary);
 }
 
-.dark-mode .top-bar {
+[data-theme="dark"] .top-bar {
     background-color: var(--bg-secondary);
     border-bottom: 1px solid var(--divider);
 }
 
-.dark-mode .search-bar {
+[data-theme="dark"] .search-bar {
     background-color: var(--bg-tertiary);
     border-color: var(--divider);
 }
 
-.dark-mode .search-bar input,
-.dark-mode .search-bar input::placeholder {
+[data-theme="dark"] .search-bar input,
+[data-theme="dark"] .search-bar input::placeholder {
     color: var(--color-secondary);
 }
 
-.dark-mode .icon-btn {
+[data-theme="dark"] .icon-btn {
     color: var(--color-primary);
 }
 
-.dark-mode .card {
+[data-theme="dark"] .card {
     background-color: var(--bg-secondary);
-    border: none; /* Remove border if not needed, rely on bg color */
-    box-shadow: none;
+    border: 1px solid var(--divider);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
 }
 
-.dark-mode .card-header {
+[data-theme="dark"] .card-header {
     border-color: var(--divider);
 }
 
 /* Discover Feed Specific Dark Mode Styles */
-.dark-mode .discover-top-bar {
+[data-theme="dark"] .discover-top-bar {
     background-color: var(--bg-secondary);
     border-color: var(--divider);
 }
 
-.dark-mode .post-card {
+[data-theme="dark"] .post-card {
     background-color: var(--bg-secondary);
 }
 
-.dark-mode .post-author-info .timestamp,
-.dark-mode .post-action {
+[data-theme="dark"] .post-author-info .timestamp,
+[data-theme="dark"] .post-action {
     color: var(--color-secondary);
 }
 
-.dark-mode .see-more-btn,
-.dark-mode .post-action:hover {
+[data-theme="dark"] .see-more-btn,
+[data-theme="dark"] .post-action:hover {
     color: var(--color-accent);
 }
 
-.dark-mode .post-actions {
+[data-theme="dark"] .post-actions {
     border-color: var(--divider);
 }
 
-.dark-mode .comment-input {
+[data-theme="dark"] .comment-input {
     background-color: var(--bg-tertiary);
     color: var(--color-primary);
 }
