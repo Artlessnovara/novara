@@ -1573,6 +1573,34 @@ def my_courses():
 
     return render_template('my_courses.html', enrollment_data=enrollment_data)
 
+@main.route('/student/assignments')
+@login_required
+def assignments():
+    if current_user.role != 'student':
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.home'))
+
+    assignments_data = []
+    enrollments = current_user.enrollments.filter_by(status='approved').all()
+    for enrollment in enrollments:
+        course = enrollment.course
+        for module in course.modules:
+            if module.assignment:
+                assignment = module.assignment
+                submission = AssignmentSubmission.query.filter_by(
+                    student_id=current_user.id,
+                    assignment_id=assignment.id
+                ).first()
+                assignments_data.append({
+                    'course_title': course.title,
+                    'assignment_title': assignment.title,
+                    'due_date': 'N/A',  # Assignment model doesn't have a due date yet
+                    'status': submission.grade if submission and submission.grade else ('Submitted' if submission else 'Pending'),
+                    'assignment_id': assignment.id
+                })
+
+    return render_template('assignments.html', assignments_data=assignments_data)
+
 def get_chart_data(student_id):
     # Fetch latest 10 exam submissions, sorted by submission time
     exam_submissions = ExamSubmission.query.filter(
