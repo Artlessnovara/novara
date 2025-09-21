@@ -1,30 +1,59 @@
 [data-theme="dark"] {
-    --bg-primary: #18191A;       /* deep charcoal */
-    --bg-secondary: #242526;     /* lighter dark gray */
-    --bg-tertiary: #3A3B3C;      /* comment box bg */
-    --color-primary: #E4E6EB;    /* off-white */
-    --color-secondary: #B0B3B8;  /* light gray */
-    --color-accent: #2D88FF;     /* Facebook blue */
+    --bg-primary: #18191A;
+    --bg-secondary: #242526;
+    --bg-tertiary: #3A3B3C;
+    --color-primary: #E4E6EB;
+    --color-secondary: #B0B3B8;
+    --color-accent: #2D88FF;
     --divider: #3A3B3C;
 }
 
-/* Override general styles for dark mode */
+/* Override academic theme for dark mode */
+[data-theme="dark"] body {
+    background-color: var(--bg-primary);
+    color: var(--color-secondary);
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] .h1,
+[data-theme="dark"] .h2,
+[data-theme="dark"] .h3,
+[data-theme="dark"] .h4,
+[data-theme="dark"] .h5,
+[data-theme="dark"] .h6 {
+    color: var(--color-primary);
+}
+
 [data-theme="dark"] .sidebar {
     background-color: var(--bg-secondary);
     border-right: 1px solid var(--divider);
 }
 
-[data-theme="dark"] .sidebar-header,
-[data-theme="dark"] .sidebar-footer {
-    border-color: var(--divider);
+[data-theme="dark"] .sidebar-header .logo {
+    color: var(--color-primary);
+}
+
+[data-theme="dark"] .sidebar-nav a {
+    color: var(--color-secondary);
 }
 
 [data-theme="dark"] .sidebar-nav a:hover {
     background-color: var(--bg-tertiary);
+    color: var(--color-primary);
 }
 
-[data-theme="dark"] .sidebar-nav a {
-    color: var(--color-primary);
+[data-theme="dark"] .sidebar-nav a.active {
+    color: var(--color-accent);
+    background-color: transparent;
+}
+
+[data-theme="dark"] .sidebar-nav a.active::before {
+    background-color: var(--color-accent);
 }
 
 [data-theme="dark"] .top-bar {
@@ -37,11 +66,6 @@
     border-color: var(--divider);
 }
 
-[data-theme="dark"] .search-bar input,
-[data-theme="dark"] .search-bar input::placeholder {
-    color: var(--color-secondary);
-}
-
 [data-theme="dark"] .icon-btn {
     color: var(--color-primary);
 }
@@ -49,38 +73,51 @@
 [data-theme="dark"] .card {
     background-color: var(--bg-secondary);
     border: 1px solid var(--divider);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-[data-theme="dark"] .card-header {
+[data-theme="dark"] .card .card-header {
     border-color: var(--divider);
 }
 
-/* Discover Feed Specific Dark Mode Styles */
-[data-theme="dark"] .discover-top-bar {
-    background-color: var(--bg-secondary);
-    border-color: var(--divider);
+[data-theme="dark"] .btn-primary-gradient {
+    background: var(--color-accent);
+    color: #ffffff;
 }
 
-[data-theme="dark"] .post-card {
-    background-color: var(--bg-secondary);
-}
-
-[data-theme="dark"] .post-author-info .timestamp,
-[data-theme="dark"] .post-action {
-    color: var(--color-secondary);
-}
-
-[data-theme="dark"] .see-more-btn,
-[data-theme="dark"] .post-action:hover {
-    color: var(--color-accent);
-}
-
-[data-theme="dark"] .post-actions {
-    border-color: var(--divider);
-}
-
-[data-theme="dark"] .comment-input {
+[data-theme="dark"] .btn-secondary {
     background-color: var(--bg-tertiary);
     color: var(--color-primary);
+    border-color: var(--divider);
+}
+
+[data-theme="dark"] .dashboard-nav .nav-tab.active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+}
+
+[data-theme="dark"] .dashboard-nav {
+    border-bottom-color: var(--divider);
+}
+
+[data-theme="dark"] .course-item-new {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--divider);
+}
+
+[data-theme="dark"] .progress-bar-wrapper {
+    background-color: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .progress-bar-gradient {
+    background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+}
+
+[data-theme="dark"] .circular-progress {
+    background: radial-gradient(closest-side, var(--bg-secondary) 79%, transparent 80% 100%),
+                conic-gradient(from 180deg, #6a11cb 0%, #2575fc var(--progress-value), var(--bg-tertiary) var(--progress-value));
+}
+
+[data-theme="dark"] a {
+    color: var(--color-accent);
 }
