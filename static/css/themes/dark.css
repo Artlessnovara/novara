@@ -1,15 +1,30 @@
 /* static/css/themes/dark.css */
 
-:root {
-    --bg-color: #111b21; /* WhatsApp's dark background */
-    --text-color: #e4e6eb; /* Light text for dark background */
-    --primary-color: #00a884; /* WhatsApp's green accent */
-    --sender-bubble-bg: #005c4b; /* Dark green for sender bubbles */
-    --receiver-bubble-bg: #202c33; /* Dark gray for receiver bubbles */
-    --header-bg: #202c33; /* Header background */
-    --bottom-nav-bg: #202c33; /* Nav background */
-    --border-color: #3a3a3a;
-    --input-bg: #2a3942; /* Darker input background */
-    --secondary-text-color: #8696a0; /* Muted text color for dark mode */
-    --hover-bg-color: #2a3942;
+[data-theme="dark"] {
+    --bg-primary: #18191A;
+    --bg-secondary: #242526;
+    --bg-tertiary: #3A3B3C;
+
+    --color-primary: #E4E6EB;
+    --color-secondary: #B0B3B8;
+    --color-accent: #2D88FF;
+
+    --divider: #3A3B3C;
+    --divider-light: rgba(58, 59, 60, 0.6);
+
+    --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --card-border: 1px solid var(--divider);
+
+    /* For compatibility with old chat styles, will be removed in future refactor */
+    --bg-color: var(--bg-primary);
+    --text-color: var(--color-primary);
+    --primary-color: var(--color-accent);
+    --sender-bubble-bg: #005c4b; /* Needs a dark theme equivalent */
+    --receiver-bubble-bg: var(--bg-tertiary);
+    --header-bg: var(--bg-secondary);
+    --bottom-nav-bg: var(--bg-secondary);
+    --border-color: var(--divider);
+    --input-bg: var(--bg-tertiary);
+    --secondary-text-color: var(--color-secondary);
+    --hover-bg-color: #3f4041;
 }

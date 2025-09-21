@@ -1478,10 +1478,12 @@ def student_dashboard():
     enrollment_data = []
     active_courses_count = 0
     completed_courses_count = 0
+    enrolled_course_ids = []
 
     for enrollment in enrollments:
         progress_data = None
         if enrollment.status == 'approved':
+            enrolled_course_ids.append(enrollment.course_id)
             progress_data = get_course_progress(current_user, enrollment.course)
 
             # Calculate progress percentage
@@ -1504,6 +1506,12 @@ def student_dashboard():
             'enrollment': enrollment,
             'progress': progress_data
         })
+
+    # Upcoming Deadlines
+    upcoming_assignments = Assignment.query.join(Module).filter(
+        Module.course_id.in_(enrolled_course_ids),
+        Assignment.due_date > datetime.utcnow()
+    ).order_by(Assignment.due_date.asc()).limit(3).all()
 
     # Library Purchases
     library_purchases = current_user.library_purchases.order_by(LibraryPurchase.timestamp.desc()).all()
@@ -1542,9 +1550,11 @@ def student_dashboard():
                            certificates_count=certificates_count,
                            unread_messages_count=unread_messages_count,
                            profile_completion_percentage=profile_completion_percentage,
+                           upcoming_assignments=upcoming_assignments,
+                           badges=Badge.query.filter_by(user_id=current_user.id).order_by(Badge.id.desc()).limit(5).all(),
                            latest_quiz_submission=QuizSubmission.query.filter_by(student_id=current_user.id).order_by(QuizSubmission.id.desc()).first(),
-                           latest_exam_submission=ExamSubmission.query.filter_by(student_id=current_user.id).order_by(ExamSubmission.id.desc()).first(),
-                           chart_data=get_chart_data(current_user.id))
+                           latest_exam_submission=ExamSubmission.query.filter_by(student_id=current_user.id).order_by(ExamSubmission.id.desc()).first()),
+                           chart_data=get_chart_data(current_user.id)
 
 @main.route('/student/my-courses')
 @login_required

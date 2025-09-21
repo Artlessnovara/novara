@@ -73,6 +73,28 @@
                 </div>
             </div>
         </div>
+
+        <!-- Achievements -->
+        <div class="card fade-in" style="animation-delay: 0.7s;">
+            <div class="card-header">
+                <h3>Achievements</h3>
+                <a href="{{ url_for('main.profile') }}" class="view-all-link">View All</a>
+            </div>
+            <div class="card-body">
+                <ul class="achievement-list">
+                    {% for badge in badges %}
+                    <li class="achievement-item">
+                        <img src="{{ badge.icon_url or url_for('static', filename='images/course_placeholder.jpg') }}" alt="{{ badge.name }}" class="achievement-icon">
+                        <span class="achievement-name">{{ badge.name }}</span>
+                    </li>
+                    {% else %}
+                    <li class="achievement-item-empty">
+                        <p>Your earned badges will appear here. Keep up the great work!</p>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     </div>
 
     <!-- Right Column -->
@@ -95,7 +117,7 @@
         </div>
 
         <!-- Quick Links -->
-        <div class="card fade-in" style="animation-delay: 0.7s;">
+        <div class="card fade-in" style="animation-delay: 0.8s;">
             <div class="card-header">
                 <h3>Quick Links</h3>
             </div>
@@ -109,12 +131,40 @@
         </div>
 
         <!-- Score History -->
-        <div class="card fade-in" style="animation-delay: 0.8s;">
+        <div class="card fade-in" style="animation-delay: 0.9s;">
             <div class="card-header">
                 <h3>Score History</h3>
             </div>
             <div class="card-body" style="height: 250px;">
                 <canvas id="scoreChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Upcoming Deadlines -->
+        <div class="card fade-in" style="animation-delay: 1.0s;">
+            <div class="card-header">
+                <h3>Upcoming Deadlines</h3>
+                <a href="{{ url_for('main.assignments') }}" class="view-all-link">View All</a>
+            </div>
+            <div class="card-body">
+                <ul class="deadline-list">
+                    {% for assignment in upcoming_assignments %}
+                    <li class="deadline-item">
+                        <div class="deadline-info">
+                            <span class="deadline-title">{{ assignment.title }}</span>
+                            <span class="deadline-course">{{ assignment.module.course.title }}</span>
+                        </div>
+                        <div class="deadline-date">
+                            <span class="date-day">{{ assignment.due_date.strftime('%d') }}</span>
+                            <span class="date-month">{{ assignment.due_date.strftime('%b') }}</span>
+                        </div>
+                    </li>
+                    {% else %}
+                    <li class="deadline-item-empty">
+                        <p>No upcoming deadlines. Great job!</p>
+                    </li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
     </div>

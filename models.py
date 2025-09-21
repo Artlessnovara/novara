@@ -213,6 +213,7 @@ class Assignment(db.Model):
     module_id = db.Column(db.Integer, db.ForeignKey('module.id'), nullable=False)
     title = db.Column(db.String(150), nullable=False)
     description = db.Column(db.Text, nullable=False)
+    due_date = db.Column(db.DateTime, nullable=True)
     submission_type = db.Column(db.String(50), nullable=False, default='file') # 'file', 'text', 'both'
     max_file_size = db.Column(db.Integer, nullable=True) # in KB
 
