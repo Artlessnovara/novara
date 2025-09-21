@@ -170,7 +170,7 @@ def create_app(config_object=None):
     @app.cli.command("seed-db")
     def seed_db():
         """Seeds the database with sample data."""
-        from models import Post, Category, Course, Module, Lesson, CourseComment, LibraryMaterial, GenericComment, Like, Share, Status
+        from models import Post, Category, Course, Module, Lesson, CourseComment, LibraryMaterial, GenericComment, Like, Share, Status, Assignment, AssignmentSubmission, Badge, Certificate, Enrollment
         # Clear existing data
         db.drop_all()
         db.create_all()
@@ -246,7 +246,6 @@ def create_app(config_object=None):
         db.session.add_all([les1_m1, les2_m1, les1_m2])
         db.session.commit()
 
-
         # Add a course comment
         comment1 = CourseComment(course_id=c1.id, user_id=student1.id, body='This is a great course!', rating=5)
         db.session.add(comment1)
@@ -256,6 +255,30 @@ def create_app(config_object=None):
         lib1 = LibraryMaterial(uploader_id=instructor1.id, category_id=cat1.id, title='Flask Cheatsheet', price_naira=500, file_path='flask_cheatsheet.pdf', approved=True)
         lib2 = LibraryMaterial(uploader_id=instructor2.id, category_id=cat2.id, title='Data Science Intro', price_naira=1000, file_path='ds_intro.pdf', approved=False)
         db.session.add_all([lib1, lib2])
+        db.session.commit()
+
+        # Enroll student in the course
+        enrollment1 = Enrollment(user_id=student1.id, course_id=c1.id, status='approved')
+        db.session.add(enrollment1)
+        db.session.commit()
+
+        # Add an assignment and submission for testing
+        assignment1 = Assignment(module_id=mod1_c1.id, title='Setup Your Environment', description='<p>Follow the installation guide to set up your Flask environment.</p>', due_date=datetime.utcnow() + timedelta(days=7))
+        db.session.add(assignment1)
+        db.session.commit()
+
+        submission1 = AssignmentSubmission(assignment_id=assignment1.id, student_id=student1.id, text_submission='Environment setup complete.', grade='A')
+        db.session.add(submission1)
+        db.session.commit()
+
+        # Add a badge for the test student
+        badge1 = Badge(name='Course Completer', icon_url='https://img.icons8.com/color/48/000000/medal.png', user_id=student1.id)
+        db.session.add(badge1)
+        db.session.commit()
+
+        # Add a certificate for testing
+        certificate1 = Certificate(user_id=student1.id, course_id=c2.id, certificate_uid='test-cert-123', file_path='certificates/sample.pdf')
+        db.session.add(certificate1)
         db.session.commit()
 
         print('Database has been cleared and re-seeded with sample data.')
