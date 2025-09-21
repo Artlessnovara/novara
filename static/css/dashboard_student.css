@@ -328,3 +328,66 @@
     align-items: center;
     gap: 0.75rem;
 }
+
+/* --- Assignments Page --- */
+.assignments-container {
+    background-color: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--divider);
+}
+
+.assignments-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.assignments-table th, .assignments-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--divider);
+}
+
+.assignments-table thead th {
+    font-family: 'Merriweather', serif;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.assignments-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.assignments-table tbody tr:nth-child(even) {
+    background-color: var(--bg-tertiary);
+}
+
+[data-theme="light"] .assignments-table tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.status-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.status-pending {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.status-badge.status-submitted {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.status-badge.status-a,
+.status-badge.status-b,
+.status-badge.status-c,
+.status-badge.status-pass {
+    background-color: #28a745;
+    color: white;
+}

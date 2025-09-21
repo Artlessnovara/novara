@@ -1,0 +1,53 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="content-header">
+    <h1 class="fade-in">Assignments</h1>
+    <p class="fade-in" style="animation-delay: 0.2s;">Track your upcoming and submitted assignments.</p>
+</div>
+
+<!-- Horizontal Navigation -->
+<nav class="dashboard-nav">
+    <a href="{{ url_for('main.student_dashboard') }}" class="nav-tab">Dashboard</a>
+    <a href="{{ url_for('main.my_courses') }}" class="nav-tab">My Courses</a>
+    <a href="{{ url_for('main.assignments') }}" class="nav-tab active">Assignments</a>
+    <a href="{{ url_for('main.placeholder') }}" class="nav-tab">Grades</a>
+    <a href="{{ url_for('main.placeholder') }}" class="nav-tab">Certificates</a>
+    <a href="{{ url_for('main.placeholder') }}" class="nav-tab">Announcements</a>
+</nav>
+
+<!-- Assignments Table -->
+<div class="assignments-container">
+    <table class="assignments-table">
+        <thead>
+            <tr>
+                <th>Course</th>
+                <th>Assignment</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for assignment in assignments_data %}
+            <tr>
+                <td>{{ assignment.course_title }}</td>
+                <td>{{ assignment.assignment_title }}</td>
+                <td>{{ assignment.due_date }}</td>
+                <td>
+                    <span class="status-badge status-{{ assignment.status | lower }}">{{ assignment.status }}</span>
+                </td>
+                <td>
+                    <a href="{{ url_for('main.view_assignment', assignment_id=assignment.assignment_id) }}" class="btn-primary-gradient">View</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center">No assignments found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
