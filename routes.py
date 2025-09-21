@@ -1601,6 +1601,63 @@ def assignments():
 
     return render_template('assignments.html', assignments_data=assignments_data)
 
+@main.route('/student/grades')
+@login_required
+def grades():
+    if current_user.role != 'student':
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.home'))
+
+    grades_data = {}
+    enrollments = current_user.enrollments.filter_by(status='approved').all()
+
+    for enrollment in enrollments:
+        course = enrollment.course
+        grades_data[course.title] = []
+
+        # Get assignment grades
+        for module in course.modules:
+            if module.assignment:
+                submission = AssignmentSubmission.query.filter_by(
+                    student_id=current_user.id,
+                    assignment_id=module.assignment.id
+                ).first()
+                if submission and submission.grade:
+                    grades_data[course.title].append({
+                        'type': 'Assignment',
+                        'title': module.assignment.title,
+                        'grade': submission.grade
+                    })
+
+        # Get quiz grades
+        for module in course.modules:
+            if module.quiz:
+                submission = QuizSubmission.query.filter_by(
+                    student_id=current_user.id,
+                    quiz_id=module.quiz.id
+                ).order_by(QuizSubmission.score.desc()).first()
+                if submission:
+                    grades_data[course.title].append({
+                        'type': 'Quiz',
+                        'title': module.quiz.module.title, # Quizzes are tied to modules
+                        'grade': f"{submission.score:.2f}%"
+                    })
+
+        # Get final exam grade
+        if course.final_exam:
+            submission = ExamSubmission.query.filter_by(
+                student_id=current_user.id,
+                final_exam_id=course.final_exam.id
+            ).order_by(ExamSubmission.score.desc()).first()
+            if submission and submission.score is not None:
+                grades_data[course.title].append({
+                    'type': 'Final Exam',
+                    'title': course.final_exam.title,
+                    'grade': f"{submission.score:.2f}%"
+                })
+
+    return render_template('grades.html', grades_data=grades_data)
+
 def get_chart_data(student_id):
     # Fetch latest 10 exam submissions, sorted by submission time
     exam_submissions = ExamSubmission.query.filter(
