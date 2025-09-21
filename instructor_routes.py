@@ -24,6 +24,8 @@ from models import Category, LibraryMaterial, Module, Lesson, Assignment, Assign
 from werkzeug.utils import secure_filename
 import os
 from utils import save_editor_image
+from achievements import check_and_award_badges
+from models import Module
 
 @instructor_bp.route('/dashboard')
 def dashboard():
@@ -267,6 +269,12 @@ def grade_submission(submission_id):
     if grade:
         submission.grade = grade
         db.session.commit()
+
+        # Check for achievements after grading
+        module = Module.query.get(submission.assignment.module_id)
+        if module:
+            check_and_award_badges(student=submission.student, course=module.course)
+
         flash('Grade has been recorded.', 'success')
 
     return redirect(url_for('instructor.review_assignment_submissions', assignment_id=submission.assignment_id))

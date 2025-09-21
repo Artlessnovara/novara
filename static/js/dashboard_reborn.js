@@ -8,39 +8,43 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Theme Toggling ---
     const themeIcon = themeToggleBtn.querySelector('i');
 
-    // Function to apply theme
-    const applyTheme = (theme) => {
+    // Function to apply the currently stored theme on page load
+    const applyInitialTheme = () => {
+        const theme = localStorage.getItem('theme') || 'light'; // Default to light
+        document.documentElement.setAttribute('data-theme', theme);
+
         if (theme === 'dark') {
-            document.body.classList.add('dark-mode');
             themeIcon.classList.remove('fa-moon');
             themeIcon.classList.add('fa-sun');
         } else {
-            document.body.classList.remove('dark-mode');
             themeIcon.classList.remove('fa-sun');
             themeIcon.classList.add('fa-moon');
         }
     };
 
-    // Check for saved theme in localStorage
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        applyTheme(savedTheme);
-    }
-
     // Event listener for theme toggle button
     themeToggleBtn.addEventListener('click', () => {
-        let currentTheme = 'light';
-        if (document.body.classList.contains('dark-mode')) {
-            document.body.classList.remove('dark-mode');
-            localStorage.setItem('theme', 'light');
-            currentTheme = 'light';
+        // Get the current theme from the attribute
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        // Determine the new theme
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+        // Set the new theme
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+
+        // Update the icon
+        if (newTheme === 'dark') {
+            themeIcon.classList.remove('fa-moon');
+            themeIcon.classList.add('fa-sun');
         } else {
-            document.body.classList.add('dark-mode');
-            localStorage.setItem('theme', 'dark');
-            currentTheme = 'dark';
+            themeIcon.classList.remove('fa-sun');
+            themeIcon.classList.add('fa-moon');
         }
-        applyTheme(currentTheme);
     });
+
+    // Apply the theme when the DOM is loaded
+    applyInitialTheme();
 
 
     // --- Sidebar Toggle for Mobile ---
