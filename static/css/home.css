@@ -49,96 +49,6 @@ section {
     margin-right: auto;
 }
 
-/* Header */
-header {
-    background-color: rgba(255, 255, 255, 0.85);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid #EDEFF2;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    width: 100%;
-    padding: 15px 0;
-}
-
-.nav-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 90%;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.logo {
-    font-size: 1.8rem;
-    font-weight: bold;
-    text-decoration: none;
-}
-
-.logo-text-blue {
-    color: #0D1B4C;
-}
-
-.logo-text-gold {
-    color: #FFD700;
-}
-
-.hamburger {
-    display: none; /* Hide hamburger on desktop */
-    font-size: 1.5rem;
-    cursor: pointer;
-}
-
-.nav-links {
-    display: flex;
-    gap: 25px;
-    align-items: center;
-    max-height: none;
-    overflow: visible;
-}
-
-.nav-links a {
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.3s ease;
-    color: #0D1B4C;
-    font-size: 16px;
-    padding: 5px 0;
-}
-
-header nav a:hover {
-    color: #A78BFA;
-}
-
-.nav-links a.active-link {
-    color: #FFD700;
-    font-weight: 700;
-    border-bottom: 2px solid #FFD700;
-}
-
-.nav-links a.login-link,
-.nav-links a.register-link {
-    color: #A78BFA;
-    font-weight: 700;
-}
-
-.nav-links a.logout-link {
-    color: #D9534F; /* A shade of red */
-    font-weight: 700;
-}
-
-.search-icon {
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: #0D1B4C;
-}
-
-/* Override base nav styles for homepage */
-body:has(.hero-section) header nav a {
-    color: #0D1B4C; /* Darker text for better visibility on light header */
-}
 
 /* Hero Section */
 .hero-section {
@@ -861,35 +771,6 @@ body:has(.custom-footer) > footer {
     .about-section .container {
         flex-direction: column;
     }
-    .nav-container {
-        flex-wrap: wrap;
-    }
-    .hamburger {
-        display: block; /* Show hamburger on mobile */
-    }
-    .nav-links {
-        flex-direction: column;
-        width: 100%;
-        text-align: center;
-        background-color: rgba(255, 255, 255, 0.98);
-        border-top: 1px solid #EDEFF2;
-        overflow: hidden;
-        max-height: 0;
-        transition: max-height 0.5s ease-out, padding 0.5s ease-out;
-        padding: 0; /* No padding when closed */
-    }
-    .nav-links.active {
-        display: flex;
-        max-height: 500px; /* Animate to a height large enough for content */
-        padding: 20px 0; /* Add padding back when open */
-    }
-    .nav-links a {
-        padding: 15px 0;
-        width: 100%;
-    }
-    .search-icon {
-        display: none; /* Hide search icon on mobile for simplicity */
-    }
     .hero-content h1 {
         font-size: 2.5rem;
     }
@@ -910,5 +791,77 @@ body:has(.custom-footer) > footer {
     .footer-bottom {
         flex-direction: column;
         gap: 10px;
+    }
+}
+
+/* -- New Home Page Header -- */
+.home-header {
+    background: #fff;
+    border-bottom: 1px solid #EDEFF2;
+    padding: 1rem 0;
+}
+
+.home-nav-container {
+    width: 95%;
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Re-using site-logo style from nav.css but can be customized if needed */
+.site-logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0D1B4C;
+}
+
+/* Copied and adapted from dashboard_student.css */
+.home-nav {
+    display: flex;
+    gap: 1rem;
+}
+
+.home-nav .nav-tab {
+    padding: 0.5rem 1rem;
+    color: #555;
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+}
+
+.home-nav .nav-tab:hover {
+    color: #0D1B4C;
+}
+
+.home-nav .nav-tab.active {
+    color: #A78BFA; /* Using accent color from the theme */
+    border-bottom-color: #A78BFA;
+}
+
+@media (max-width: 767px) {
+    .home-nav-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .home-nav {
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
+    .home-nav .nav-tab {
+        width: 100%;
+        text-align: center;
+        padding: 1rem;
+        border-bottom: 1px solid #EDEFF2;
+    }
+
+    .home-nav .nav-tab:last-child {
+        border-bottom: none;
     }
 }

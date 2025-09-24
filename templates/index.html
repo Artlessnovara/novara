@@ -1,5 +1,19 @@
 {% extends "base.html" %}
 
+{% block header %}
+<header class="home-header">
+    <div class="home-nav-container">
+        <div class="site-logo">ScholarsNovara</div>
+        <nav class="home-nav dashboard-nav">
+            <a href="{{ url_for('main.home') }}" class="nav-tab active">Home</a>
+            <a href="{{ url_for('main.courses') }}" class="nav-tab">Courses</a>
+            <a href="{{ url_for('main.login') }}" class="nav-tab">Login</a>
+            <a href="{{ url_for('main.register') }}" class="nav-tab">Register</a>
+        </nav>
+    </div>
+</header>
+{% endblock %}
+
 {% block title %}Scholars Novara Institute - Where Learning Becomes Living{% endblock %}
 
 {% block styles %}
