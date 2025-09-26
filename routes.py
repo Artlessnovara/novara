@@ -71,8 +71,24 @@ def get_course_progress(user, course):
 
     return progress
 
-@main.route('/')
+@main.route('/home')
 def home():
+    # For the "Featured Courses" section on the home page
+    # Fetch one course for each of the 5 main categories if possible
+    category_names = ['Science Courses', 'Humanities', 'Commercial', 'Digital Skills', 'Programming']
+    featured_courses = {}
+    for name in category_names:
+        category = Category.query.filter_by(name=name).first()
+        if category:
+            course = Course.query.filter_by(approved=True, category_id=category.id).first()
+            if course:
+                featured_courses[name] = course
+
+    return render_template('index_old.html', featured_courses=featured_courses)
+
+
+@main.route('/')
+def home_page():
     # For the "Featured Courses" section on the home page
     # Fetch one course for each of the 5 main categories if possible
     category_names = ['Science Courses', 'Humanities', 'Commercial', 'Digital Skills', 'Programming']
