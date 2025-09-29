@@ -87,6 +87,14 @@ def home():
 
     return render_template('index.html', featured_courses=featured_courses)
 
+@main.route('/about-us')
+def about_us():
+    return render_template('about_us.html')
+
+@main.route('/contact')
+def contact():
+    return render_template('contact.html')
+
 @main.route('/courses')
 def courses():
     page = request.args.get('page', 1, type=int)
