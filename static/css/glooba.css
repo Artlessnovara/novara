@@ -1,0 +1,216 @@
+/* General Styles */
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.glooba-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 480px; /* Typical mobile width */
+    margin: 0 auto;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    position: relative;
+}
+
+/* Light Mode Variables */
+.light-mode {
+    --background-color: #ffffff;
+    --header-bg: #ffffff;
+    --search-bg: #f2f2f2;
+    --text-color: #000000;
+    --icon-color: #555555;
+    --inactive-tab-color: #8e8e8e;
+    --bottom-nav-bg: #ffffff;
+}
+
+/* Dark Mode Variables */
+.dark-mode {
+    --background-color: #121212;
+    --header-bg: #1e1e1e;
+    --search-bg: #2a2a2a;
+    --text-color: #ffffff;
+    --icon-color: #f1f1f1;
+    --inactive-tab-color: #a0a0a0;
+    --bottom-nav-bg: #000000;
+}
+
+/* Gradient Styles */
+.gradient-text {
+    background: linear-gradient(90deg, #4a00e0, #8e2de2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
+}
+
+.gradient-background {
+    background: linear-gradient(90deg, #4a00e0, #8e2de2);
+}
+
+/* Header */
+.glooba-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: var(--header-bg);
+}
+
+.app-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.header-icons i {
+    font-size: 1.2rem;
+    color: var(--icon-color);
+    margin-left: 1.5rem;
+}
+
+/* Search Bar */
+.search-bar {
+    display: flex;
+    align-items: center;
+    background-color: var(--search-bg);
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    margin: 0 1rem 1rem;
+}
+
+.search-bar i {
+    color: var(--inactive-tab-color);
+}
+
+.search-bar input {
+    border: none;
+    background: transparent;
+    outline: none;
+    margin-left: 0.5rem;
+    width: 100%;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+/* Tabs Row */
+.tabs-row {
+    display: flex;
+    justify-content: space-around;
+    padding: 0 1rem;
+    background-color: var(--background-color);
+}
+
+.tab {
+    padding: 0.5rem;
+    font-weight: bold;
+    color: var(--inactive-tab-color);
+    position: relative;
+}
+
+.tab.active {
+    color: #4a00e0; /* Fallback for non-gradient text */
+}
+
+.tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #4a00e0, #8e2de2);
+}
+
+/* Chat Area */
+.chat-area {
+    flex-grow: 1;
+    overflow-y: auto;
+    background-color: var(--background-color);
+}
+
+/* Floating Action Button (FAB) */
+.fab {
+    position: absolute;
+    bottom: 5rem;
+    right: 1.5rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+}
+
+/* Bottom Navigation Bar */
+.bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    background-color: var(--bottom-nav-bg);
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--search-bg);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--inactive-tab-color);
+    cursor: pointer;
+}
+
+.nav-item i {
+    font-size: 1.2rem;
+}
+
+.nav-item span {
+    font-size: 0.75rem;
+    margin-top: 4px;
+}
+
+.nav-item.active {
+    color: #4a00e0; /* Fallback */
+}
+
+.nav-item.active i, .nav-item.active span {
+    background: linear-gradient(90deg, #4a00e0, #8e2de2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
+}
+
+/* Tools Tab */
+.tools-tab-content {
+    position: absolute;
+    bottom: 4.5rem; /* Position above the bottom nav */
+    right: 1rem;
+    background-color: var(--header-bg);
+    border-radius: 8px;
+    padding: 0.5rem;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    display: none;
+    z-index: 1000;
+}
+
+.tools-tab-content.visible {
+    display: block;
+}
+
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    cursor: pointer;
+}
+
+.theme-toggle i {
+    font-size: 1.5rem;
+    color: var(--icon-color);
+}
