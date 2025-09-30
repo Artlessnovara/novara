@@ -102,7 +102,7 @@
         display: flex;
         position: fixed;
         top: 0;
-        right: -100%;
+        right: 0;
         width: 80%;
         max-width: 300px;
         height: 100%;
@@ -110,12 +110,13 @@
         align-items: flex-start;
         background: linear-gradient(135deg, #0D1B4C, #000020);
         padding: 2rem;
-        transition: right 0.3s ease-in-out;
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
         z-index: 2000;
     }
 
     .main-nav.is-open {
-        right: 0;
+        transform: translateX(0);
     }
 
     .main-nav a {
