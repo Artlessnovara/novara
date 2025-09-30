@@ -11,25 +11,23 @@ document.addEventListener('DOMContentLoaded', () => {
     navToggle.setAttribute('aria-expanded', 'false');
   }
 
-  function openNav() {
-    mainNav.classList.add('is-open');
-    backdrop.classList.add('is-visible');
-    body.classList.add('nav-open');
-    navToggle.setAttribute('aria-expanded', 'true');
-  }
-
   if (navToggle && mainNav && backdrop) {
-    navToggle.addEventListener('click', () => {
-      const isOpen = mainNav.classList.contains('is-open');
-      if (isOpen) {
-        closeNav();
-      } else {
-        openNav();
-      }
+    navToggle.addEventListener('click', (event) => {
+      // Stop the click from bubbling up to other elements
+      event.stopPropagation();
+
+      // Toggle all the necessary classes and attributes
+      const isOpen = mainNav.classList.toggle('is-open');
+      backdrop.classList.toggle('is-visible', isOpen);
+      body.classList.toggle('nav-open', isOpen);
+      navToggle.setAttribute('aria-expanded', isOpen);
     });
 
     backdrop.addEventListener('click', () => {
-      closeNav();
+      // Only close if it's currently open
+      if (mainNav.classList.contains('is-open')) {
+        closeNav();
+      }
     });
   }
 });

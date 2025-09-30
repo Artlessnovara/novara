@@ -23,7 +23,7 @@
     <header class="feed-header">
         <div class="header-container">
             <div class="logo">
-                <a href="{{ url_for('feed.home') }}">Novara Pro</a>
+                <a href="{{ url_for('feed.home_feed') }}">Novara Pro</a>
             </div>
             <form action="{{ url_for('feed.search') }}" method="GET" class="search-bar">
                 <i class="fas fa-search"></i>
@@ -65,7 +65,7 @@
     </main>
 
     <nav class="bottom-nav">
-        <a href="{{ url_for('feed.home') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.home' }}">
+        <a href="{{ url_for('feed.home_feed') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.home_feed' }}">
             <i class="fas fa-home"></i>
             <span>Home</span>
         </a>
@@ -73,11 +73,11 @@
             <i class="fas fa-user"></i>
             <span>Profile</span>
         </a>
-        <a href="{{ url_for('feed.home') }}" class="nav-item nav-item-center {{ 'active' if request.endpoint == 'feed.creativity' }}">
+        <a href="{{ url_for('feed.home_feed') }}" class="nav-item nav-item-center {{ 'active' if request.endpoint == 'feed.creativity' }}">
             <i class="fa-brands fa-tiktok"></i>
             <span>Creativity</span>
         </a>
-        <a href="{{ url_for('feed.home') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.suggestions' }}">
+        <a href="{{ url_for('feed.home_feed') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.suggestions' }}">
             <i class="fas fa-user-plus"></i>
             <span>Suggestions</span>
         </a>
