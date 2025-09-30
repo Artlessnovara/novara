@@ -7,6 +7,12 @@
         <p>Manage your courses and engage with your students.</p>
     </div>
 
+    <!-- Horizontal Navigation -->
+    <nav class="dashboard-nav">
+        <a href="{{ url_for('instructor.dashboard') }}" class="nav-tab active">Dashboard</a>
+        <a href="{{ url_for('glooba.glooba_home') }}" class="nav-tab">GloobaApp</a>
+    </nav>
+
     <div class="dashboard-grid">
         <!-- My Courses (Teaching) -->
         <div class="card col-span-2">
