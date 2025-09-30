@@ -13,9 +13,9 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+
     <!-- Feed World Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/feed_world.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile_feed.css') }}">
 
     {% block styles %}{% endblock %}
 </head>
@@ -25,10 +25,11 @@
             <div class="logo">
                 <a href="{{ url_for('feed.home') }}">Novara Pro</a>
             </div>
+            <form action="{{ url_for('feed.search') }}" method="GET" class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="search" name="q" placeholder="Search Novara Pro..." value="{{ request.args.get('q', '') }}">
+            </form>
             <div class="header-icons">
-                <a href="{{ url_for('feed.search') }}" class="header-icon" aria-label="Search">
-                    <i class="fas fa-search"></i>
-                </a>
                 <a href="#" class="header-icon" aria-label="Messages">
                     <i class="fas fa-comment-dots"></i>
                 </a>
@@ -38,6 +39,9 @@
                         <span class="notification-badge">{{ unread_notification_count }}</span>
                     {% endif %}
                 </a>
+                <button id="theme-toggle" class="header-icon" aria-label="Toggle Theme">
+                    <i class="fas fa-sun"></i>
+                </button>
                 <a href="{{ url_for('main.profile') }}" class="header-icon" aria-label="Profile">
                     <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_pic) }}" alt="Profile" class="profile-pic-small">
                 </a>
@@ -65,21 +69,21 @@
             <i class="fas fa-home"></i>
             <span>Home</span>
         </a>
-        <a href="{{ url_for('feed.search') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.search' }}">
-            <i class="fas fa-search"></i>
-            <span>Search</span>
-        </a>
-        <a href="#" class="nav-item nav-item-center">
-            <i class="fas fa-sync-alt icon-animated-spiral"></i>
-            <span>Create</span>
-        </a>
-        <a href="#" class="nav-item">
-            <i class="fas fa-user-plus"></i>
-            <span>Connections</span>
-        </a>
         <a href="{{ url_for('main.profile') }}" class="nav-item {{ 'active' if request.endpoint == 'main.profile' }}">
-            <i class="fas fa-user-circle"></i>
+            <i class="fas fa-user"></i>
             <span>Profile</span>
+        </a>
+        <a href="{{ url_for('feed.home') }}" class="nav-item nav-item-center {{ 'active' if request.endpoint == 'feed.creativity' }}">
+            <i class="fa-brands fa-tiktok"></i>
+            <span>Creativity</span>
+        </a>
+        <a href="{{ url_for('feed.home') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.suggestions' }}">
+            <i class="fas fa-user-plus"></i>
+            <span>Suggestions</span>
+        </a>
+        <a href="{{ url_for('more.more_page') }}" class="nav-item {{ 'active' if request.endpoint == 'more.more_page' or request.endpoint.startswith('more.') }}">
+            <i class="fas fa-ellipsis-h"></i>
+            <span>More</span>
         </a>
     </nav>
 
