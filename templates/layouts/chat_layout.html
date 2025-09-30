@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GloobaApp{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat_style.css') }}">
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        {% block content %}{% endblock %}
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="bottom-nav">
+            <a href="{{ url_for('main.chat_list') }}" class="nav-item active">
+                <i class="fas fa-comment"></i>
+                <span class="nav-label gradient-text">Chat</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-globe"></i>
+                <span class="nav-label">Global</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-circle-notch"></i>
+                <span class="nav-label">Status</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-phone-alt"></i>
+                <span class="nav-label">Calls</span>
+            </a>
+            <a href="#" id="tools-tab" class="nav-item">
+                <i class="fas fa-wrench"></i>
+                <span class="nav-label">Tools</span>
+            </a>
+        </nav>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toolsTab = document.getElementById('tools-tab');
+            const themeToggle = document.createElement('div');
+            themeToggle.classList.add('theme-toggle');
+            themeToggle.innerHTML = `
+                <span>Theme</span>
+                <i class="fas fa-moon"></i>
+            `;
+
+            const toolsRect = toolsTab.getBoundingClientRect();
+            themeToggle.style.position = 'fixed';
+            themeToggle.style.bottom = '70px';
+            themeToggle.style.right = '20px';
+            themeToggle.style.padding = '10px 15px';
+            themeToggle.style.backgroundColor = 'var(--search-bg)';
+            themeToggle.style.borderRadius = '10px';
+            themeToggle.style.display = 'none';
+            themeToggle.style.cursor = 'pointer';
+            themeToggle.style.zIndex = '1001';
+            document.body.appendChild(themeToggle);
+
+            toolsTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                themeToggle.style.display = themeToggle.style.display === 'none' ? 'flex' : 'none';
+            });
+
+            themeToggle.addEventListener('click', () => {
+                const html = document.documentElement;
+                const currentTheme = html.getAttribute('data-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                html.setAttribute('data-theme', newTheme);
+                themeToggle.querySelector('i').className = newTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
