@@ -89,6 +89,9 @@ def create_app(config_object=None):
     from page_routes import page_bp
     app.register_blueprint(page_bp)
 
+    from glooba_routes import glooba_bp
+    app.register_blueprint(glooba_bp)
+
     # Register chat events
     from chat_events import register_chat_events
     register_chat_events(socketio)
