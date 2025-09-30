@@ -99,24 +99,33 @@
     }
 
     .main-nav {
-        display: flex;
         position: fixed;
         top: 0;
         right: 0;
         width: 80%;
-        max-width: 300px;
-        height: 100%;
-        flex-direction: column;
-        align-items: flex-start;
+        max-width: 320px;
+        height: 100vh; /* Full viewport height */
         background: linear-gradient(135deg, #0D1B4C, #000020);
         padding: 2rem;
         transform: translateX(100%);
         transition: transform 0.3s ease-in-out;
         z-index: 2000;
+        /* Flexbox for vertical layout */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; /* Pushes footer to bottom */
+        align-items: stretch; /* Stretch items to full width */
+        gap: 1rem; /* Reset desktop gap */
     }
 
     .main-nav.is-open {
         transform: translateX(0);
+    }
+
+    .nav-links {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
     }
 
     .main-nav a {
@@ -125,11 +134,54 @@
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
+    .nav-footer {
+        width: 100%;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
     .nav-button {
-        margin-top: 1rem;
         width: 100%;
         text-align: center;
+        padding: 1rem; /* Make it bigger */
+        background-color: #FFD700;
+        color: #0D1B4C; /* Gold with navy text */
+        border-radius: 8px;
     }
+
+    .nav-button:hover {
+        background-color: #fff;
+    }
+
+    .social-icons {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .social-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        color: white;
+        font-size: 1.2rem;
+        transition: transform 0.3s ease;
+        padding: 0; /* Override default padding */
+        border: none; /* Override default border */
+    }
+
+    .social-icon:hover {
+        transform: scale(1.1);
+    }
+
+    .social-icon.facebook { background-color: #1877F2; }
+    .social-icon.twitter { background-color: #14171A; } /* Black for X */
+    .social-icon.tiktok { background-color: #000000; } /* Black for TikTok */
+
 }
 
 /* --- Backdrop for Mobile Nav --- */
