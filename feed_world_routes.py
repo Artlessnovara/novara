@@ -7,9 +7,9 @@ from utils import save_upload_file
 
 feed = Blueprint('feed', __name__)
 
-@feed.route('/home')
+@feed.route('/feed')
 @login_required
-def home():
+def home_feed():
     followed_users_ids = [user.id for user in current_user.followed]
     posts = Post.query.filter(Post.user_id.in_(followed_users_ids)).order_by(Post.timestamp.desc()).all()
     active_stories_users = db.session.query(User).join(Status).filter(Status.is_story == True, Status.expires_at > db.func.now()).distinct().all()
@@ -22,7 +22,7 @@ def create_post():
     media_files = request.files.getlist('media')
     if not content and not media_files:
         flash('Post cannot be empty.', 'danger')
-        return redirect(url_for('feed.home'))
+        return redirect(url_for('feed.home_feed'))
 
     media_urls = []
     media_type = None
@@ -40,7 +40,7 @@ def create_post():
     db.session.add(new_post)
     db.session.commit()
     flash('Your post has been created!', 'success')
-    return redirect(url_for('feed.home'))
+    return redirect(url_for('feed.home_feed'))
 
 @feed.route('/add_story', methods=['POST'])
 @login_required
@@ -50,7 +50,7 @@ def add_story():
 
     if not story_text and not media_file:
         flash('Please enter text or upload a file for your story.', 'danger')
-        return redirect(url_for('feed.home'))
+        return redirect(url_for('feed.home_feed'))
 
     if story_text:
         new_story = Status(user_id=current_user.id, content_type='text', content=story_text, is_story=True)
@@ -62,7 +62,7 @@ def add_story():
     db.session.add(new_story)
     db.session.commit()
     flash('Your story has been added!', 'success')
-    return redirect(url_for('feed.home'))
+    return redirect(url_for('feed.home_feed'))
 
 @feed.route('/api/stories/<int:user_id>')
 @login_required
@@ -79,11 +79,11 @@ def follow(user_id):
     user_to_follow = User.query.get_or_404(user_id)
     if user_to_follow == current_user:
         flash('You cannot follow yourself.', 'warning')
-        return redirect(request.referrer or url_for('feed.home'))
+        return redirect(request.referrer or url_for('feed.home_feed'))
     current_user.follow(user_to_follow)
     db.session.commit()
     flash(f'You are now following {user_to_follow.name}.', 'success')
-    return redirect(request.referrer or url_for('feed.home'))
+    return redirect(request.referrer or url_for('feed.home_feed'))
 
 @feed.route('/unfollow/<int:user_id>', methods=['POST'])
 @login_required
@@ -91,11 +91,11 @@ def unfollow(user_id):
     user_to_unfollow = User.query.get_or_404(user_id)
     if user_to_unfollow == current_user:
         flash('You cannot unfollow yourself.', 'warning')
-        return redirect(request.referrer or url_for('feed.home'))
+        return redirect(request.referrer or url_for('feed.home_feed'))
     current_user.unfollow(user_to_unfollow)
     db.session.commit()
     flash(f'You have unfollowed {user_to_unfollow.name}.', 'success')
-    return redirect(request.referrer or url_for('feed.home'))
+    return redirect(request.referrer or url_for('feed.home_feed'))
 
 @feed.route('/community/create', methods=['POST'])
 @login_required
@@ -104,12 +104,12 @@ def create_community():
     description = request.form.get('description')
     if not name:
         flash('Community name is required.', 'danger')
-        return redirect(request.referrer or url_for('feed.home'))
+        return redirect(request.referrer or url_for('feed.home_feed'))
     community = Community(name=name, description=description, creator=current_user)
     db.session.add(community)
     db.session.commit()
     flash('Community created successfully!', 'success')
-    return redirect(url_for('feed.home')) # Or a new community page
+    return redirect(url_for('feed.home_feed')) # Or a new community page
 
 @feed.route('/report_post', methods=['POST'])
 @login_required
@@ -121,14 +121,14 @@ def report_post():
     db.session.add(report)
     db.session.commit()
     flash('Post has been reported.', 'success')
-    return redirect(url_for('feed.home'))
+    return redirect(url_for('feed.home_feed'))
 
 @feed.route('/search')
 @login_required
 def search():
     query = request.args.get('q')
     if not query:
-        return redirect(url_for('feed.home'))
+        return redirect(url_for('feed.home_feed'))
 
     # Simple search for users and posts
     users = User.query.filter(User.name.ilike(f'%{query}%')).all()
