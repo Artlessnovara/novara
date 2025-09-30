@@ -34,7 +34,7 @@
 
         <!-- Chat Area -->
         <main class="chat-area">
-            <!-- Chat items will be populated here -->
+            <!-- Chat items will be populated here. This area is intentionally blank per the wireframe. -->
         </main>
 
         <!-- Floating Action Button (FAB) -->
@@ -66,7 +66,7 @@
             </div>
         </nav>
 
-        <!-- Tools Tab Content -->
+        <!-- Tools Tab Content (hidden by default) -->
         <div class="tools-tab-content">
             <div class="theme-toggle">
                 <i class="fas fa-moon"></i>
@@ -80,10 +80,11 @@
             const toolsTab = document.getElementById('tools-tab');
             const body = document.body;
 
-            // Function to set the theme
+            // Function to set the theme based on selection or saved preference
             function setTheme(theme) {
                 body.className = theme;
                 localStorage.setItem('gloobaTheme', theme);
+                // Update icon based on theme
                 if (theme === 'dark-mode') {
                     themeToggle.classList.remove('fa-moon');
                     themeToggle.classList.add('fa-sun');
@@ -93,27 +94,28 @@
                 }
             }
 
-            // Load saved theme
+            // Load the saved theme from localStorage, default to light-mode
             const savedTheme = localStorage.getItem('gloobaTheme') || 'light-mode';
             setTheme(savedTheme);
 
-            // Toggle theme
-            themeToggle.parentElement.addEventListener('click', () => {
+            // Event listener for the theme toggle button
+            themeToggle.parentElement.addEventListener('click', (event) => {
+                event.stopPropagation();
                 const newTheme = body.classList.contains('light-mode') ? 'dark-mode' : 'light-mode';
                 setTheme(newTheme);
             });
 
-            // Show/Hide Tools Tab
+            // Event listener for the "Tools" tab to show/hide the theme switcher
             toolsTab.addEventListener('click', (event) => {
                 event.stopPropagation();
                 const toolsContent = document.querySelector('.tools-tab-content');
                 toolsContent.classList.toggle('visible');
             });
 
-            // Hide tools tab when clicking elsewhere
+            // Hide the tools panel if a click occurs outside of it
             document.addEventListener('click', (event) => {
                 const toolsContent = document.querySelector('.tools-tab-content');
-                if (!toolsContent.contains(event.target) && !toolsTab.contains(event.target)) {
+                if (toolsContent.classList.contains('visible') && !toolsContent.contains(event.target) && !toolsTab.contains(event.target)) {
                     toolsContent.classList.remove('visible');
                 }
             });
