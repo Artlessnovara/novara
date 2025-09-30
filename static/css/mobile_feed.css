@@ -1,0 +1,250 @@
+/*
+ * mobile_feed.css
+ * Styles for the new mobile-first feed interface for Novara Pro.
+ */
+
+:root {
+    --brand-color: #4a90e2; /* Example brand color */
+    --light-bg: #f0f2f5;
+    --light-card-bg: #ffffff;
+    --light-text: #050505;
+    --light-secondary-text: #65676b;
+    --light-border-color: #ced0d4;
+    --light-icon-color: #65676b;
+
+    --dark-bg: #18191a;
+    --dark-card-bg: #242526;
+    --dark-text: #e4e6eb;
+    --dark-secondary-text: #b0b3b8;
+    --dark-border-color: #3e4042;
+    --dark-icon-color: #b0b3b8;
+
+    --bottom-nav-height: 60px;
+}
+
+/* Apply base styles to the body inside the feed */
+body {
+    background-color: var(--light-bg);
+    color: var(--light-text);
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding-bottom: var(--bottom-nav-height); /* Space for bottom nav */
+}
+
+/* --- Top Header --- */
+.feed-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--light-card-bg);
+    border-bottom: 1px solid var(--light-border-color);
+    z-index: 1000;
+    padding: 0 1rem;
+}
+
+.feed-header .header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 56px;
+}
+
+.feed-header .logo a {
+    font-weight: 700;
+    font-size: 1.5rem;
+    text-decoration: none;
+    color: var(--brand-color);
+}
+
+.feed-header .header-icons {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem; /* Increased gap for better spacing */
+}
+
+.feed-header .header-icon {
+    color: var(--light-icon-color);
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    border-radius: 50%;
+    background-color: var(--light-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feed-header .profile-pic-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+/* --- Main Feed Area --- */
+.feed-main {
+    padding-top: 56px; /* Space for fixed header */
+}
+
+/* --- Post Composer Prompt --- */
+.create-post-prompt {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: var(--light-card-bg);
+    border-bottom: 1px solid var(--light-border-color);
+    gap: 0.75rem;
+}
+
+.create-post-prompt .prompt-text {
+    flex-grow: 1;
+    color: var(--light-secondary-text);
+}
+
+.create-post-prompt .action-btn {
+    font-size: 1.5rem;
+    color: var(--light-icon-color);
+}
+
+/* --- Bottom Navigation Bar --- */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: var(--bottom-nav-height);
+    background-color: var(--light-card-bg);
+    border-top: 1px solid var(--light-border-color);
+    display: flex;
+    justify-content: space-around;
+    align-items: center; /* Center items vertically */
+    z-index: 1000;
+}
+
+.bottom-nav .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--light-icon-color);
+    gap: 3px;
+    flex: 1;
+    height: 100%;
+}
+
+.bottom-nav .nav-item i {
+    font-size: 1.3rem;
+}
+
+.bottom-nav .nav-item span {
+    font-size: 0.7rem;
+    line-height: 1;
+    display: block; /* Ensure visibility */
+}
+
+.bottom-nav .nav-item.active {
+    color: var(--brand-color);
+}
+
+/* --- Center Animated Icon --- */
+.nav-item-center {
+    transform: translateY(-15px); /* Lift the entire item up */
+}
+
+.nav-item-center .icon-animated-spiral {
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    color: #fff; /* White icon color */
+    background: var(--brand-color); /* Use brand color for background */
+    border-radius: 50%;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    animation: spin 4s linear infinite;
+    margin-bottom: 5px; /* Add space between icon and label */
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+
+/* --- Dark Mode Styles --- */
+body.dark {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+}
+
+body.dark .feed-header {
+    background-color: var(--dark-card-bg);
+    border-bottom-color: var(--dark-border-color);
+}
+
+body.dark .feed-header .header-icon {
+    color: var(--dark-icon-color);
+    background-color: var(--dark-bg);
+}
+
+body.dark .create-post-prompt {
+    background-color: var(--dark-card-bg);
+    border-bottom-color: var(--dark-border-color);
+}
+
+body.dark .create-post-prompt .prompt-text {
+    color: var(--dark-secondary-text);
+}
+
+body.dark .create-post-prompt .action-btn {
+    color: var(--dark-icon-color);
+}
+
+body.dark .bottom-nav {
+    background-color: var(--dark-card-bg);
+    border-top-color: var(--dark-border-color);
+}
+
+body.dark .bottom-nav .nav-item {
+    color: var(--dark-icon-color);
+}
+
+body.dark .bottom-nav .nav-item.active {
+    color: var(--brand-color);
+}
+
+body.dark .nav-item-center .icon-animated-spiral {
+    background: var(--brand-color); /* Keep it branded */
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
+}
+
+/* Styles from old feed_world.css that might be needed */
+.post-container {
+    background: var(--light-card-bg);
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+body.dark .post-container {
+    background: var(--dark-card-bg);
+    border: 1px solid var(--dark-border-color);
+    box-shadow: none;
+}
+.flashes {
+    list-style: none;
+    padding: 0;
+    margin: 1rem;
+}
+.flashes .success {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 1rem;
+    border-radius: 5px;
+}
+.flashes .danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 1rem;
+    border-radius: 5px;
+}
