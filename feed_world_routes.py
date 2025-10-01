@@ -10,10 +10,28 @@ feed = Blueprint('feed', __name__)
 @feed.route('/feed')
 @login_required
 def home_feed():
+    user_agent = request.headers.get('User-Agent', '').lower()
+    is_mobile = 'iphone' in user_agent or 'android' in user_agent or 'mobi' in user_agent
+
     followed_users_ids = [user.id for user in current_user.followed]
     posts = Post.query.filter(Post.user_id.in_(followed_users_ids)).order_by(Post.timestamp.desc()).all()
-    active_stories_users = db.session.query(User).join(Status).filter(Status.is_story == True, Status.expires_at > db.func.now()).distinct().all()
-    return render_template('feed/home.html', posts=posts, stories_by_user=active_stories_users)
+
+    if is_mobile:
+        return render_template('feed/home_mobile.html', posts=posts)
+    else:
+        active_stories_users = db.session.query(User).join(Status).filter(Status.is_story == True, Status.expires_at > db.func.now()).distinct().all()
+        return render_template('feed/home.html', posts=posts, stories_by_user=active_stories_users)
+
+@feed.route('/feed/search_mobile')
+@login_required
+def search_mobile():
+    return render_template('feed/search_mobile.html')
+
+@feed.route('/feed/create_post', methods=['GET'])
+@login_required
+def create_post_page():
+    # This route will display the form for creating a post on mobile
+    return render_template('feed/create_post_mobile.html')
 
 @feed.route('/create_post', methods=['POST'])
 @login_required

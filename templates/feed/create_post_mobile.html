@@ -1,0 +1,22 @@
+{% extends "layouts/feed_layout_mobile.html" %}
+
+{% block title %}Create Post{% endblock %}
+
+{% block feed_content %}
+<div style="padding: 16px;">
+    <form action="{{ url_for('feed.create_post') }}" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <textarea name="content" class="form-control" rows="5" placeholder="What's on your mind, {{ current_user.name.split(' ')[0] }}?" style="width: 100%; border-radius: 12px; padding: 12px; font-size: 16px; background-color: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);"></textarea>
+        </div>
+        <div class="form-group" style="margin-top: 16px;">
+            <label for="media" class="btn-secondary" style="cursor: pointer; display: inline-block; padding: 10px 15px; border-radius: 8px;">
+                <i class="fas fa-photo-video"></i> Add Photo/Video
+            </label>
+            <input type="file" id="media" name="media" multiple style="display: none;">
+        </div>
+        <div class="form-actions" style="margin-top: 24px;">
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; border-radius: 20px; font-size: 16px; font-weight: 600;">Post</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
