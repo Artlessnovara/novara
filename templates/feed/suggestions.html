@@ -4,109 +4,140 @@
 
 {% block styles %}
 <style>
-    .suggestions-container { max-width: 1000px; margin: auto; }
-    .suggestions-section { background: var(--card-bg-light); border-radius: var(--border-radius); padding: 1.5rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); }
-    .suggestion-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color-light); }
-    .suggestion-item:last-child { border-bottom: none; }
-    .suggestion-info { display: flex; align-items: center; gap: 1rem; }
-    .suggestion-info img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
-    .suggestion-info a { text-decoration: none; color: inherit; }
-    .follow-btn { background: var(--primary-color); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
-
+    .suggestions-container {
+        max-width: 90%;
+        margin: auto;
+        padding: 1rem;
+    }
+    .suggestions-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+    .suggestions-header h1 {
+        color: var(--text-color);
+        font-size: 1.8rem;
+    }
+    .search-form {
+        display: flex;
+        gap: 0.5rem;
+        background-color: var(--card-bg-light);
+        padding: 0.5rem;
+        border-radius: var(--border-radius);
+    }
+    .search-form input {
+        border: 1px solid var(--border-color-light);
+        padding: 0.5rem;
+        border-radius: var(--border-radius);
+        background-color: var(--input-bg);
+        color: var(--text-color);
+    }
+    .search-form button {
+        background-color: var(--primary-color);
+        color: white;
+    }
     .user-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 1rem;
-        margin-top: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
     }
     .user-card {
         background: var(--card-bg);
         border-radius: var(--border-radius);
         text-align: center;
-        padding: 1rem;
-        box-shadow: var(--shadow-sm);
+        padding: 1.5rem 1rem;
+        box-shadow: var(--shadow-md);
+        transition: transform 0.2s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .user-card:hover {
+        transform: translateY(-5px);
     }
     .user-card img {
-        width: 80px;
-        height: 80px;
+        width: 100px;
+        height: 100px;
         border-radius: 50%;
         object-fit: cover;
-        margin-bottom: 0.5rem;
+        margin: 0 auto 1rem;
+        border: 3px solid var(--primary-color-light);
     }
-    .user-card a {
+    .user-card-info {
+        margin-bottom: 1rem;
+    }
+    .user-card-info a {
         text-decoration: none;
-        color: inherit;
+        color: var(--text-color);
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    .user-card-info p {
+        color: var(--text-color-secondary);
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+    }
+    .user-card-actions .follow-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        width: 100%;
+        font-weight: bold;
+        transition: background-color 0.2s;
+    }
+    .user-card-actions .follow-btn:hover {
+        background-color: var(--primary-color-dark);
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="suggestions-container">
-    <h1>Suggestions For You</h1>
+    <div class="suggestions-header">
+        <h1>People You May Know</h1>
+        <form action="{{ url_for('feed.suggestions') }}" method="POST" class="search-form">
+            <input type="text" name="city" placeholder="City" value="{{ request.form.city }}">
+            <input type="text" name="state" placeholder="State" value="{{ request.form.state }}">
+            <button type="submit" class="btn">Search</button>
+        </form>
+    </div>
 
-    <div class="suggestions-section">
-        <h2>People you may know</h2>
-        {% for user in suggested_users %}
-            <div class="suggestion-item">
-                <div class="suggestion-info">
+    {% if suggested_users %}
+        <div class="user-grid">
+            {% for user in suggested_users %}
+                <div class="user-card">
                     <a href="{{ url_for('main.view_user', user_id=user.id) }}">
-                        <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}">
+                        <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="Profile picture of {{ user.name }}">
                     </a>
-                    <div>
-                        <strong><a href="{{ url_for('main.view_user', user_id=user.id) }}">{{ user.name }}</a></strong>
-                        <p>{{ user.bio|truncate(50) if user.bio else 'No bio available.' }}</p>
+                    <div class="user-card-info">
+                        <a href="{{ url_for('main.view_user', user_id=user.id) }}">
+                            <strong>{{ user.name }}</strong>
+                        </a>
+                        {% if user.city and user.state %}
+                            <p>{{ user.city }}, {{ user.state }}</p>
+                        {% elif user.city %}
+                            <p>{{ user.city }}</p>
+                        {% elif user.state %}
+                             <p>{{ user.state }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="user-card-actions">
+                        <form action="{{ url_for('feed.follow', user_id=user.id) }}" method="POST" style="margin:0;">
+                            <button type="submit" class="follow-btn">Follow</button>
+                        </form>
                     </div>
                 </div>
-                <form action="{{ url_for('feed.follow', user_id=user.id) }}" method="POST">
-                    <button type="submit" class="follow-btn">Follow</button>
-                </form>
-            </div>
-        {% else %}
-            <p>No user suggestions at the moment.</p>
-        {% endfor %}
-    </div>
-
-    <div class="suggestions-section">
-        <h2>Communities you might like</h2>
-        {% for community in suggested_communities %}
-            <div class="suggestion-item">
-                <div class="suggestion-info">
-                     <a href="{{ url_for('feed.view_community', community_id=community.id) }}">
-                        <img src="{{ url_for('static', filename=community.cover_image or 'images/course_placeholder.jpg') }}" alt="{{ community.name }}">
-                    </a>
-                    <div>
-                        <strong><a href="{{ url_for('feed.view_community', community_id=community.id) }}">{{ community.name }}</a></strong>
-                        <p>{{ community.description|truncate(50) }}</p>
-                    </div>
-                </div>
-                {% if community.memberships.filter_by(user_id=current_user.id).first() %}
-                    <p>Joined</p>
-                {% else %}
-                <form action="{{ url_for('feed.join_community', community_id=community.id) }}" method="POST">
-                    <button type="submit" class="follow-btn">Join</button>
-                </form>
-                {% endif %}
-            </div>
-        {% else %}
-            <p>No community suggestions at the moment.</p>
-        {% endfor %}
-    </div>
-
-    <div class="suggestions-section">
-        <h2>Projects you might be interested in</h2>
-        {% for project in suggested_projects %}
-            <div class="suggestion-item">
-                <div class="suggestion-info">
-                    <div>
-                        <strong><a href="{{ url_for('feed.view_project', project_id=project.id) }}">{{ project.title }}</a></strong>
-                        <p>by {{ project.owner.name }}</p>
-                    </div>
-                </div>
-            </div>
-        {% else %}
-            <p>No project suggestions at the moment.</p>
-        {% endfor %}
-    </div>
-
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info" style="margin-top: 2rem;">
+            <p>No new suggestions at the moment. Try searching by a different location or check back later!</p>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

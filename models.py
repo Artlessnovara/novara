@@ -54,6 +54,9 @@ class User(UserMixin, db.Model):
     profile_theme = db.Column(db.String(50), nullable=True)
 
     # Location
+    city = db.Column(db.String(100), nullable=True)
+    state = db.Column(db.String(100), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
 
