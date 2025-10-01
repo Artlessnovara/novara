@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 
     <!-- Feed World Styles -->
@@ -66,22 +66,22 @@
 
     <nav class="bottom-nav">
         <a href="{{ url_for('feed.home_feed') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.home_feed' }}">
-            <i class="fas fa-house"></i>
+            <i class="bi bi-house"></i>
             <span>Home</span>
         </a>
         <a href="{{ url_for('main.profile') }}" class="nav-item {{ 'active' if request.endpoint == 'main.profile' }}">
-            <i class="fas fa-user"></i>
+            <i class="bi bi-person"></i>
             <span>Profile</span>
         </a>
-        <a href="#" class="nav-item nav-item-center">
+        <a href="{{ url_for('feed.create_post_page') }}" class="nav-item nav-item-center">
             <div class="swirl-icon"></div>
         </a>
         <a href="{{ url_for('feed.suggestions') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.suggestions' }}">
-            <i class="fas fa-users"></i>
+            <i class="bi bi-people"></i>
             <span>Suggestions</span>
         </a>
         <a href="{{ url_for('more.more_page') }}" class="nav-item {{ 'active' if request.endpoint == 'more.more_page' or request.endpoint.startswith('more.') }}">
-            <i class="fas fa-list"></i>
+            <i class="bi bi-list"></i>
             <span>More</span>
         </a>
     </nav>

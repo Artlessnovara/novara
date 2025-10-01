@@ -626,6 +626,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/feed_stories.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.post-container').forEach(postContainer => {
@@ -643,46 +644,50 @@ document.addEventListener('DOMContentLoaded', function() {
         const moreOptionsBtn = postContainer.querySelector('.more-options-btn');
         const moreOptionsMenu = postContainer.querySelector('.more-options-menu');
 
-        // --- More Options Menu Logic ---
-        moreOptionsBtn.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevent the window click listener from firing immediately
-            // Hide all other menus before showing this one
-            document.querySelectorAll('.more-options-menu').forEach(menu => {
-                if (menu !== moreOptionsMenu) {
-                    menu.style.display = 'none';
-                }
-            });
-            moreOptionsMenu.style.display = moreOptionsMenu.style.display === 'block' ? 'none' : 'block';
-        });
-
-        // --- Reactions Logic ---
-        let paletteTimeout;
-        reactBtnWrapper.addEventListener('mouseenter', () => {
-            clearTimeout(paletteTimeout);
-            reactionsPalette.style.display = 'flex';
-        });
-
-        reactBtnWrapper.addEventListener('mouseleave', () => {
-            paletteTimeout = setTimeout(() => {
-                reactionsPalette.style.display = 'none';
-            }, 300);
-        });
-
-        reactionsPalette.querySelectorAll('.reaction-icon').forEach(icon => {
-            icon.addEventListener('click', (event) => {
+        if(moreOptionsBtn) {
+            moreOptionsBtn.addEventListener('click', (event) => {
                 event.stopPropagation();
-                const reactionType = icon.dataset.reaction;
-                sendReaction(postId, reactionType);
-                reactionsPalette.style.display = 'none';
+                document.querySelectorAll('.more-options-menu').forEach(menu => {
+                    if (menu !== moreOptionsMenu) {
+                        menu.style.display = 'none';
+                    }
+                });
+                moreOptionsMenu.style.display = moreOptionsMenu.style.display === 'block' ? 'none' : 'block';
             });
-        });
+        }
 
-        reactBtn.addEventListener('click', () => {
-            // Default action on click is to 'like' or 'unlike'
-            const currentReaction = reactBtn.dataset.userReaction;
-            const reactionToSend = currentReaction === 'like' ? null : 'like';
-            sendReaction(postId, reactionToSend);
-        });
+        if(reactBtnWrapper) {
+            let paletteTimeout;
+            reactBtnWrapper.addEventListener('mouseenter', () => {
+                clearTimeout(paletteTimeout);
+                if(reactionsPalette) reactionsPalette.style.display = 'flex';
+            });
+
+            reactBtnWrapper.addEventListener('mouseleave', () => {
+                paletteTimeout = setTimeout(() => {
+                    if(reactionsPalette) reactionsPalette.style.display = 'none';
+                }, 300);
+            });
+
+            if(reactionsPalette) {
+                reactionsPalette.querySelectorAll('.reaction-icon').forEach(icon => {
+                    icon.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        const reactionType = icon.dataset.reaction;
+                        sendReaction(postId, reactionType);
+                        reactionsPalette.style.display = 'none';
+                    });
+                });
+            }
+        }
+
+        if(reactBtn) {
+            reactBtn.addEventListener('click', () => {
+                const currentReaction = reactBtn.dataset.userReaction;
+                const reactionToSend = currentReaction === 'like' ? null : 'like';
+                sendReaction(postId, reactionToSend);
+            });
+        }
 
         function sendReaction(postId, reactionType) {
              fetch(`/feed/api/post/${postId}/react`, {
@@ -699,7 +704,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function updateUIAfterReaction(data) {
-            // Update button state
+            if(!reactBtn || !reactionSummaryEl) return;
             reactBtn.dataset.userReaction = data.user_reaction || '';
             reactBtn.classList.toggle('active', !!data.user_reaction);
 
@@ -715,7 +720,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 reactBtn.innerHTML = `<i class="far fa-thumbs-up"></i> Like`;
             }
 
-            // Update reaction summary
             reactionSummaryEl.innerHTML = '';
             const totalReactions = Object.values(data.reaction_counts).reduce((a, b) => a + b, 0);
 
@@ -730,40 +734,41 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // --- Comment Toggle & Fetch Logic ---
-        commentBtn.addEventListener('click', () => {
-            const isHidden = commentsSection.style.display === 'none' || commentsSection.style.display === '';
-
-            if (isHidden) {
-                commentsSection.style.display = 'block';
-                // Fetch comments only if the list is empty
-                if (commentsList.innerHTML.trim() === '') {
-                    fetchAndRenderComments(postId, commentsList);
-                }
-            } else {
-                commentsSection.style.display = 'none';
-            }
-        });
-
-        // --- Add Comment Logic ---
-        commentSubmitBtn.addEventListener('click', () => {
-            const content = commentInput.value.trim();
-            if (content) {
-                fetch(`/feed/api/post/${postId}/comment`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: content }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        appendComment(data.comment, commentsList);
-                        commentInput.value = '';
-                        // Optionally update comments count
+        if(commentBtn) {
+            commentBtn.addEventListener('click', () => {
+                if(!commentsSection) return;
+                const isHidden = commentsSection.style.display === 'none' || commentsSection.style.display === '';
+                if (isHidden) {
+                    commentsSection.style.display = 'block';
+                    if (commentsList && commentsList.innerHTML.trim() === '') {
+                        fetchAndRenderComments(postId, commentsList);
                     }
-                });
-            }
-        });
+                } else {
+                    commentsSection.style.display = 'none';
+                }
+            });
+        }
+
+        if(commentSubmitBtn) {
+            commentSubmitBtn.addEventListener('click', () => {
+                if(!commentInput) return;
+                const content = commentInput.value.trim();
+                if (content) {
+                    fetch(`/feed/api/post/${postId}/comment`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: content }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            appendComment(data.comment, commentsList);
+                            commentInput.value = '';
+                        }
+                    });
+                }
+            });
+        }
     });
 
     function fetchAndRenderComments(postId, commentsListEl) {
@@ -771,7 +776,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/feed/api/post/${postId}/comments`)
             .then(response => response.json())
             .then(data => {
-                commentsListEl.innerHTML = ''; // Clear loading message
+                commentsListEl.innerHTML = '';
                 if (data.length === 0) {
                     commentsListEl.innerHTML = '<p style="font-size: 0.9rem; color: #888; margin-top: 1rem;">No comments yet.</p>';
                 } else {
@@ -781,7 +786,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function appendComment(comment, commentsListEl) {
-        // Remove "no comments yet" message if it exists
         const noCommentsMsg = commentsListEl.querySelector('p');
         if (noCommentsMsg) {
             noCommentsMsg.remove();
@@ -804,527 +808,11 @@ document.addEventListener('DOMContentLoaded', function() {
         commentsListEl.appendChild(commentEl);
     }
 
-    // --- Report Modal Logic ---
-    const reportModal = document.getElementById('report-modal');
-    const closeModalBtn = reportModal.querySelector('.close-btn');
-    const reportForm = document.getElementById('report-form');
-    const reportPostIdInput = document.getElementById('report-post-id');
-
-    document.querySelectorAll('.report-post-btn').forEach(item => {
-        item.addEventListener('click', function(event) {
-            event.preventDefault(); // Prevent the link from navigating
-            event.stopPropagation(); // Prevent the menu from closing
-            const postId = this.dataset.postId;
-            reportPostIdInput.value = postId;
-            reportModal.style.display = 'block';
-            this.closest('.more-options-menu').style.display = 'none'; // Hide menu after click
-        });
-    });
-
-    closeModalBtn.onclick = function() {
-        reportModal.style.display = 'none';
-    }
-
     // --- Global Click Listener to Close Menus & Modals ---
     window.addEventListener('click', (event) => {
-        // Close options menus
         document.querySelectorAll('.more-options-menu').forEach(menu => {
             menu.style.display = 'none';
         });
-
-        // Close report modal if clicking outside of it
-        if (event.target == reportModal) {
-            reportModal.style.display = 'none';
-        }
-    });
-
-    reportForm.addEventListener('submit', function(event) {
-        // The form will now submit to the backend.
-        // The page will reload, and the flash message will be displayed.
-    });
-
-    // --- Lightbox Logic ---
-    const lightboxModal = document.getElementById('lightbox-modal');
-    if (lightboxModal) {
-        const lightboxImage = document.getElementById('lightbox-image');
-        const closeLightboxBtn = lightboxModal.querySelector('.close-lightbox');
-
-        document.querySelectorAll('.post-media img').forEach(img => {
-            img.addEventListener('click', () => {
-                lightboxModal.style.display = 'flex'; // Use flex for centering
-                lightboxImage.src = img.src;
-            });
-        });
-
-        function closeLightbox() {
-            lightboxModal.style.display = 'none';
-        }
-
-        closeLightboxBtn.addEventListener('click', closeLightbox);
-
-        // Also close lightbox when clicking on the modal background
-        lightboxModal.addEventListener('click', (event) => {
-            if (event.target === lightboxModal) {
-                closeLightbox();
-            }
-        });
-    }
-
-    // --- Share Button Logic ---
-    document.querySelectorAll('.share-btn').forEach(btn => {
-        btn.addEventListener('click', (event) => {
-            const postContainer = event.target.closest('.post-container');
-            const postId = postContainer.dataset.postId;
-
-            if (confirm('Are you sure you want to share this post?')) {
-                fetch(`/feed/api/post/${postId}/share`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({}), // No comment for now
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert('Post shared successfully!');
-                        window.location.reload();
-                    } else {
-                        alert('Error sharing post: ' + data.message);
-                    }
-                });
-            }
-        });
-    });
-
-    // --- Relative Timestamps Logic ---
-    function updateTimestamps() {
-        dayjs.extend(dayjs_plugin_relativeTime);
-        document.querySelectorAll('.post-timestamp').forEach(el => {
-            const timestamp = el.dataset.timestamp;
-            el.textContent = dayjs(timestamp).fromNow();
-        });
-    }
-    updateTimestamps();
-
-    // --- Analytics Modal Logic ---
-    const analyticsModal = document.getElementById('analytics-modal');
-    if (analyticsModal) {
-        const analyticsCloseBtn = analyticsModal.querySelector('.analytics-close');
-        const analyticsContent = document.getElementById('analytics-content');
-
-        document.querySelectorAll('.view-analytics-btn').forEach(btn => {
-            btn.addEventListener('click', function(event) {
-                event.preventDefault();
-                event.stopPropagation();
-
-                const postId = this.dataset.postId;
-                analyticsModal.style.display = 'block';
-                analyticsContent.innerHTML = '<p>Loading analytics...</p>';
-
-                fetch(`/feed/api/post/${postId}/analytics`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Failed to load analytics.');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        analyticsContent.innerHTML = `
-                            <ul class="list-group">
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Impressions
-                                    <span class="badge badge-primary badge-pill">${data.impressions}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Reach (Unique Viewers)
-                                    <span class="badge badge-primary badge-pill">${data.reach}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Total Engagement
-                                    <span class="badge badge-primary badge-pill">${data.engagement}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    &nbsp;&nbsp;&nbsp;Likes
-                                    <span class="badge badge-secondary badge-pill">${data.likes}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    &nbsp;&nbsp;&nbsp;Comments
-                                    <span class="badge badge-secondary badge-pill">${data.comments}</span>
-                                </li>
-                            </ul>
-                            <h5 class="mt-4">Engagement by Role (from Likes)</h5>
-                            <ul class="list-group">
-                                ${Object.entries(data.demographics).map(([role, count]) => `
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        ${role.charAt(0).toUpperCase() + role.slice(1)}s
-                                        <span class="badge badge-info badge-pill">${count}</span>
-                                    </li>
-                                `).join('')}
-                                ${Object.keys(data.demographics).length === 0 ? '<li class="list-group-item">No engagement data by role yet.</li>' : ''}
-                            </ul>
-                        `;
-                    })
-                    .catch(error => {
-                        analyticsContent.innerHTML = `<p class="text-danger">${error.message}</p>`;
-                    });
-
-                this.closest('.more-options-menu').style.display = 'none';
-            });
-        });
-
-        analyticsCloseBtn.onclick = function() {
-            analyticsModal.style.display = 'none';
-        }
-
-        // Also close modal when clicking outside of it
-        window.addEventListener('click', (event) => {
-            if (event.target == analyticsModal) {
-                analyticsModal.style.display = 'none';
-            }
-        });
-    }
-
-    // --- Boost Post Modal Logic ---
-    const boostModal = document.getElementById('boost-modal');
-    if (boostModal) {
-        const boostCloseBtn = boostModal.querySelector('.boost-close');
-        const boostCancelBtn = boostModal.querySelector('.boost-cancel-btn');
-        const boostForm = document.getElementById('boost-form');
-        const boostPostIdInput = document.getElementById('boost-post-id');
-
-        document.querySelectorAll('.boost-post-btn').forEach(btn => {
-            btn.addEventListener('click', function(event) {
-                event.preventDefault();
-                event.stopPropagation();
-
-                const postId = this.dataset.postId;
-                boostPostIdInput.value = postId;
-                boostModal.style.display = 'block';
-                this.closest('.more-options-menu').style.display = 'none';
-            });
-        });
-
-        const closeBoostModal = () => {
-            boostModal.style.display = 'none';
-        }
-
-        boostCloseBtn.addEventListener('click', closeBoostModal);
-        boostCancelBtn.addEventListener('click', closeBoostModal);
-
-        // This was already in the analytics modal logic, but it's fine to have it again
-        // It will just add another listener for the same event
-        window.addEventListener('click', (event) => {
-            if (event.target == boostModal) {
-                closeBoostModal();
-            }
-        });
-
-        boostForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            const postId = boostPostIdInput.value;
-
-            fetch(`/feed/api/post/${postId}/boost`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    alert(data.message);
-                    // Hide the boost button for this post since it's now boosted
-                    const boostButtonLi = document.querySelector(`.boost-post-btn[data-post-id="${postId}"]`);
-                    if (boostButtonLi) {
-                        boostButtonLi.parentElement.style.display = 'none';
-                    }
-                    closeBoostModal();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(err => {
-                console.error('Boost failed:', err);
-                alert('An unexpected error occurred. Please try again.');
-            });
-        });
-    }
-
-    // --- Impression Tracking Logic ---
-    const observerOptions = {
-        root: null, // relative to the viewport
-        rootMargin: '0px',
-        threshold: 0.75 // Trigger when 75% of the post is visible
-    };
-
-    const impressionObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const postContainer = entry.target;
-                const postId = postContainer.dataset.postId;
-
-                if (!postContainer.dataset.impressionSent) {
-                    postContainer.dataset.impressionSent = 'true';
-                    fetch(`/feed/api/post/${postId}/impression`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                    }).catch(err => console.error('Impression tracking failed:', err));
-
-                    observer.unobserve(postContainer);
-                }
-            }
-        });
-    }, observerOptions);
-
-    document.querySelectorAll('.post-container').forEach(post => {
-        impressionObserver.observe(post);
-    });
-
-    // --- Story Creation Modal Logic ---
-    const createStoryModal = document.getElementById('create-story-modal');
-    const createStoryCard = document.getElementById('create-story-card');
-    const createStoryFromInput = document.getElementById('create-story-from-input');
-    const closeCreateStoryModal = document.getElementById('close-create-story-modal');
-    const storyMediaInput = document.getElementById('story-media-input');
-    const storyPreview = document.getElementById('story-preview');
-
-    function openCreateStoryModal() {
-        createStoryModal.style.display = 'block';
-    }
-
-    function closeCreateStoryModalFunc() {
-        createStoryModal.style.display = 'none';
-        storyMediaInput.value = ''; // Reset file input
-        storyPreview.style.display = 'none'; // Hide preview
-    }
-
-    createStoryCard.addEventListener('click', openCreateStoryModal);
-    createStoryFromInput.addEventListener('click', openCreateStoryModal);
-    closeCreateStoryModal.addEventListener('click', closeCreateStoryModalFunc);
-
-    storyMediaInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                if (file.type.startsWith('image/')) {
-                    storyPreview.src = e.target.result;
-                    storyPreview.style.display = 'block';
-                } else {
-                    storyPreview.style.display = 'none';
-                }
-            }
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // --- Story Viewer Logic ---
-    const storyViewerModal = document.getElementById('story-viewer-modal');
-    const storyViewerImage = document.getElementById('story-viewer-image');
-    const storyViewerVideo = document.getElementById('story-viewer-video');
-    const storyAuthorAvatar = document.querySelector('.story-author-avatar');
-    const storyAuthorName = document.querySelector('.story-author-name');
-    const storyProgressBarsContainer = document.querySelector('.story-progress-bars');
-    const storyCloseBtn = document.getElementById('story-close-btn');
-    const storyPauseBtn = document.getElementById('story-pause-btn');
-    const storyPrevBtn = document.getElementById('story-prev-btn');
-    const storyNextBtn = document.getElementById('story-next-btn');
-
-    let allUserStories = {};
-    let currentUserStories = [];
-    let currentStoryIndex = 0;
-    let storyTimer;
-    let isPaused = false;
-    const STORY_DURATION = 5000; // 5 seconds for images
-
-    document.querySelectorAll('.story-card:not(.create-story-card)').forEach(card => {
-        card.addEventListener('click', () => {
-            const userId = card.dataset.userId;
-            openStoryViewer(userId);
-        });
-    });
-
-    function openStoryViewer(userId) {
-        fetch(`/api/stories/${userId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.stories && data.stories.length > 0) {
-                    currentUserStories = data.stories;
-                    allUserStories[userId] = data;
-                    currentStoryIndex = 0;
-                    storyViewerModal.style.display = 'flex';
-                    showStory(currentStoryIndex);
-                }
-            });
-    }
-
-    function showStory(index) {
-        if (index < 0 || index >= currentUserStories.length) {
-            closeStoryViewer();
-            return;
-        }
-
-        isPaused = false;
-        storyPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-        const story = currentUserStories[index];
-        const author = allUserStories[story.user_id].user;
-
-        storyAuthorAvatar.src = author.avatar_url;
-        storyAuthorName.textContent = author.name;
-
-        // Create progress bars
-        storyProgressBarsContainer.innerHTML = '';
-        currentUserStories.forEach((s, i) => {
-            const bar = document.createElement('div');
-            bar.className = 'progress-bar';
-            const fill = document.createElement('div');
-            fill.className = 'progress-bar-fill';
-            if (i < index) {
-                fill.style.width = '100%';
-            }
-            bar.appendChild(fill);
-            storyProgressBarsContainer.appendChild(bar);
-        });
-
-        storyViewerImage.style.display = 'none';
-        storyViewerVideo.style.display = 'none';
-        storyViewerVideo.pause();
-        clearTimeout(storyTimer);
-
-        const currentProgressBarFill = storyProgressBarsContainer.children[index].firstChild;
-
-        if (story.media_type === 'image') {
-            storyViewerImage.src = story.media_url;
-            storyViewerImage.style.display = 'block';
-            startTimer(currentProgressBarFill, STORY_DURATION);
-        } else if (story.media_type === 'video') {
-            storyViewerVideo.src = story.media_url;
-            storyViewerVideo.style.display = 'block';
-            storyViewerVideo.currentTime = 0;
-
-            storyViewerVideo.onloadedmetadata = () => {
-                storyViewerVideo.play();
-                startTimer(currentProgressBarFill, storyViewerVideo.duration * 1000);
-            };
-            storyViewerVideo.onended = () => nextStory();
-        }
-    }
-
-    function startTimer(progressBarFill, duration) {
-        progressBarFill.style.transition = 'none';
-        progressBarFill.style.width = '0%';
-        // Force reflow
-        void progressBarFill.offsetWidth;
-
-        progressBarFill.style.transition = `width ${duration / 1000}s linear`;
-        progressBarFill.style.width = '100%';
-
-        clearTimeout(storyTimer);
-        storyTimer = setTimeout(nextStory, duration);
-    }
-
-    function nextStory() {
-        showStory(++currentStoryIndex);
-    }
-
-    function prevStory() {
-        showStory(--currentStoryIndex);
-    }
-
-    function pauseStory() {
-        isPaused = true;
-        clearTimeout(storyTimer);
-        const currentProgressBarFill = storyProgressBarsContainer.children[currentStoryIndex].firstChild;
-        currentProgressBarFill.style.width = getComputedStyle(currentProgressBarFill).width;
-        storyPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-        if (storyViewerVideo.style.display === 'block') {
-            storyViewerVideo.pause();
-        }
-    }
-
-    function resumeStory() {
-        isPaused = false;
-        const currentProgressBarFill = storyProgressBarsContainer.children[currentStoryIndex].firstChild;
-        const currentWidth = parseFloat(currentProgressBarFill.style.width); // as percentage
-        let duration = STORY_DURATION;
-
-        if (storyViewerVideo.style.display === 'block') {
-            duration = storyViewerVideo.duration * 1000;
-        }
-
-        const remainingDuration = duration * (1 - (currentWidth / 100));
-
-        currentProgressBarFill.style.transition = `width ${remainingDuration / 1000}s linear`;
-        currentProgressBarFill.style.width = '100%';
-
-        storyTimer = setTimeout(nextStory, remainingDuration);
-        storyPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-
-        if (storyViewerVideo.style.display === 'block') {
-            storyViewerVideo.play();
-        }
-    }
-
-    function closeStoryViewer() {
-        storyViewerModal.style.display = 'none';
-        clearTimeout(storyTimer);
-        storyViewerVideo.pause();
-        storyViewerVideo.src = '';
-        storyViewerImage.src = '';
-    }
-
-    storyCloseBtn.addEventListener('click', closeStoryViewer);
-    storyNextBtn.addEventListener('click', nextStory);
-    storyPrevBtn.addEventListener('click', prevStory);
-    storyPauseBtn.addEventListener('click', () => {
-        isPaused ? resumeStory() : pauseStory();
-    });
-
-     // Also close modal when clicking outside of it
-    window.addEventListener('click', (event) => {
-        if (event.target == createStoryModal) {
-            closeCreateStoryModalFunc();
-        }
-        if (event.target == storyViewerModal) {
-            closeStoryViewer();
-        }
-        if (event.target == document.getElementById('story-viewers-modal')) {
-            document.getElementById('story-viewers-modal').style.display = 'none';
-        }
-    });
-
-    // --- Story Viewers Modal Logic ---
-    const storyViewersModal = document.getElementById('story-viewers-modal');
-    const viewStoryViewersBtn = document.getElementById('view-story-viewers-btn');
-    const closeStoryViewersModalBtn = document.getElementById('close-story-viewers-modal');
-    const storyViewersList = document.getElementById('story-viewers-list');
-
-    viewStoryViewersBtn.addEventListener('click', () => {
-        const storyId = currentUserStories[currentStoryIndex].id;
-        fetch(`/api/stories/${storyId}/viewers`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    storyViewersList.innerHTML = '';
-                    if (data.viewers.length > 0) {
-                        data.viewers.forEach(viewer => {
-                            const viewerEl = document.createElement('div');
-                            viewerEl.className = 'user-list-item';
-                            viewerEl.innerHTML = `
-                                <div class="user-info">
-                                    <img src="${viewer.avatar_url}" alt="${viewer.name}" class="profile-pic-small">
-                                    <span>${viewer.name}</span>
-                                </div>
-                            `;
-                            storyViewersList.appendChild(viewerEl);
-                        });
-                    } else {
-                        storyViewersList.innerHTML = '<p>No viewers yet.</p>';
-                    }
-                    storyViewersModal.style.display = 'block';
-                }
-            });
-    });
-
-    closeStoryViewersModalBtn.addEventListener('click', () => {
-        storyViewersModal.style.display = 'none';
     });
 });
 </script>
