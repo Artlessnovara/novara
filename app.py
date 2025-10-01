@@ -1,6 +1,6 @@
 from flask import Flask
 from extensions import db, login_manager, socketio
-from models import User, ChatRoom, ChatMessage, Notification
+from models import *
 import os
 import click
 from flask_login import current_user
