@@ -245,3 +245,24 @@ def search():
     posts = Post.query.filter(Post.content.ilike(f'%{query}%')).all()
 
     return render_template('feed/search_results.html', query=query, users=users, posts=posts)
+
+@feed.route('/feed/suggestions', methods=['GET', 'POST'])
+@login_required
+def suggestions():
+    if request.method == 'POST':
+        city = request.form.get('city')
+        state = request.form.get('state')
+        query = User.query
+        if city:
+            query = query.filter(User.city.ilike(f'%{city}%'))
+        if state:
+            query = query.filter(User.state.ilike(f'%{state}%'))
+        suggested_users = query.all()
+    else:
+        # Get IDs of users the current user is already following
+        following_ids = [user.id for user in current_user.followed]
+
+        # Exclude the current user and users they are already following
+        suggested_users = User.query.filter(User.id != current_user.id, User.id.notin_(following_ids)).order_by(db.func.random()).limit(10).all()
+
+    return render_template('feed/suggestions.html', suggested_users=suggested_users)
