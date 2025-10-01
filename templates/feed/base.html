@@ -66,23 +66,22 @@
 
     <nav class="bottom-nav">
         <a href="{{ url_for('feed.home_feed') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.home_feed' }}">
-            <i class="fas fa-home"></i>
+            <i class="fas fa-house"></i>
             <span>Home</span>
         </a>
         <a href="{{ url_for('main.profile') }}" class="nav-item {{ 'active' if request.endpoint == 'main.profile' }}">
             <i class="fas fa-user"></i>
             <span>Profile</span>
         </a>
-        <a href="{{ url_for('feed.home_feed') }}" class="nav-item nav-item-center {{ 'active' if request.endpoint == 'feed.creativity' }}">
-            <i class="fa-brands fa-tiktok"></i>
-            <span>Creativity</span>
+        <a href="#" class="nav-item nav-item-center">
+            <div class="swirl-icon"></div>
         </a>
-        <a href="{{ url_for('feed.home_feed') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.suggestions' }}">
-            <i class="fas fa-user-plus"></i>
+        <a href="{{ url_for('feed.suggestions') }}" class="nav-item {{ 'active' if request.endpoint == 'feed.suggestions' }}">
+            <i class="fas fa-users"></i>
             <span>Suggestions</span>
         </a>
         <a href="{{ url_for('more.more_page') }}" class="nav-item {{ 'active' if request.endpoint == 'more.more_page' or request.endpoint.startswith('more.') }}">
-            <i class="fas fa-ellipsis-h"></i>
+            <i class="fas fa-list"></i>
             <span>More</span>
         </a>
     </nav>
