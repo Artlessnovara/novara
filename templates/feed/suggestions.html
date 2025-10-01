@@ -49,11 +49,11 @@
         {% for user in suggested_users %}
             <div class="suggestion-item">
                 <div class="suggestion-info">
-                    <a href="{{ url_for('feed.profile', user_id=user.id) }}">
+                    <a href="{{ url_for('main.view_user', user_id=user.id) }}">
                         <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}">
                     </a>
                     <div>
-                        <strong><a href="{{ url_for('feed.profile', user_id=user.id) }}">{{ user.name }}</a></strong>
+                        <strong><a href="{{ url_for('main.view_user', user_id=user.id) }}">{{ user.name }}</a></strong>
                         <p>{{ user.bio|truncate(50) if user.bio else 'No bio available.' }}</p>
                     </div>
                 </div>
@@ -108,84 +108,5 @@
         {% endfor %}
     </div>
 
-    <div class="suggestions-section">
-        <h2>Find Friends Nearby</h2>
-        <button id="find-nearby-btn" class="follow-btn">Find People Near Me</button>
-        <div id="nearby-users-container" class="user-grid">
-            <!-- Nearby users will be loaded here -->
-        </div>
-    </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-{{ super() }}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const findNearbyBtn = document.getElementById('find-nearby-btn');
-    const nearbyUsersContainer = document.getElementById('nearby-users-container');
-
-    findNearbyBtn.addEventListener('click', () => {
-        nearbyUsersContainer.innerHTML = '<p>Getting your location...</p>';
-        if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(position => {
-                const { latitude, longitude } = position.coords;
-
-                // Update user's location on the server
-                fetch('/feed/api/user/update_location', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ latitude, longitude })
-                });
-
-                // Fetch nearby users
-                fetchNearbyUsers(latitude, longitude);
-            }, error => {
-                nearbyUsersContainer.innerHTML = '<p>Location access denied. Showing all users instead.</p>';
-                fetchNearbyUsers(); // Fetch all users
-            });
-        } else {
-            nearbyUsersContainer.innerHTML = '<p>Geolocation is not supported by your browser. Showing all users instead.</p>';
-            fetchNearbyUsers(); // Fetch all users
-        }
-    });
-
-    function fetchNearbyUsers(lat, lon) {
-        let url = '/feed/api/suggestions/nearby_users';
-        if (lat && lon) {
-            url += `?lat=${lat}&lon=${lon}`;
-        }
-
-        fetch(url)
-            .then(response => response.json())
-            .then(users => {
-                renderUserGrid(users);
-            })
-            .catch(error => {
-                console.error('Error fetching nearby users:', error);
-                nearbyUsersContainer.innerHTML = '<p>Could not fetch user suggestions.</p>';
-            });
-    }
-
-    function renderUserGrid(users) {
-        nearbyUsersContainer.innerHTML = '';
-        if (users.length === 0) {
-            nearbyUsersContainer.innerHTML = '<p>No users found.</p>';
-            return;
-        }
-
-        users.forEach(user => {
-            const userCard = `
-                <div class="user-card">
-                    <a href="/feed/profile/${user.id}">
-                        <img src="/static/profile_pics/${user.profile_pic}" alt="${user.name}">
-                        <strong>${user.name}</strong>
-                    </a>
-                </div>
-            `;
-            nearbyUsersContainer.insertAdjacentHTML('beforeend', userCard);
-        });
-    }
-});
-</script>
 {% endblock %}
