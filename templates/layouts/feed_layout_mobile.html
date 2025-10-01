@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Novara Pro{% endblock %}</title>
+    {% block styles %}
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_reborn.css', v='1.1') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/academic_theme.css', v='1.1') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/dark_theme.css', v='1.1') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/feed_mobile.css', v='1.1') }}">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    {% endblock %}
+</head>
+<body class="mobile-feed" data-theme="{{ session.get('theme', 'light') }}">
+
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <h1 class="brand-logo">Novara Pro</h1>
+        <div class="header-icons">
+            <button class="icon-btn"><i class="fas fa-search"></i></button>
+            <button class="icon-btn"><i class="fas fa-comment-dots"></i></button>
+            <button class="icon-btn"><i class="fas fa-bell"></i></button>
+            <a href="{{ url_for('main.profile') }}">
+                <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic if current_user.is_authenticated and current_user.profile_pic else 'default.jpg')) }}" alt="Profile Avatar" class="profile-avatar">
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="mobile-feed-container">
+        {% block feed_content %}{% endblock %}
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="{{ url_for('feed.home_feed') }}" class="nav-item active">
+            <i class="fas fa-home"></i>
+        </a>
+        <a href="{{ url_for('feed.search_mobile') }}" class="nav-item">
+            <i class="fas fa-search"></i>
+        </a>
+        <a href="{{ url_for('feed.create_post_page') }}" class="create-post-btn animated-icon">
+            🌀
+        </a>
+        <a href="{{ url_for('main.communities') }}" class="nav-item">
+            <i class="fas fa-users"></i>
+        </a>
+        <a href="{{ url_for('main.profile') }}" class="nav-item">
+            <i class="fas fa-user-circle"></i>
+        </a>
+    </nav>
+
+    {% block scripts %}
+    <script>
+        // Theme switching logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-theme', theme);
+
+            // You might need a button to toggle this in the settings page
+            // For now, it respects the session/local storage theme.
+        });
+    </script>
+    {% endblock %}
+</body>
+</html>

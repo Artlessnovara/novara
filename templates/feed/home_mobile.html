@@ -1,0 +1,68 @@
+{% extends "layouts/feed_layout_mobile.html" %}
+
+{% block title %}Feed{% endblock %}
+
+{% block feed_content %}
+    <!-- Post Composer -->
+    <div class="post-composer-card" onclick="location.href='{{ url_for('feed.create_post') }}';">
+        <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic or 'default.jpg')) }}" alt="Your Avatar" class="composer-avatar">
+        <span class="composer-placeholder">What’s on your mind, {{ current_user.name.split(' ')[0] }}?</span>
+        <i class="fas fa-images composer-icon"></i>
+    </div>
+
+    <!-- News Feed -->
+    <div class="news-feed">
+        {% for post in posts %}
+            <div class="feed-post" data-post-id="{{ post.id }}">
+                <div class="post-header">
+                    <img src="{{ url_for('static', filename='profile_pics/' + (post.author.profile_pic or 'default.jpg')) }}" alt="{{ post.author.name }}" class="post-avatar">
+                    <div class="post-user-info">
+                        <a href="#" class="post-user-name">{{ post.author.name }}</a>
+                        <span class="post-timestamp">{{ post.timestamp.strftime('%b %d, %Y') }}</span>
+                    </div>
+                    <!-- More options can be added here if needed -->
+                </div>
+
+                <div class="post-content">
+                    <p>{{ post.content }}</p>
+                </div>
+
+                {% if post.media_url and post.media_type in ['image', 'images'] %}
+                <div class="post-media">
+                    {% set media_urls = post.media_url if post.media_type == 'images' else [post.media_url] %}
+                    {% for url in media_urls %}
+                        <img src="{{ url_for('static', filename=url) }}" alt="Post media">
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="post-actions">
+                    <button class="action-btn like-btn">
+                        <i class="far fa-heart"></i>
+                    </button>
+                    <button class="action-btn comment-btn">
+                        <i class="far fa-comment"></i>
+                    </button>
+                    <button class="action-btn share-btn">
+                        <i class="far fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-feed">
+                <p>No posts yet. Be the first to share something ✨</p>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+    // Simplified interaction script for mobile
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Mobile feed script loaded.");
+        // Add basic interaction handlers here if needed
+    });
+    </script>
+{% endblock %}
