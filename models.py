@@ -512,10 +512,7 @@ class Status(db.Model):
     background = db.Column(db.String(50), nullable=True) # For text statuses
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False, index=True)
-    is_story = db.Column(db.Boolean, default=False, nullable=False)
-
     user = db.relationship('User', backref=db.backref('statuses', lazy='dynamic'))
-    views = db.relationship('StatusView', backref='status', lazy='dynamic', cascade="all, delete-orphan")
     poll = db.relationship('Poll', back_populates='status', uselist=False, cascade="all, delete-orphan")
 
     def __init__(self, **kwargs):
@@ -523,16 +520,6 @@ class Status(db.Model):
         if not self.created_at:
             self.created_at = datetime.utcnow()
         self.expires_at = self.created_at + timedelta(hours=24)
-
-class StatusView(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    status_id = db.Column(db.Integer, db.ForeignKey('status.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    user = db.relationship('User', backref='status_views')
-
-    __table_args__ = (db.UniqueConstraint('status_id', 'user_id', name='_status_user_view_uc'),)
 
 class Poll(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1053,3 +1040,49 @@ class FCMToken(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref='fcm_tokens')
+
+class Story(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    media_type = db.Column(db.String(20), nullable=False)  # 'image', 'video', 'text'
+    media_url = db.Column(db.String(255), nullable=False)
+    privacy = db.Column(db.String(50), nullable=False, default='public') # public, friends, close_friends, only_me
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    author = db.relationship('User', backref=db.backref('stories', lazy='dynamic'))
+    views = db.relationship('StoryView', backref='story', lazy='dynamic', cascade="all, delete-orphan")
+
+    def __init__(self, **kwargs):
+        super(Story, self).__init__(**kwargs)
+        if not self.created_at:
+            self.created_at = datetime.utcnow()
+        self.expires_at = self.created_at + timedelta(hours=24)
+
+class CloseFriend(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    close_friend_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    user = db.relationship('User', foreign_keys=[user_id], backref='close_friends_list')
+    close_friend = db.relationship('User', foreign_keys=[close_friend_id])
+    __table_args__ = (db.UniqueConstraint('user_id', 'close_friend_id', name='_user_close_friend_uc'),)
+
+class StoryView(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('story.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    viewer = db.relationship('User', backref='story_views')
+    __table_args__ = (db.UniqueConstraint('story_id', 'user_id', name='_story_user_view_uc'),)
+
+class MutedStory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    muter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    muted_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    muter = db.relationship('User', foreign_keys=[muter_id], backref='muted_stories_users')
+    muted = db.relationship('User', foreign_keys=[muted_id], backref='story_muted_by_users')
+    __table_args__ = (db.UniqueConstraint('muter_id', 'muted_id', name='_muter_muted_story_uc'),)

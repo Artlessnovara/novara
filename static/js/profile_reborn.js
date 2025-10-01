@@ -134,4 +134,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateCount();
     });
+
+    // Block/Unblock User Logic
+    const blockBtn = document.querySelector('.block-user-btn');
+    const unblockBtn = document.querySelector('.unblock-user-btn');
+
+    if (blockBtn) {
+        blockBtn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            if (confirm('Are you sure you want to block this user? This will also remove you from their followers and them from yours.')) {
+                fetch(`/api/user/${userId}/block`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert(data.message);
+                            location.reload();
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    });
+            }
+        });
+    }
+
+    if (unblockBtn) {
+        unblockBtn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            fetch(`/api/user/${userId}/unblock`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                });
+        });
+    }
 });
