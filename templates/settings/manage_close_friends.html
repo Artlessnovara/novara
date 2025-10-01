@@ -1,0 +1,67 @@
+{% extends "settings/settings_layout.html" %}
+
+{% block settings_title %}Manage Close Friends{% endblock %}
+
+{% block settings_content %}
+<div class="settings-list">
+    <p class="settings-sublabel">Only people you add to your close friends list will be able to see stories you share with this audience. We don't send notifications when you edit your close friends list.</p>
+
+    <div class="user-list-container" style="margin-top: 1.5rem;">
+        {% if followers %}
+            {% for follower in followers %}
+            <div class="user-list-item">
+                <div class="user-info">
+                    <img src="{{ url_for('static', filename='profile_pics/' + follower.profile_pic) }}" alt="{{ follower.name }}" class="profile-pic-small">
+                    <span>{{ follower.name }}</span>
+                </div>
+                <button class="btn-primary-glass toggle-close-friend-btn" data-user-id="{{ follower.id }}">
+                    {% if follower in close_friends %}
+                        Remove
+                    {% else %}
+                        Add
+                    {% endif %}
+                </button>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p>You don't have any followers yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.toggle-close-friend-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const action = this.textContent.trim().toLowerCase();
+            const url = `/api/close_friends/${action}`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Toggle the button text and style
+                    if (action === 'add') {
+                        this.textContent = 'Remove';
+                    } else {
+                        this.textContent = 'Add';
+                    }
+                } else {
+                    alert('An error occurred: ' + data.message);
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -2,12 +2,110 @@
 
 {% block title %}Feed{% endblock %}
 
+{% block styles %}
+{{ super() }}
+<style>
+    /* Stories Section Styles */
+    .stories-container {
+        display: flex;
+        gap: 8px;
+        padding: 1rem;
+        overflow-x: auto;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+        scroll-snap-type: x mandatory;
+        border-bottom: 1px solid var(--border-color-light);
+        margin-bottom: 1rem;
+    }
+    .stories-container::-webkit-scrollbar {
+        display: none;
+    }
+    .story-card {
+        flex: 0 0 70px;
+        height: 110px;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        scroll-snap-align: start;
+    }
+    .story-card-bg {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-size: cover;
+        background-position: center;
+        filter: brightness(0.8);
+    }
+    .story-card-avatar {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        border: 2px solid #1877f2;
+    }
+    .story-card-name {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        right: 8px;
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .create-story-card .story-card-bg {
+        background-color: #f0f2f5;
+    }
+    .create-story-card .create-story-plus-icon {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 28px;
+        height: 28px;
+        background-color: #1877f2;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: bold;
+        border: 2px solid white;
+    }
+    .create-story-card .story-card-name {
+        color: #333;
+    }
+</style>
+{% endblock %}
+
 {% block feed_content %}
     <!-- Post Composer -->
     <div class="post-composer-card" onclick="location.href='{{ url_for('feed.create_post') }}';">
         <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_pic or 'default.jpg')) }}" alt="Your Avatar" class="composer-avatar">
         <span class="composer-placeholder">What’s on your mind, {{ current_user.name.split(' ')[0] }}?</span>
         <i class="fas fa-images composer-icon"></i>
+    </div>
+
+    <!-- Stories Section -->
+    <div class="stories-container">
+        <div class="story-card create-story-card" id="create-story-card-mobile">
+            <div class="story-card-bg"></div>
+            <div class="create-story-plus-icon">+</div>
+            <div class="story-card-name">Create story</div>
+        </div>
+        {% for user, stories in stories_by_user.items() %}
+        <div class="story-card" data-user-id="{{ user.id }}">
+            <div class="story-card-bg" style="background-image: url('{{ url_for('static', filename=stories[0].media_url) }}');"></div>
+            <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}" class="story-card-avatar">
+            <div class="story-card-name">{{ user.name }}</div>
+        </div>
+        {% endfor %}
     </div>
 
     <!-- News Feed -->

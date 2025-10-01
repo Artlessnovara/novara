@@ -5,7 +5,7 @@ import random
 import secrets
 import os
 from werkzeug.utils import secure_filename
-from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, StatusView, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory, Post, Badge, SocialLink
+from models import User, Course, Category, CourseComment, Lesson, LibraryMaterial, Assignment, AssignmentSubmission, Quiz, FinalExam, QuizSubmission, ExamSubmission, Enrollment, LessonCompletion, Module, Certificate, CertificateRequest, LibraryPurchase, ChatRoom, ChatRoomMember, MutedRoom, UserLastRead, ChatMessage, ExamViolation, GroupRequest, Choice, Answer, Status, Community, Poll, ChatClearTimestamp, SupportTicket, MutedStatusUser, LinkPreview, FCMToken, CallHistory, Post, Badge, SocialLink
 from forms import EditProfileForm, AddBadgeForm, AddSocialLinkForm, AddCertificateForm, EditBadgeForm, EditSocialLinkForm
 from extensions import db
 from utils import save_chat_file, save_status_file, get_or_create_platform_setting, is_contact, get_or_create_private_room
@@ -797,24 +797,68 @@ from models import BlockedUser
 @main.route("/user/<int:user_id>")
 @login_required
 def view_user(user_id):
+    if user_id == current_user.id:
+        return redirect(url_for('main.profile'))
+
     user = User.query.get_or_404(user_id)
 
     # Block check
     is_blocked_by = BlockedUser.query.filter_by(blocker_id=user.id, blocked_id=current_user.id).first()
     has_blocked = BlockedUser.query.filter_by(blocker_id=current_user.id, blocked_id=user.id).first()
 
-    if is_blocked_by or has_blocked:
-        flash("You cannot view this profile.", "warning")
+    if is_blocked_by:
+        flash("You cannot view this profile as this user has blocked you.", "warning")
         return redirect(url_for('main.home'))
 
-    # Privacy checks
-    contact = is_contact(current_user.id, user.id)
-    show_profile_pic = (user.privacy_profile_pic == 'everyone') or \
-                       (user.privacy_profile_pic == 'contacts' and contact)
-    show_about = (user.privacy_about == 'everyone') or \
-                 (user.privacy_about == 'contacts' and contact)
+    # Data for profile sections
+    certificates = Certificate.query.filter_by(user_id=user.id).order_by(Certificate.issued_at.desc()).all()
+    badges = Badge.query.filter_by(user_id=user.id).all()
+    social_links = SocialLink.query.filter_by(user_id=user.id).all()
+    courses = [enrollment.course for enrollment in user.enrollments.filter_by(status='approved').all()] if user.role == 'student' else user.courses_taught.all()
 
-    return render_template('public_profile.html', user=user, show_profile_pic=show_profile_pic, show_about=show_about)
+    return render_template(
+        'feed/profile.html',
+        user=user,
+        profile_completion=0, # Not applicable for other users
+        certificates=certificates,
+        badges=badges,
+        social_links=social_links,
+        courses=courses,
+        has_blocked=has_blocked
+    )
+
+@main.route("/api/user/<int:user_id>/block", methods=['POST'])
+@login_required
+def block_user(user_id):
+    if user_id == current_user.id:
+        return jsonify({'status': 'error', 'message': 'You cannot block yourself.'}), 400
+
+    user_to_block = User.query.get_or_404(user_id)
+
+    existing_block = BlockedUser.query.filter_by(blocker_id=current_user.id, blocked_id=user_id).first()
+    if not existing_block:
+        block = BlockedUser(blocker_id=current_user.id, blocked_id=user_id)
+        db.session.add(block)
+        # Unfollow each other
+        if current_user.is_following(user_to_block):
+            current_user.unfollow(user_to_block)
+        if user_to_block.is_following(current_user):
+            user_to_block.unfollow(current_user)
+        db.session.commit()
+
+    return jsonify({'status': 'success', 'message': f'You have blocked {user_to_block.name}.'})
+
+@main.route("/api/user/<int:user_id>/unblock", methods=['POST'])
+@login_required
+def unblock_user(user_id):
+    user_to_unblock = User.query.get_or_404(user_id)
+
+    existing_block = BlockedUser.query.filter_by(blocker_id=current_user.id, blocked_id=user_id).first()
+    if existing_block:
+        db.session.delete(existing_block)
+        db.session.commit()
+
+    return jsonify({'status': 'success', 'message': f'You have unblocked {user_to_unblock.name}.'})
 
 @main.route("/profile/edit", methods=['GET', 'POST'])
 @login_required
@@ -2554,6 +2598,49 @@ def toggle_mute_status(user_id):
 
     db.session.commit()
     return jsonify({'status': 'success', 'mute_status': new_status})
+
+@main.route('/settings/close_friends')
+@login_required
+def manage_close_friends():
+    followers = current_user.followers.all()
+    close_friends_assocs = CloseFriend.query.filter_by(user_id=current_user.id).all()
+    close_friends_ids = {cf.close_friend_id for cf in close_friends_assocs}
+    close_friends = User.query.filter(User.id.in_(close_friends_ids)).all()
+    return render_template('settings/manage_close_friends.html', followers=followers, close_friends=close_friends)
+
+@main.route('/api/close_friends/add', methods=['POST'])
+@login_required
+def add_close_friend():
+    data = request.get_json()
+    user_to_add_id = data.get('user_id')
+    if not user_to_add_id:
+        return jsonify({'status': 'error', 'message': 'User ID is required'}), 400
+
+    # Ensure the user to add is a follower
+    user_to_add = User.query.get(user_to_add_id)
+    if not user_to_add or not current_user.followers.filter_by(id=user_to_add_id).first():
+         return jsonify({'status': 'error', 'message': 'You can only add followers to your close friends list.'}), 403
+
+    existing = CloseFriend.query.filter_by(user_id=current_user.id, close_friend_id=user_to_add_id).first()
+    if not existing:
+        new_close_friend = CloseFriend(user_id=current_user.id, close_friend_id=user_to_add_id)
+        db.session.add(new_close_friend)
+        db.session.commit()
+    return jsonify({'status': 'success', 'message': 'User added to close friends.'})
+
+@main.route('/api/close_friends/remove', methods=['POST'])
+@login_required
+def remove_close_friend():
+    data = request.get_json()
+    user_to_remove_id = data.get('user_id')
+    if not user_to_remove_id:
+        return jsonify({'status': 'error', 'message': 'User ID is required'}), 400
+
+    existing = CloseFriend.query.filter_by(user_id=current_user.id, close_friend_id=user_to_remove_id).first()
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+    return jsonify({'status': 'success', 'message': 'User removed from close friends.'})
 
 @main.route('/api/chats/delete_all', methods=['POST'])
 @login_required

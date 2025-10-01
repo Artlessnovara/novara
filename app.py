@@ -47,7 +47,7 @@ def create_app(config_object=None):
     else:
         # Default configuration
         app.config.from_mapping(
-            SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(app.instance_path, 'app.db'),
+            SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or 'sqlite:///' + os.path.join(app.instance_path, 'app.db'),
             SQLALCHEMY_TRACK_MODIFICATIONS = False,
             SECRET_KEY = 'dev', # Change for production
             MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB
