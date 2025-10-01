@@ -156,11 +156,5 @@
 
 {% block scripts %}
     {{ super() }}
-    <script>
-    // Simplified interaction script for mobile
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log("Mobile feed script loaded.");
-        // Add basic interaction handlers here if needed
-    });
-    </script>
+    <script src="{{ url_for('static', filename='js/feed_stories.js') }}"></script>
 {% endblock %}
