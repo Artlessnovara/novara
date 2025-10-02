@@ -167,30 +167,21 @@ body {
 
 /* Reels Feed */
 #reels-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 30px; /* Increased space between videos */
-    background-color: #fafafa; /* Lighter background for the feed area */
-    padding: 20px 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
 }
-
 .reel-item {
-    width: 100%;
-    max-width: 380px; /* A bit narrower for a more mobile-like feel */
-    height: 675px; /* Taller aspect ratio */
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #dbdbdb;
     position: relative;
-    background-color: #000; /* Black background for the video container */
+    padding-bottom: 160%; /* Aspect ratio for vertical videos */
 }
-
 .reel-item video {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Cover the container, might crop a bit */
-    display: block;
+    object-fit: cover;
 }
 
 /* FAB */
