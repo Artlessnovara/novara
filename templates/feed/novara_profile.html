@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/novara_profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="novara-profile-container">
+    <!-- Top Area -->
+    <div class="profile-top-area">
+        <div class="profile-picture-wrapper">
+            <img src="{{ url_for('static', filename='profile_pics/' + user.profile_pic) }}" alt="{{ user.name }}'s profile picture" class="profile-picture">
+        </div>
+        <div class="profile-bio">
+            <p>{{ user.bio or 'No bio yet.' }}</p>
+        </div>
+        <div class="profile-counters">
+            <div class="counter">
+                <span class="count">{{ following_count }}</span>
+                <span class="label">Following</span>
+            </div>
+            <div class="counter">
+                <span class="count">{{ follower_count }}</span>
+                <span class="label">Followers</span>
+            </div>
+        </div>
+        <div class="profile-actions">
+            {% if user.id == current_user.id %}
+                <a href="{{ url_for('feed.edit_profile') }}" class="btn-edit-profile">Edit Profile</a>
+            {% else %}
+                {% if current_user.is_following(user) %}
+                    <form action="{{ url_for('feed.unfollow', user_id=user.id) }}" method="POST" style="display: inline;">
+                        <button type="submit" class="btn-unfollow">Unfollow</button>
+                    </form>
+                {% else %}
+                    <form action="{{ url_for('feed.follow', user_id=user.id) }}" method="POST" style="display: inline;">
+                        <button type="submit" class="btn-follow">Follow</button>
+                    </form>
+                {% endif %}
+                <button class="btn-message">💬 Message</button>
+                <button class="btn-more">⋯ More</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="profile-tabs">
+        <div class="tab active" data-tab="posts">Posts</div>
+        <div class="tab" data-tab="photos">Photos</div>
+        <div class="tab" data-tab="reels">Reels</div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <div id="posts-content" class="tab-pane active">
+            {% for post in posts %}
+                <div class="post">
+                    <div class="post-header">
+                        <img src="{{ url_for('static', filename='profile_pics/' + post.author.profile_pic) }}" alt="{{ post.author.name }}'s profile picture">
+                        <div>
+                            <strong>{{ post.author.name }}</strong>
+                            <small>{{ post.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                    </div>
+                    <div class="post-content">
+                        <p>{{ post.content }}</p>
+                        {% if post.media_type and post.media_url %}
+                            <div class="post-media">
+                                {% for media in post.media_url %}
+                                    {% if post.media_type in ['image', 'images'] %}
+                                        <img src="{{ url_for('static', filename=media) }}" alt="Post image">
+                                    {% elif post.media_type == 'video' %}
+                                        <video src="{{ url_for('static', filename=media) }}" controls></video>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="post-actions">
+                        <span>Like</span>
+                        <span>Comment</span>
+                        <span>Share</span>
+                    </div>
+                </div>
+            {% else %}
+                <p>This user has no posts yet.</p>
+            {% endfor %}
+        </div>
+        <div id="photos-content" class="tab-pane">
+            {% for post in photo_posts %}
+                {% for media_url in post.media_url %}
+                <div class="photo-item">
+                    <img src="{{ url_for('static', filename=media_url) }}" alt="Photo">
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>This user has no photos yet.</p>
+            {% endfor %}
+        </div>
+        <div id="reels-content" class="tab-pane">
+            {% for post in video_posts %}
+                {% for media_url in post.media_url %}
+                <div class="reel-item">
+                    <video src="{{ url_for('static', filename=media_url) }}" controls></video>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>This user has no reels yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+    <a href="{{ url_for('feed.create_post_page') }}" class="fab">+</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.profile-tabs .tab');
+    const panes = document.querySelectorAll('.tab-content .tab-pane');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const target = this.getAttribute('data-tab');
+
+            tabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+
+            panes.forEach(pane => {
+                if (pane.id === target + '-content') {
+                    pane.classList.add('active');
+                } else {
+                    pane.classList.remove('active');
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
