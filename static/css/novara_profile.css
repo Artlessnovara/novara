@@ -1,7 +1,11 @@
 /* Styles for the Novara Profile Page */
+/* Author: Jules */
+/* Style Guide: Clean Novara */
+
 body {
-    background-color: #f0f2f5;
+    background-color: #fafafa; /* Lighter background for a cleaner look */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #262626;
 }
 
 .novara-profile-container {
@@ -10,18 +14,19 @@ body {
     padding: 20px;
 }
 
-/* Top Area */
+/* --- Top Area --- */
+/* This section is centered using flexbox for a modern layout. */
 .profile-top-area {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding-bottom: 20px;
+    padding-bottom: 30px; /* Increased padding */
     border-bottom: 1px solid #dbdbdb;
 }
 
 .profile-picture-wrapper {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .profile-picture {
@@ -29,25 +34,21 @@ body {
     height: 150px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #fff;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border: 3px solid #fff; /* Slightly thicker border */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Softer shadow */
 }
 
 .profile-bio {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     font-size: 16px;
-    color: #262626;
+    line-height: 1.5; /* Improved readability */
 }
 
 .profile-counters {
     display: flex;
     justify-content: center;
-    gap: 40px;
+    gap: 50px; /* Increased gap for spacing */
     margin-bottom: 20px;
-}
-
-.counter {
-    text-align: center;
 }
 
 .counter .count {
@@ -66,22 +67,31 @@ body {
     gap: 10px;
 }
 
+/* A cleaner, more modern button style */
 .btn-message, .btn-more, .btn-edit-profile, .btn-follow, .btn-unfollow {
     background-color: #efefef;
-    border: 1px solid #dbdbdb;
-    border-radius: 5px;
-    padding: 8px 16px;
+    border: 1px solid transparent; /* No visible border by default */
+    border-radius: 8px; /* Softer corners */
+    padding: 8px 18px; /* Adjusted padding */
     font-weight: 600;
     cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-message:hover, .btn-more:hover, .btn-edit-profile:hover, .btn-follow:hover, .btn-unfollow:hover {
+    background-color: #dbdbdb;
 }
 
 .btn-message {
     background-color: #0095f6;
     color: white;
-    border: none;
+}
+.btn-message:hover {
+    background-color: #007ac1;
 }
 
-/* Tabs */
+/* --- Tabs --- */
+/* The tabs are centered for consistency. */
 .profile-tabs {
     display: flex;
     justify-content: center;
@@ -89,21 +99,23 @@ body {
 }
 
 .tab {
-    padding: 15px 20px;
+    padding: 18px 25px; /* Increased padding for a better feel */
     cursor: pointer;
     font-weight: 600;
     color: #8e8e8e;
-    border-top: 1px solid transparent;
+    border-top: 2px solid transparent; /* Indicator is on top */
+    margin-bottom: -1px; /* Aligns with bottom border */
+    transition: color 0.2s ease;
 }
 
 .tab.active {
     color: #262626;
-    border-top: 1px solid #262626;
+    border-top-color: #262626;
 }
 
-/* Tab Content */
+/* --- Tab Content --- */
 .tab-content {
-    padding-top: 20px;
+    padding-top: 25px;
 }
 
 .tab-pane {
@@ -114,10 +126,14 @@ body {
     display: block;
 }
 
-/* Posts Feed */
+/* --- Posts Feed --- */
+/* Posts are separated by a thin divider, not cards, for a clean feed. */
 #posts-content .post {
-    border-bottom: 1px solid #dbdbdb;
-    padding: 15px 0;
+    border-bottom: 1px solid #efefef;
+    padding: 20px 0;
+}
+#posts-content .post:first-child {
+    padding-top: 0;
 }
 #posts-content .post:last-child {
     border-bottom: none;
@@ -125,81 +141,100 @@ body {
 #posts-content .post-header {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 #posts-content .post-header img {
-    width: 32px;
-    height: 32px;
+    width: 36px; /* Slightly larger */
+    height: 36px;
     border-radius: 50%;
-    margin-right: 10px;
+    margin-right: 12px;
 }
 #posts-content .post-content {
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    font-size: 15px;
 }
 #posts-content .post-media img,
 #posts-content .post-media video {
     max-width: 100%;
-    border-radius: 5px;
+    border-radius: 8px; /* Softer corners for media */
 }
 #posts-content .post-actions {
     display: flex;
-    gap: 15px;
+    gap: 20px;
+    color: #8e8e8e;
+}
+#posts-content .post-actions span {
+    cursor: pointer;
+}
+#posts-content .post-actions span:hover {
+    color: #262626;
 }
 
-/* Photos Grid */
-#photos-content {
+/* --- Photos & Reels Grids --- */
+/* A 3-column grid is used for a standard, clean gallery view. */
+#photos-content, #reels-content {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 28px;
+    gap: 5px; /* Reduced gap for a tighter grid */
 }
-.photo-item {
+.photo-item, .reel-item {
     position: relative;
+    cursor: pointer;
+}
+.photo-item::after, .reel-item::after { /* Overlay for hover effects */
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.photo-item:hover::after, .reel-item:hover::after {
+    opacity: 1;
+}
+
+.photo-item {
     padding-bottom: 100%; /* 1:1 aspect ratio */
 }
 .photo-item img {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
     object-fit: cover;
 }
 
-/* Reels Feed */
-#reels-content {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 28px;
-}
 .reel-item {
-    position: relative;
     padding-bottom: 160%; /* Aspect ratio for vertical videos */
 }
 .reel-item video {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
     object-fit: cover;
 }
 
-/* FAB */
+/* --- FAB (Floating Action Button) --- */
 .fab {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    width: 56px;
-    height: 56px;
+    width: 60px; /* Slightly larger */
+    height: 60px;
     background-color: #0095f6;
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-size: 28px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     border: none;
     cursor: pointer;
     z-index: 1000;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+.fab:hover {
+    transform: scale(1.05);
+    background-color: #007ac1;
 }
