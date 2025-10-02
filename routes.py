@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, send_from_directory, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, send_from_directory, jsonify, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime, timedelta
 import random
@@ -15,6 +15,7 @@ from flask import url_for
 import json
 import requests
 from bs4 import BeautifulSoup
+from PIL import Image
 
 main = Blueprint('main', __name__)
 
@@ -726,7 +727,7 @@ def submit_library_payment_proof(material_id):
     return redirect(url_for('main.student_dashboard'))
 
 def save_picture(form_picture):
-    random_hex = os.urandom(8).hex()
+    random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_picture.filename)
     picture_fn = random_hex + f_ext
     # Use static_folder which is configurable for tests
