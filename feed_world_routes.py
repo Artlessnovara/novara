@@ -266,3 +266,29 @@ def suggestions():
         suggested_users = User.query.filter(User.id != current_user.id, User.id.notin_(following_ids)).order_by(db.func.random()).limit(10).all()
 
     return render_template('feed/suggestions.html', suggested_users=suggested_users)
+
+@feed.route('/feed/profile/<username>')
+@login_required
+def novara_profile(username):
+    user = User.query.filter_by(name=username).first_or_404()
+
+    all_posts = Post.query.filter_by(author=user).order_by(Post.timestamp.desc()).all()
+    photo_posts = [p for p in all_posts if p.media_type in ['image', 'images']]
+    video_posts = [p for p in all_posts if p.media_type == 'video']
+
+    follower_count = user.followers.count()
+    following_count = user.followed.count()
+
+    return render_template('feed/novara_profile.html',
+                           user=user,
+                           posts=all_posts,
+                           photo_posts=photo_posts,
+                           video_posts=video_posts,
+                           follower_count=follower_count,
+                           following_count=following_count)
+
+@feed.route('/feed/edit_profile', methods=['GET'])
+@login_required
+def edit_profile():
+    # Placeholder for the edit profile page
+    return render_template('feed/edit_profile.html')

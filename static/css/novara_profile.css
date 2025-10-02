@@ -1,0 +1,207 @@
+/* Styles for the Novara Profile Page */
+body {
+    background-color: #f0f2f5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.novara-profile-container {
+    max-width: 935px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Top Area */
+.profile-top-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #dbdbdb;
+}
+
+.profile-picture-wrapper {
+    margin-bottom: 15px;
+}
+
+.profile-picture {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.profile-bio {
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #262626;
+}
+
+.profile-counters {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 20px;
+}
+
+.counter {
+    text-align: center;
+}
+
+.counter .count {
+    font-weight: 600;
+    font-size: 18px;
+    display: block;
+}
+
+.counter .label {
+    font-size: 14px;
+    color: #8e8e8e;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-message, .btn-more, .btn-edit-profile, .btn-follow, .btn-unfollow {
+    background-color: #efefef;
+    border: 1px solid #dbdbdb;
+    border-radius: 5px;
+    padding: 8px 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-message {
+    background-color: #0095f6;
+    color: white;
+    border: none;
+}
+
+/* Tabs */
+.profile-tabs {
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px solid #dbdbdb;
+}
+
+.tab {
+    padding: 15px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #8e8e8e;
+    border-top: 1px solid transparent;
+}
+
+.tab.active {
+    color: #262626;
+    border-top: 1px solid #262626;
+}
+
+/* Tab Content */
+.tab-content {
+    padding-top: 20px;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+/* Posts Feed */
+#posts-content .post {
+    border-bottom: 1px solid #dbdbdb;
+    padding: 15px 0;
+}
+#posts-content .post:last-child {
+    border-bottom: none;
+}
+#posts-content .post-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+#posts-content .post-header img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+#posts-content .post-content {
+    margin-bottom: 10px;
+}
+#posts-content .post-media img,
+#posts-content .post-media video {
+    max-width: 100%;
+    border-radius: 5px;
+}
+#posts-content .post-actions {
+    display: flex;
+    gap: 15px;
+}
+
+/* Photos Grid */
+#photos-content {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+}
+.photo-item {
+    position: relative;
+    padding-bottom: 100%; /* 1:1 aspect ratio */
+}
+.photo-item img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Reels Feed */
+#reels-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px; /* Space between videos */
+}
+
+.reel-item {
+    width: 100%;
+    max-width: 470px; /* Typical width for a vertical feed */
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #dbdbdb;
+}
+
+.reel-item video {
+    width: 100%;
+    display: block;
+}
+
+/* FAB */
+.fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    background-color: #0095f6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: none;
+    cursor: pointer;
+    z-index: 1000;
+}
